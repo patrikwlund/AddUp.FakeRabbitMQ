@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Threading;
 using fake_rabbit.models;
 using RabbitMQ.Client;
@@ -17,24 +16,24 @@ namespace fake_rabbit
         public ConcurrentDictionary<string, Exchange> Exchanges = new ConcurrentDictionary<string, Exchange>();
         public ConcurrentDictionary<string, models.Queue> Queues = new ConcurrentDictionary<string, models.Queue>();
 
-        public IEnumerable<dynamic> GetMessagesPublishedToExchange(string exchange)
+        public IEnumerable<RabbitMessage> GetMessagesPublishedToExchange(string exchange)
         {
             Exchange exchangeInstance;
             Exchanges.TryGetValue(exchange, out exchangeInstance);
 
             if (exchangeInstance == null)
-                return new List<dynamic>();
+                return new List<RabbitMessage>();
 
             return exchangeInstance.Messages;
         }
 
-        public IEnumerable<dynamic> GetMessagesOnQueue(string queueName)
+        public IEnumerable<RabbitMessage> GetMessagesOnQueue(string queueName)
         {
             models.Queue queueInstance;
             Queues.TryGetValue(queueName, out queueInstance);
 
             if (queueInstance == null)
-                return new List<dynamic>();
+                return new List<RabbitMessage>();
 
             return queueInstance.Messages;
         }
@@ -300,7 +299,7 @@ namespace fake_rabbit
         }
 
         private long _lastDeliveryTag = 0;
-        private readonly ConcurrentDictionary<ulong,dynamic> _workingMessages = new ConcurrentDictionary<ulong, dynamic>();
+        private readonly ConcurrentDictionary<ulong, RabbitMessage> _workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
  
         public BasicGetResult BasicGet(string queue, bool noAck)
         {
@@ -325,7 +324,7 @@ namespace fake_rabbit
             var basicProperties = CreateBasicProperties();
             var body = message.Body;
 
-            Func<ulong, dynamic, dynamic> updateFunction = (key, existingMessage) => existingMessage;
+            Func<ulong, RabbitMessage, RabbitMessage> updateFunction = (key, existingMessage) => existingMessage;
             _workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
 
             return new BasicGetResult(deliveryTag,redelivered,exchange,routingKey,messageCount,basicProperties,body);
@@ -388,12 +387,14 @@ namespace fake_rabbit
                 return existingExchange;
             };
             this.Exchanges.AddOrUpdate(exchange, addExchange, updateExchange);
+
+            NextPublishSeqNo++;
         }
 
 
         public void BasicAck(ulong deliveryTag, bool multiple)
         {
-            dynamic message;
+            RabbitMessage message;
             _workingMessages.TryRemove(deliveryTag, out message);
         }
 
@@ -404,29 +405,43 @@ namespace fake_rabbit
 
         public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
         {
-            dynamic message;
+            RabbitMessage message;
             _workingMessages.TryRemove(deliveryTag, out message);
 
             if (message != null && requeue)
             {
                 models.Queue queueInstance;
-                Queues.TryGetValue(message.queue, out queueInstance);
+                Queues.TryGetValue(message.Queue, out queueInstance);
 
                 if (queueInstance != null)
                 {
-                    queueInstance.Messages.Enqueue(message);
+                    queueInstance.PublishMessage(message);
                 }
             }
         }
 
         public void BasicRecover(bool requeue)
         {
-            throw new NotImplementedException();
+            if (requeue)
+            {
+                foreach (var message in _workingMessages)
+                {
+                    models.Queue queueInstance;
+                    Queues.TryGetValue(message.Value.Queue, out queueInstance);
+
+                    if (queueInstance != null)
+                    {
+                        queueInstance.PublishMessage(message.Value);
+                    }
+                }
+            }
+
+            _workingMessages.Clear();
         }
 
         public void BasicRecoverAsync(bool requeue)
         {
-            throw new NotImplementedException();
+            BasicRecover(requeue);
         }
 
         public void TxSelect()
