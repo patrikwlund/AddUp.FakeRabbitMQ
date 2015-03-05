@@ -1,5 +1,4 @@
-﻿using PPA.Logging.Amqp.Tests.Fakes;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 
 namespace fake_rabbit
 {

@@ -16,7 +16,15 @@ namespace fake_rabbit.models
 
         public IDictionary Arguments = new Dictionary<string, object>();
 
-        public ConcurrentQueue<dynamic> Messages = new ConcurrentQueue<dynamic>();
-        public ConcurrentDictionary<string,ExchangeQueueBinding> Bindings = new ConcurrentDictionary<string,ExchangeQueueBinding>(); 
+        public ConcurrentQueue<RabbitMessage> Messages = new ConcurrentQueue<RabbitMessage>();
+        public ConcurrentDictionary<string,ExchangeQueueBinding> Bindings = new ConcurrentDictionary<string,ExchangeQueueBinding>();
+
+        public void PublishMessage(RabbitMessage message)
+        {
+            var queueMessage = message.Copy();
+            queueMessage.Queue = this.Name;
+
+            this.Messages.Enqueue(queueMessage);
+        }
     }
 }

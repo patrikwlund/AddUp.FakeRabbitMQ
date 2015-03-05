@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Net;
-using PPA.Logging.Amqp.Tests.Fakes;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 

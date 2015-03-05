@@ -13,29 +13,29 @@ namespace fake_rabbit.models
         public bool AutoDelete { get; set; } 
         public IDictionary Arguments = new Dictionary<string, object>();
 
-        public ConcurrentQueue<dynamic> Messages = new ConcurrentQueue<dynamic>();
+        public ConcurrentQueue<RabbitMessage> Messages = new ConcurrentQueue<RabbitMessage>();
         public ConcurrentDictionary<string,ExchangeQueueBinding> Bindings = new ConcurrentDictionary<string,ExchangeQueueBinding>();
 
-        public void PublishMessage(dynamic message, string routingKey)
+        public void PublishMessage(RabbitMessage message)
         {
             this.Messages.Enqueue(message);
 
-            if (string.IsNullOrWhiteSpace(routingKey))
+            if (string.IsNullOrWhiteSpace(message.RoutingKey))
             {
                 foreach (var binding in Bindings)
                 {
-                    binding.Value.Queue.Messages.Enqueue(message);
+                    binding.Value.Queue.PublishMessage(message);
                 }
             }
             else
             {
                 var matchingBindings = Bindings
                     .Values
-                    .Where(b => b.RoutingKey == routingKey);
+                    .Where(b => b.RoutingKey == message.RoutingKey);
 
                 foreach (var binding in matchingBindings)
                 {
-                    binding.Queue.Messages.Enqueue(message);
+                    binding.Queue.PublishMessage(message);
                 }
             }
         }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
+using System.Threading;
 using fake_rabbit.models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -217,7 +218,7 @@ namespace fake_rabbit
             
             while (!instance.Messages.IsEmpty)
             {
-                dynamic itemToRemove;
+                RabbitMessage itemToRemove;
                 instance.Messages.TryDequeue(out itemToRemove);
             }
 
@@ -274,45 +275,63 @@ namespace fake_rabbit
 
         public string BasicConsume(string queue, bool noAck, IBasicConsumer consumer)
         {
-            throw new NotImplementedException();
+            return BasicConsume(queue: queue, noAck: noAck, consumerTag: null, noLocal: true, exclusive: false, arguments: null, consumer: consumer);      
         }
 
         public string BasicConsume(string queue, bool noAck, string consumerTag, IBasicConsumer consumer)
         {
-            throw new NotImplementedException();
+           return BasicConsume(queue:queue,noAck:noAck,consumerTag:consumerTag,noLocal:true,exclusive:false,arguments:null,consumer:consumer);        
         }
 
         public string BasicConsume(string queue, bool noAck, string consumerTag, IDictionary arguments, IBasicConsumer consumer)
         {
-            throw new NotImplementedException();
+            return BasicConsume(queue: queue, noAck: noAck, consumerTag: consumerTag, noLocal: true, exclusive: false, arguments: arguments, consumer: consumer);        
         }
 
-        public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary arguments,
-            IBasicConsumer consumer)
+        public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary arguments, IBasicConsumer consumer)
         {
             throw new NotImplementedException();
-        }
 
-        public string BasicConsume(string queue, bool noAck, string consumerTag, IDictionary<string, object> arguments, IBasicConsumer consumer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments,
-            IBasicConsumer consumer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public BasicGetResult BasicGet(string queue, bool noAck)
-        {
-            throw new NotImplementedException();
         }
 
         public void BasicCancel(string consumerTag)
         {
             throw new NotImplementedException();
         }
+
+        private long _lastDeliveryTag = 0;
+        private readonly ConcurrentDictionary<ulong,dynamic> _workingMessages = new ConcurrentDictionary<ulong, dynamic>();
+ 
+        public BasicGetResult BasicGet(string queue, bool noAck)
+        {
+            models.Queue queueInstance;
+            Queues.TryGetValue(queue, out queueInstance);
+
+            if (queueInstance == null)
+                return null;
+
+            RabbitMessage message;
+            queueInstance.Messages.TryDequeue(out message);
+
+            if (message == null)
+                return null;
+
+            Interlocked.Increment(ref _lastDeliveryTag);
+            var deliveryTag = Convert.ToUInt64(_lastDeliveryTag);
+            const bool redelivered = false;
+            var exchange = message.Exchange;
+            var routingKey = message.RoutingKey;
+            var messageCount = Convert.ToUInt32(queueInstance.Messages.Count);
+            var basicProperties = CreateBasicProperties();
+            var body = message.Body;
+
+            Func<ulong, dynamic, dynamic> updateFunction = (key, existingMessage) => existingMessage;
+            _workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
+
+            return new BasicGetResult(deliveryTag,redelivered,exchange,routingKey,messageCount,basicProperties,body);
+
+        }
+
 
         public void BasicQos(uint prefetchSize, ushort prefetchCount, bool global)
         {
@@ -338,13 +357,15 @@ namespace fake_rabbit
 
         public void BasicPublish(string exchange, string routingKey, bool mandatory, bool immediate, IBasicProperties basicProperties,byte[] body)
         {
-            dynamic parameters = new ExpandoObject();
-            parameters.exchange = exchange;
-            parameters.routingKey = routingKey;
-            parameters.mandatory = mandatory;
-            parameters.immediate = immediate;
-            parameters.basicProperties = basicProperties;
-            parameters.body = body;
+            var parameters = new RabbitMessage
+            {
+                Exchange = exchange,
+                RoutingKey = routingKey,
+                Mandatory = mandatory,
+                Immediate = immediate,
+                BasicProperties = basicProperties,
+                Body = body
+            };
 
             Func<string, Exchange> addExchange = s =>
             {
@@ -354,16 +375,15 @@ namespace fake_rabbit
                     Arguments = null,
                     AutoDelete = false,
                     IsDurable = false,
-                    Type = "direct",
-                    Messages =  new ConcurrentQueue<dynamic>()
+                    Type = "direct"
                 };
-                newExchange.PublishMessage(parameters, routingKey);
+                newExchange.PublishMessage(parameters);
 
                 return newExchange;
             };
             Func<string, Exchange, Exchange> updateExchange = (s, existingExchange) =>
             {
-                existingExchange.PublishMessage(parameters, routingKey);
+                existingExchange.PublishMessage(parameters);
 
                 return existingExchange;
             };
@@ -373,17 +393,30 @@ namespace fake_rabbit
 
         public void BasicAck(ulong deliveryTag, bool multiple)
         {
-            throw new NotImplementedException();
+            dynamic message;
+            _workingMessages.TryRemove(deliveryTag, out message);
         }
 
         public void BasicReject(ulong deliveryTag, bool requeue)
         {
-            throw new NotImplementedException();
+           BasicNack(deliveryTag:deliveryTag,multiple:false,requeue:requeue);
         }
 
         public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
         {
-            throw new NotImplementedException();
+            dynamic message;
+            _workingMessages.TryRemove(deliveryTag, out message);
+
+            if (message != null && requeue)
+            {
+                models.Queue queueInstance;
+                Queues.TryGetValue(message.queue, out queueInstance);
+
+                if (queueInstance != null)
+                {
+                    queueInstance.Messages.Enqueue(message);
+                }
+            }
         }
 
         public void BasicRecover(bool requeue)

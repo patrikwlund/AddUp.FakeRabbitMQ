@@ -47,6 +47,7 @@
     <Compile Include="FakeModel.cs" />
     <Compile Include="models\Exchange.cs" />
     <Compile Include="models\ExchangeQueueBinding.cs" />
+    <Compile Include="models\RabbitMessage.cs" />
     <Compile Include="models\Queue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
