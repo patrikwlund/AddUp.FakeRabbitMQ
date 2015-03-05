@@ -274,7 +274,7 @@ namespace fake_rabbit
 
         public string BasicConsume(string queue, bool noAck, IBasicConsumer consumer)
         {
-            return BasicConsume(queue: queue, noAck: noAck, consumerTag: null, noLocal: true, exclusive: false, arguments: null, consumer: consumer);      
+            return BasicConsume(queue: queue, noAck: noAck, consumerTag: Guid.NewGuid().ToString(), noLocal: true, exclusive: false, arguments: null, consumer: consumer);      
         }
 
         public string BasicConsume(string queue, bool noAck, string consumerTag, IBasicConsumer consumer)
@@ -289,8 +289,26 @@ namespace fake_rabbit
 
         public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary arguments, IBasicConsumer consumer)
         {
-            throw new NotImplementedException();
+            models.Queue queueInstance;
+            Queues.TryGetValue(queue, out queueInstance);
 
+            if (queueInstance != null)
+            {
+                queueInstance.MessagePublished+= (sender, message) =>
+                {
+                    Interlocked.Increment(ref _lastDeliveryTag);
+                    var deliveryTag = Convert.ToUInt64(_lastDeliveryTag);
+                    const bool redelivered = false;
+                    var exchange = message.Exchange;
+                    var routingKey = message.RoutingKey;
+                    var basicProperties = CreateBasicProperties();
+                    var body = message.Body;
+
+                    consumer.HandleBasicDeliver(consumerTag, deliveryTag,redelivered,exchange,routingKey,basicProperties,body);
+                };
+            }
+           
+            return consumerTag;
         }
 
         public void BasicCancel(string consumerTag)

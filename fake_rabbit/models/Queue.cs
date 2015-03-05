@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
@@ -19,12 +20,16 @@ namespace fake_rabbit.models
         public ConcurrentQueue<RabbitMessage> Messages = new ConcurrentQueue<RabbitMessage>();
         public ConcurrentDictionary<string,ExchangeQueueBinding> Bindings = new ConcurrentDictionary<string,ExchangeQueueBinding>();
 
+        public event EventHandler<RabbitMessage> MessagePublished = (sender, message) => { };  
+
         public void PublishMessage(RabbitMessage message)
         {
             var queueMessage = message.Copy();
             queueMessage.Queue = this.Name;
 
             this.Messages.Enqueue(queueMessage);
+
+            MessagePublished(this, queueMessage);
         }
     }
 }
