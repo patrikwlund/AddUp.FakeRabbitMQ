@@ -14,11 +14,34 @@ namespace fake_rabbit
     {
 
         public ConcurrentDictionary<string, Exchange> Exchanges = new ConcurrentDictionary<string, Exchange>();
-        public ConcurrentDictionary<string, models.Queue> Queues = new ConcurrentDictionary<string, models.Queue>(); 
+        public ConcurrentDictionary<string, models.Queue> Queues = new ConcurrentDictionary<string, models.Queue>();
+
+        public IEnumerable<dynamic> GetMessagesPublishedToExchange(string exchange)
+        {
+            Exchange exchangeInstance;
+            Exchanges.TryGetValue(exchange, out exchangeInstance);
+
+            if (exchangeInstance == null)
+                return new List<dynamic>();
+
+            return exchangeInstance.Messages;
+        }
+
+        public IEnumerable<dynamic> GetMessagesOnQueue(string queueName)
+        {
+            models.Queue queueInstance;
+            Queues.TryGetValue(queueName, out queueInstance);
+
+            if (queueInstance == null)
+                return new List<dynamic>();
+
+            return queueInstance.Messages;
+        }
 
         public bool ApplyPrefetchToAllChannels { get; private set; }
         public ushort PrefetchCount { get; private set; }
         public uint PrefetchSize { get; private set; }
+        public bool IsChannelFlowActive { get; private set; }
 
         public void Dispose()
         {
@@ -42,9 +65,8 @@ namespace fake_rabbit
 
         public void ChannelFlow(bool active)
         {
-            throw new NotImplementedException();
+            IsChannelFlowActive = true;
         }
-
 
         public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary arguments)
         {
@@ -91,50 +113,52 @@ namespace fake_rabbit
             ExchangeDelete(exchange, ifUnused: false);
         }
 
-        public void ExchangeBind(string destination, string source, string routingKey, IDictionary arguments)
-        {
-            throw new NotImplementedException();
-        }
-
         public void ExchangeDeleteNoWait(string exchange, bool ifUnused)
         {
             ExchangeDelete(exchange, ifUnused: false);
         }
 
-        public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
+        public void ExchangeBind(string destination, string source, string routingKey, IDictionary arguments)
         {
-            throw new NotImplementedException();
+            Exchange exchange;
+            Exchanges.TryGetValue(source, out exchange);
+
+            models.Queue queue;
+            Queues.TryGetValue(destination, out queue);
+
+            var binding = new ExchangeQueueBinding {Exchange = exchange, Queue = queue, RoutingKey = routingKey};
+            if (exchange != null)
+                exchange.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
+            if(queue!=null)
+                queue.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
         }
 
         public void ExchangeBind(string destination, string source, string routingKey)
         {
-            throw new NotImplementedException();
+            ExchangeBind(destination:destination,source:source,routingKey:routingKey,arguments:null);
         }
 
         public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary arguments)
         {
-            throw new NotImplementedException();
-        }
+            Exchange exchange;
+            Exchanges.TryGetValue(source, out exchange);
 
-        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments)
-        {
-            throw new NotImplementedException();
-        }
+            models.Queue queue;
+            Queues.TryGetValue(destination, out queue);
 
-        public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
-        {
-            throw new NotImplementedException();
+            var binding = new ExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
+            ExchangeQueueBinding removedBinding;
+            if (exchange != null)
+                exchange.Bindings.TryRemove(binding.Key, out removedBinding);
+            if (queue != null)
+                queue.Bindings.TryRemove(binding.Key,out removedBinding);
         }
 
         public void ExchangeUnbind(string destination, string source, string routingKey)
         {
-            throw new NotImplementedException();
+            ExchangeUnbind(destination: destination, source: source, routingKey: routingKey, arguments: null);
         }
 
-        public void ExchangeUnbindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments)
-        {
-            throw new NotImplementedException();
-        }
 
         public QueueDeclareOk QueueDeclare()
         {
@@ -174,29 +198,14 @@ namespace fake_rabbit
             QueueDeclare(queue, durable, exclusive, autoDelete, arguments);
         }
 
-        public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
-        {
-            throw new NotImplementedException();
-        }
-
         public void QueueBind(string queue, string exchange, string routingKey)
         {
-            throw new NotImplementedException();
+            ExchangeBind(queue, exchange, routingKey);
         }
 
         public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary arguments)
         {
-            throw new NotImplementedException();
-        }
-
-        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
-        {
-            throw new NotImplementedException();
+            ExchangeUnbind(queue,exchange,routingKey);
         }
 
         public uint QueuePurge(string queue)

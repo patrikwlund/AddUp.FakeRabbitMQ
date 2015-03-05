@@ -17,5 +17,6 @@ namespace fake_rabbit.models
         public IDictionary Arguments = new Dictionary<string, object>();
 
         public ConcurrentQueue<dynamic> Messages = new ConcurrentQueue<dynamic>();
+        public ConcurrentDictionary<string,ExchangeQueueBinding> Bindings = new ConcurrentDictionary<string,ExchangeQueueBinding>(); 
     }
 }
