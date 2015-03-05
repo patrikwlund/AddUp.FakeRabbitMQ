@@ -1,7 +1,8 @@
 ﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace PPA.Logging.Amqp.Tests.Fakes.models
+namespace fake_rabbit.models
 {
     public class Queue
     {
@@ -15,6 +16,6 @@ namespace PPA.Logging.Amqp.Tests.Fakes.models
 
         public IDictionary Arguments = new Dictionary<string, object>();
 
-        public List<dynamic> Messages = new List<dynamic>();
+        public ConcurrentQueue<dynamic> Messages = new ConcurrentQueue<dynamic>();
     }
 }

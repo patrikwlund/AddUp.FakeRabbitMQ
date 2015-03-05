@@ -3,28 +3,18 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Dynamic;
-using PPA.Logging.Amqp.Tests.Fakes.models;
+using fake_rabbit.models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using Queue = PPA.Logging.Amqp.Tests.Fakes.models.Queue;
+using RabbitMQ.Client.Framing.v0_8;
 
-namespace PPA.Logging.Amqp.Tests.Fakes
+namespace fake_rabbit
 {
     public class FakeModel:IModel
     {
-        private readonly Dictionary<string, List<dynamic>> _publishedMessages = new Dictionary<string, List<dynamic>>();
-        public List<dynamic> PublishedMessagesOnExchange(string exchangeName)
-        {
-            return _publishedMessages.ContainsKey(exchangeName) ? 
-                _publishedMessages[exchangeName] : new List<dynamic>();
-        }
-
-        public List<dynamic> AcknowledgedMessages = new List<dynamic>(); 
-        public List<dynamic> RejectedMessages = new List<dynamic>();
-        public List<dynamic> NonAcknowledgedMessages = new List<dynamic>();
 
         public ConcurrentDictionary<string, Exchange> Exchanges = new ConcurrentDictionary<string, Exchange>();
-        public ConcurrentDictionary<string, Queue> Queues = new ConcurrentDictionary<string, Queue>(); 
+        public ConcurrentDictionary<string, models.Queue> Queues = new ConcurrentDictionary<string, models.Queue>(); 
 
         public bool ApplyPrefetchToAllChannels { get; private set; }
         public ushort PrefetchCount { get; private set; }
@@ -37,17 +27,17 @@ namespace PPA.Logging.Amqp.Tests.Fakes
 
         public IBasicProperties CreateBasicProperties()
         {
-            throw new NotImplementedException();
+            return new BasicProperties();
         }
 
         public IFileProperties CreateFileProperties()
         {
-            throw new NotImplementedException();
+            return new FileProperties();
         }
 
         public IStreamProperties CreateStreamProperties()
         {
-            throw new NotImplementedException();
+            return new StreamProperties();
         }
 
         public void ChannelFlow(bool active)
@@ -157,7 +147,6 @@ namespace PPA.Logging.Amqp.Tests.Fakes
             return QueueDeclare(queue, durable: false, exclusive: false, autoDelete: false, arguments: null);
         }
 
-
         public void QueueBind(string queue, string exchange, string routingKey, IDictionary arguments)
         {
             throw new NotImplementedException();
@@ -165,7 +154,7 @@ namespace PPA.Logging.Amqp.Tests.Fakes
 
         public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary arguments)
         {
-            var queueInstance = new Queue
+            var queueInstance = new models.Queue
             {
                 Name = queue,
                 IsDurable = durable,
@@ -174,7 +163,7 @@ namespace PPA.Logging.Amqp.Tests.Fakes
                 Arguments = arguments
             };
 
-            Func<string,Queue,Queue> updateFunction = (name, existing) => existing;
+            Func<string,models.Queue,models.Queue> updateFunction = (name, existing) => existing;
             Queues.AddOrUpdate(queue, queueInstance, updateFunction);
 
             return new QueueDeclareOk(queue, 0, 0);
@@ -212,12 +201,24 @@ namespace PPA.Logging.Amqp.Tests.Fakes
 
         public uint QueuePurge(string queue)
         {
-            throw new NotImplementedException();
+            models.Queue instance;
+            Queues.TryRemove(queue, out instance);
+
+            if (instance == null)
+                return 0u;
+            
+            while (!instance.Messages.IsEmpty)
+            {
+                dynamic itemToRemove;
+                instance.Messages.TryDequeue(out itemToRemove);
+            }
+
+            return 1u;
         }
 
         public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
         {
-            Queue instance;
+            models.Queue instance;
             Queues.TryRemove(queue, out instance);
 
             return instance != null ? 1u : 0u;
@@ -314,59 +315,21 @@ namespace PPA.Logging.Amqp.Tests.Fakes
 
         public void BasicPublish(PublicationAddress addr, IBasicProperties basicProperties, byte[] body)
         {
-            if (!_publishedMessages.ContainsKey(addr.ExchangeName))
-            {
-                _publishedMessages.Add(addr.ExchangeName,new List<dynamic>());
-            }
-
-            dynamic parameters = new ExpandoObject();
-            parameters.addr = addr;
-            parameters.basicProperties = basicProperties;
-            parameters.body = body;
-
-            _publishedMessages[addr.ExchangeName].Add(parameters);
+            BasicPublish(exchange: addr.ExchangeName, routingKey: addr.RoutingKey, mandatory: true, immediate: true, basicProperties: basicProperties, body: body);
         }
 
         public void BasicPublish(string exchange, string routingKey, IBasicProperties basicProperties, byte[] body)
         {
-            if (!_publishedMessages.ContainsKey(exchange))
-            {
-                _publishedMessages.Add(exchange, new List<dynamic>());
-            }
-
-            dynamic parameters = new ExpandoObject();
-            parameters.exchange = exchange;
-            parameters.routingKey = routingKey;
-            parameters.basicProperties = basicProperties;
-            parameters.body = body;
-
-            _publishedMessages[exchange].Add(parameters);
+            BasicPublish(exchange:exchange,routingKey:routingKey,mandatory:true,immediate:true,basicProperties:basicProperties,body:body);
         }
 
         public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, byte[] body)
         {
-            if (!_publishedMessages.ContainsKey(exchange))
-            {
-                _publishedMessages.Add(exchange, new List<dynamic>());
-            }
-
-            dynamic parameters = new ExpandoObject();
-            parameters.exchange = exchange;
-            parameters.routingKey = routingKey;
-            parameters.mandatory = mandatory;
-            parameters.basicProperties = basicProperties;
-            parameters.body = body;
-
-            _publishedMessages[exchange].Add(parameters);
+            BasicPublish(exchange:exchange,routingKey:routingKey,mandatory:mandatory,immediate:true,basicProperties:basicProperties,body:body);
         }
 
         public void BasicPublish(string exchange, string routingKey, bool mandatory, bool immediate, IBasicProperties basicProperties,byte[] body)
         {
-            if (!_publishedMessages.ContainsKey(exchange))
-            {
-                _publishedMessages.Add(exchange, new List<dynamic>());
-            }
-
             dynamic parameters = new ExpandoObject();
             parameters.exchange = exchange;
             parameters.routingKey = routingKey;
@@ -375,35 +338,44 @@ namespace PPA.Logging.Amqp.Tests.Fakes
             parameters.basicProperties = basicProperties;
             parameters.body = body;
 
-            _publishedMessages[exchange].Add(parameters);
+            Func<string, Exchange> addExchange = s =>
+            {
+                var newExchange = new Exchange
+                {
+                    Name = exchange,
+                    Arguments = null,
+                    AutoDelete = false,
+                    IsDurable = false,
+                    Type = "direct",
+                    Messages =  new ConcurrentQueue<dynamic>()
+                };
+                newExchange.Messages.Enqueue(parameters);
+
+                return newExchange;
+            };
+            Func<string, Exchange, Exchange> updateExchange = (s, existingExchange) =>
+            {
+                existingExchange.Messages.Enqueue(parameters);
+
+                return existingExchange;
+            };
+            this.Exchanges.AddOrUpdate(exchange, addExchange, updateExchange);
         }
+
 
         public void BasicAck(ulong deliveryTag, bool multiple)
         {
-            dynamic parameters = new ExpandoObject();
-            parameters.deliveryTag = deliveryTag;
-            parameters.multiple = multiple;
-
-            AcknowledgedMessages.Add(parameters);
+            throw new NotImplementedException();
         }
 
         public void BasicReject(ulong deliveryTag, bool requeue)
         {
-            dynamic parameters = new ExpandoObject();
-            parameters.deliveryTag = deliveryTag;
-            parameters.requeue = requeue;
-
-            RejectedMessages.Add(parameters);
+            throw new NotImplementedException();
         }
 
         public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
         {
-            dynamic parameters = new ExpandoObject();
-            parameters.deliveryTag = deliveryTag;
-            parameters.multiple = multiple;
-            parameters.requeue = requeue;
-
-            NonAcknowledgedMessages.Add(parameters);
+            throw new NotImplementedException();
         }
 
         public void BasicRecover(bool requeue)

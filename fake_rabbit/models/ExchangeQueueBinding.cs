@@ -1,4 +1,4 @@
-﻿namespace PPA.Logging.Amqp.Tests.Fakes.models
+﻿namespace fake_rabbit.models
 {
     public class ExchangeQueueBinding
     {

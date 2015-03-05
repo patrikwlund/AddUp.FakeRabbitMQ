@@ -44,7 +44,6 @@
   <ItemGroup>
     <Compile Include="FakeConnection.cs" />
     <Compile Include="FakeConnectionFactory.cs" />
-    <Compile Include="FakeErrorHandler.cs" />
     <Compile Include="FakeModel.cs" />
     <Compile Include="models\Exchange.cs" />
     <Compile Include="models\ExchangeQueueBinding.cs" />
