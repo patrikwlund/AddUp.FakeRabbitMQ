@@ -159,7 +159,6 @@ namespace fake_rabbit
             ExchangeUnbind(destination: destination, source: source, routingKey: routingKey, arguments: null);
         }
 
-
         public QueueDeclareOk QueueDeclare()
         {
             var name = Guid.NewGuid().ToString();
@@ -358,13 +357,13 @@ namespace fake_rabbit
                     Type = "direct",
                     Messages =  new ConcurrentQueue<dynamic>()
                 };
-                newExchange.Messages.Enqueue(parameters);
+                newExchange.PublishMessage(parameters, routingKey);
 
                 return newExchange;
             };
             Func<string, Exchange, Exchange> updateExchange = (s, existingExchange) =>
             {
-                existingExchange.Messages.Enqueue(parameters);
+                existingExchange.PublishMessage(parameters, routingKey);
 
                 return existingExchange;
             };
