@@ -287,6 +287,7 @@ namespace fake_rabbit
             return BasicConsume(queue: queue, noAck: noAck, consumerTag: consumerTag, noLocal: true, exclusive: false, arguments: arguments, consumer: consumer);        
         }
 
+        private readonly ConcurrentDictionary<string,IBasicConsumer> _consumers = new ConcurrentDictionary<string, IBasicConsumer>(); 
         public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary arguments, IBasicConsumer consumer)
         {
             models.Queue queueInstance;
@@ -294,7 +295,10 @@ namespace fake_rabbit
 
             if (queueInstance != null)
             {
-                queueInstance.MessagePublished+= (sender, message) =>
+                Func<string, IBasicConsumer, IBasicConsumer> updateFunction = (s, basicConsumer) => basicConsumer;
+                _consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
+
+                queueInstance.MessagePublished += (sender, message) =>
                 {
                     Interlocked.Increment(ref _lastDeliveryTag);
                     var deliveryTag = Convert.ToUInt64(_lastDeliveryTag);
@@ -313,7 +317,11 @@ namespace fake_rabbit
 
         public void BasicCancel(string consumerTag)
         {
-            throw new NotImplementedException();
+            IBasicConsumer consumer;
+            _consumers.TryRemove(consumerTag, out consumer);
+
+            if (consumer != null)
+                consumer.HandleBasicCancelOk(consumerTag);
         }
 
         private long _lastDeliveryTag = 0;
