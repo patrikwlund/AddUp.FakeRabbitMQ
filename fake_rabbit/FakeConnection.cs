@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Net;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -7,15 +8,12 @@ namespace fake_rabbit
 {
     public class FakeConnection : IConnection
     {
-        public IModel Model { get; private set; }
-        
-        public FakeConnection WithModel(IModel model)
+        public FakeConnection()
         {
-            Model = model;
-
-            return this;
+            Models = new List<FakeModel>();
         }
 
+        public List<FakeModel> Models { get; private set; }
 
         public EndPoint LocalEndPoint { get; set; }
 
@@ -32,56 +30,55 @@ namespace fake_rabbit
 
         public IModel CreateModel()
         {
-            if(Model == null)
-                Model = new FakeModel();
-            return Model;
+            var model = new FakeModel();
+            Models.Add(model);
+
+            return model;
         }
 
         public void Close()
         {
-            IsOpen = false;
+            Close(1,null,0);
         }
 
         public void Close(ushort reasonCode, string reasonText)
         {
-            IsOpen = false;
-            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, reasonCode, reasonText);
+            Close(reasonCode,reasonText,0);
         }
 
         public void Close(int timeout)
         {
-            IsOpen = false;
-            CloseReason = null;
+            Close(1,null,timeout);
         }
 
         public void Close(ushort reasonCode, string reasonText, int timeout)
         {
             IsOpen = false;
             CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, reasonCode, reasonText);
+
+            Models.ForEach(m=>m.Close());
         }
 
         public void Abort()
         {
-            IsOpen = false;
-            CloseReason = null;
-        }
-
-        public void Abort(ushort reasonCode, string reasonText)
-        {
-            IsOpen = false;
-            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, reasonCode, reasonText);
+            Abort(1, null, 0);
         }
 
         public void Abort(int timeout)
         {
-            IsOpen = false;
-            CloseReason = null;
+           Abort(1,null,timeout);
         }
 
+        public void Abort(ushort reasonCode, string reasonText)
+        {
+            Abort(reasonCode, reasonText, 0);
+        }
         public void Abort(ushort reasonCode, string reasonText, int timeout)
         {
             IsOpen = false;
             CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library,reasonCode,reasonText );
+
+            this.Models.ForEach(m=>m.Abort());
         }
 
         public void HandleConnectionBlocked(string reason)

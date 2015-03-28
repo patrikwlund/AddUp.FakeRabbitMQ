@@ -1,4 +1,5 @@
-﻿using RabbitMQ.Client;
+﻿using System.Collections.Generic;
+using RabbitMQ.Client;
 
 namespace fake_rabbit
 {
@@ -17,9 +18,16 @@ namespace fake_rabbit
             get { return (FakeConnection) Connection; }
         }
 
-        public FakeModel UnderlyingModel
+        public List<FakeModel> UnderlyingModel
         {
-            get { return (FakeModel) UnderlyingConnection.Model; }
+            get
+            {
+                var connection = UnderlyingConnection;
+                if (connection== null)
+                    return null;
+
+                return connection.Models;
+            }
         }
 
         public override IConnection CreateConnection()
