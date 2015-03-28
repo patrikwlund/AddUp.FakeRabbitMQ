@@ -65,7 +65,7 @@ namespace fake_rabbit
 
         public void ChannelFlow(bool active)
         {
-            IsChannelFlowActive = true;
+            IsChannelFlowActive = active;
         }
 
         public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary arguments)
