@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using fake_rabbit.models;
 using NUnit.Framework;
+using Queue = fake_rabbit.models.Queue;
 
 namespace fake_rabbit.tests
 {
@@ -337,5 +338,129 @@ namespace fake_rabbit.tests
             Assert.That(model.Exchanges[exchangeName].Bindings, Is.Empty);
             Assert.That(model.Queues[queueName].Bindings, Is.Empty);
         }
+
+        [Test]
+        public void QueueDeclare_NoArguments_CreatesQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            // Act
+            model.QueueDeclare();
+
+            // Assert
+            Assert.That(model.Queues,Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void QueueDeclarePassive_WithName_CreatesQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "myQueue";
+
+            // Act
+            model.QueueDeclarePassive(queueName);
+
+            // Assert
+            Assert.That(model.Queues, Has.Count.EqualTo(1));
+            Assert.That(model.Queues.First().Key, Is.EqualTo(queueName));
+            Assert.That(model.Queues.First().Value.Name, Is.EqualTo(queueName));
+        }
+
+        [Test]
+        public void QueueDeclare_CreatesQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "someQueue";
+            const bool isDurable = true;
+            const bool isExclusive = true;
+            const bool isAutoDelete = false;
+            var arguments = new Hashtable();
+
+            // Act
+            model.QueueDeclare(queue:queueName,durable:isDurable,exclusive:isExclusive,autoDelete:isAutoDelete,arguments:arguments);
+
+            // Assert
+            Assert.That(model.Queues, Has.Count.EqualTo(1));
+
+            var queue = model.Queues.First();
+            AssertQueueDetails(queue, queueName, isAutoDelete, arguments, isDurable, isExclusive);
+        }
+
+        private static void AssertQueueDetails(KeyValuePair<string, Queue> queue, string exchangeName, bool isAutoDelete, Hashtable arguments, bool isDurable, bool isExclusive)
+        {
+            Assert.That(queue.Key, Is.EqualTo(exchangeName));
+            Assert.That(queue.Value.IsAutoDelete, Is.EqualTo(isAutoDelete));
+            Assert.That(queue.Value.Arguments, Is.EqualTo(arguments));
+            Assert.That(queue.Value.IsDurable, Is.EqualTo(isDurable));
+            Assert.That(queue.Value.Name, Is.EqualTo(exchangeName));
+            Assert.That(queue.Value.IsExclusive, Is.EqualTo(isExclusive));
+        }
+
+        [Test]
+        public void QueueDelete_NameOnly_DeletesTheQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+            
+            const string queueName = "someName";
+            model.QueueDeclare(queueName, true, true, true, null);
+
+            // Act
+            model.QueueDelete(queueName);
+
+            // Assert
+            Assert.That(model.Queues,Is.Empty);
+        }
+
+        [Test]
+        public void QueueDelete_WithArguments_DeletesTheQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "someName";
+            model.QueueDeclare(queueName, true, true, true, null);
+
+            // Act
+            model.QueueDelete(queueName, true, true);
+
+            // Assert
+            Assert.That(model.Queues, Is.Empty);
+        }
+
+        [Test]
+        public void QueueDeleteNoWait_WithArguments_DeletesTheQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "someName";
+            model.QueueDeclare(queueName, true, true, true, null);
+
+            // Act
+            model.QueueDeleteNoWait(queueName, true, true);
+
+            // Assert
+            Assert.That(model.Queues, Is.Empty);
+        }
+
+        [Test]
+        public void QueueDelete_NonExistentQueue_DoesNothing()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            // Act
+            model.QueueDelete("someQueue");
+
+            // Assert
+            Assert.That(model.Queues, Is.Empty);
+        }
+
     }
 }
