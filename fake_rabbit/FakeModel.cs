@@ -172,7 +172,7 @@ namespace fake_rabbit
 
         public void QueueBind(string queue, string exchange, string routingKey, IDictionary arguments)
         {
-            throw new NotImplementedException();
+            ExchangeBind(queue,exchange,routingKey,arguments);
         }
 
         public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary arguments)

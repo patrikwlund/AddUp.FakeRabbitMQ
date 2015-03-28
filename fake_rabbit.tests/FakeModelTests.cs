@@ -173,5 +173,169 @@ namespace fake_rabbit.tests
             Assert.That(exchange.Value.Name, Is.EqualTo(exchangeName));
             Assert.That(exchange.Value.Type, Is.EqualTo(exchangeType));
         }
+
+        [Test]
+        public void ExchangeDelete_NameOnlyExchangeExists_RemovesTheExchange()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string exchangeName = "someExchange";
+            model.ExchangeDeclare(exchangeName,"someType");
+
+            // Act
+            model.ExchangeDelete(exchange: exchangeName);
+
+            // Assert
+            Assert.That(model.Exchanges, Has.Count.EqualTo(0));
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ExchangeDelete_ExchangeExists_RemovesTheExchange(bool ifUnused)
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string exchangeName = "someExchange";
+            model.ExchangeDeclare(exchangeName, "someType");
+
+            // Act
+            model.ExchangeDelete(exchange: exchangeName,ifUnused:ifUnused);
+
+            // Assert
+            Assert.That(model.Exchanges, Has.Count.EqualTo(0));
+        }
+
+        [Test]
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ExchangeDeleteNoWait_ExchangeExists_RemovesTheExchange(bool ifUnused)
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string exchangeName = "someExchange";
+            model.ExchangeDeclare(exchangeName, "someType");
+
+            // Act
+            model.ExchangeDeleteNoWait(exchange: exchangeName, ifUnused: ifUnused);
+
+            // Assert
+            Assert.That(model.Exchanges, Has.Count.EqualTo(0));
+        }
+
+        [Test]
+        public void ExchangeDelete_ExchangeDoesNotExists_DoesNothing()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string exchangeName = "someExchange";
+            model.ExchangeDeclare(exchangeName, "someType");
+
+            // Act
+            model.ExchangeDelete(exchange: "someOtherExchange");
+
+            // Assert
+            Assert.That(model.Exchanges, Has.Count.EqualTo(1));
+
+        }
+
+        [Test]
+        public void ExchangeBind_BindsAnExchangeToAQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "someQueue";
+            const string exchangeName = "someExchange";
+            const string routingKey = "someRoutingKey";
+            var arguments = new Hashtable();
+
+            model.ExchangeDeclare(exchangeName,"direct");
+            model.QueueDeclarePassive(queueName);
+
+            // Act
+            model.ExchangeBind(queueName, exchangeName, routingKey, arguments);
+
+            // Assert
+            AssertBinding(model, exchangeName, routingKey, queueName);
+        }
+
+        [Test]
+        public void QueueBind_BindsAnExchangeToAQueue()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "someQueue";
+            const string exchangeName = "someExchange";
+            const string routingKey = "someRoutingKey";
+            var arguments = new Hashtable();
+
+            model.ExchangeDeclare(exchangeName, "direct");
+            model.QueueDeclarePassive(queueName);
+
+            // Act
+            model.QueueBind(queueName, exchangeName, routingKey, arguments);
+
+            // Assert
+            AssertBinding(model, exchangeName, routingKey, queueName);
+        }
+
+        private static void AssertBinding(FakeModel model, string exchangeName, string routingKey, string queueName)
+        {
+            Assert.That(model.Exchanges[exchangeName].Bindings, Has.Count.EqualTo(1));
+            Assert.That(model.Exchanges[exchangeName].Bindings.First().Value.RoutingKey, Is.EqualTo(routingKey));
+            Assert.That(model.Exchanges[exchangeName].Bindings.First().Value.Queue.Name, Is.EqualTo(queueName));
+        }
+
+        [Test]
+        public void ExchangeUnbind_RemovesBinding()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "someQueue";
+            const string exchangeName = "someExchange";
+            const string routingKey = "someRoutingKey";
+            var arguments = new Hashtable();
+
+            model.ExchangeDeclare(exchangeName, "direct");
+            model.QueueDeclarePassive(queueName);
+            model.ExchangeBind(exchangeName,queueName,routingKey,arguments);
+
+            // Act
+            model.ExchangeUnbind(queueName, exchangeName, routingKey, arguments);
+
+            // Assert
+            Assert.That(model.Exchanges[exchangeName].Bindings, Is.Empty);
+            Assert.That(model.Queues[queueName].Bindings, Is.Empty);
+        }
+
+        [Test]
+        public void QueueUnbind_RemovesBinding()
+        {
+            // Arrange
+            var model = new FakeModel();
+
+            const string queueName = "someQueue";
+            const string exchangeName = "someExchange";
+            const string routingKey = "someRoutingKey";
+            var arguments = new Hashtable();
+
+            model.ExchangeDeclare(exchangeName, "direct");
+            model.QueueDeclarePassive(queueName);
+            model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
+
+            // Act
+            model.QueueUnbind(queueName, exchangeName, routingKey, arguments);
+
+            // Assert
+            Assert.That(model.Exchanges[exchangeName].Bindings, Is.Empty);
+            Assert.That(model.Queues[queueName].Bindings, Is.Empty);
+        }
     }
 }
