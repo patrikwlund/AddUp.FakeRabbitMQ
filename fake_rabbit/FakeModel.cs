@@ -99,7 +99,7 @@ namespace fake_rabbit
 
         public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary arguments)
         {
-            ExchangeDeclare(exchange, type, durable, autoDelete: false, arguments: null);
+            ExchangeDeclare(exchange, type, durable, autoDelete: false, arguments: arguments);
         }
 
         public void ExchangeDelete(string exchange, bool ifUnused)
