@@ -77,6 +77,21 @@ namespace fake_rabbit.tests
             Assert.That(result, Is.Null);
         }
 
+        [Test]
+        public void WithRabbitServer_SetsServer()
+        {
+            // Arrange
+            var factory = new FakeConnectionFactory();
+            var otherServer = new RabbitServer();
+            factory.WithRabbitServer(otherServer);
+
+            // Act
+            var result = factory.Server;
+
+            // Assert
+            Assert.That(result, Is.SameAs(otherServer));
+        }
+
 
     }
 }

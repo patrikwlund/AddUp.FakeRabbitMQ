@@ -9,9 +9,16 @@ namespace fake_rabbit
         public IConnection Connection { get; private set; }
         public RabbitServer Server { get; private set; }
 
-        public FakeConnectionFactory()
+
+
+        public FakeConnectionFactory():this(new RabbitServer())
         {
-            Server = new RabbitServer();
+           
+        }
+
+        public FakeConnectionFactory(RabbitServer server)
+        {
+            Server = server;
         }
 
         public FakeConnectionFactory WithConnection(IConnection connection)
@@ -20,7 +27,7 @@ namespace fake_rabbit
             return this;
         }
 
-        public FakeConnectionFactory WithRabbitNode(RabbitServer server)
+        public FakeConnectionFactory WithRabbitServer(RabbitServer server)
         {
             Server = server;
             return this;
