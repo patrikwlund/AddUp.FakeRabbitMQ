@@ -486,5 +486,30 @@ namespace fake_rabbit.tests
             Assert.That(node.Queues, Is.Empty);
         }
 
+        [Test]
+        public void QueuePurge_RemovesAllMessagesFromQueue()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.QueueDeclarePassive("my_other_queue");
+            node.Queues["my_other_queue"].Messages.Enqueue(new RabbitMessage());
+            node.Queues["my_other_queue"].Messages.Enqueue(new RabbitMessage());
+
+            model.QueueDeclarePassive("my_queue");
+            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
+            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
+            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
+            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
+
+            // Act
+            model.QueuePurge("my_queue");
+
+            // Assert
+            Assert.That(node.Queues["my_queue"].Messages, Is.Empty);
+            Assert.That(node.Queues["my_other_queue"].Messages, Is.Not.Empty);
+        }
+
     }
 }

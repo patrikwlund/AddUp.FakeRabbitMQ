@@ -213,7 +213,7 @@ namespace fake_rabbit
         public uint QueuePurge(string queue)
         {
             models.Queue instance;
-            _server.Queues.TryRemove(queue, out instance);
+            _server.Queues.TryGetValue(queue, out instance);
 
             if (instance == null)
                 return 0u;
