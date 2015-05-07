@@ -12,14 +12,17 @@ namespace fake_rabbit
 {
     public class FakeModel:IModel
     {
+        private readonly RabbitServer _server;
 
-        public ConcurrentDictionary<string, Exchange> Exchanges = new ConcurrentDictionary<string, Exchange>();
-        public ConcurrentDictionary<string, models.Queue> Queues = new ConcurrentDictionary<string, models.Queue>();
+        public FakeModel(RabbitServer server)
+        {
+            _server = server;
+        }
 
         public IEnumerable<RabbitMessage> GetMessagesPublishedToExchange(string exchange)
         {
             Exchange exchangeInstance;
-            Exchanges.TryGetValue(exchange, out exchangeInstance);
+            _server.Exchanges.TryGetValue(exchange, out exchangeInstance);
 
             if (exchangeInstance == null)
                 return new List<RabbitMessage>();
@@ -30,7 +33,7 @@ namespace fake_rabbit
         public IEnumerable<RabbitMessage> GetMessagesOnQueue(string queueName)
         {
             models.Queue queueInstance;
-            Queues.TryGetValue(queueName, out queueInstance);
+            _server.Queues.TryGetValue(queueName, out queueInstance);
 
             if (queueInstance == null)
                 return new List<RabbitMessage>();
@@ -79,7 +82,7 @@ namespace fake_rabbit
                 Arguments = arguments
             };
             Func<string,Exchange,Exchange> updateFunction = (name, existing) => existing;
-            Exchanges.AddOrUpdate(exchange,exchangeInstance, updateFunction);
+            _server.Exchanges.AddOrUpdate(exchange,exchangeInstance, updateFunction);
         }
 
         public void ExchangeDeclare(string exchange, string type, bool durable)
@@ -105,7 +108,7 @@ namespace fake_rabbit
         public void ExchangeDelete(string exchange, bool ifUnused)
         {
             Exchange removedExchange;
-            Exchanges.TryRemove(exchange, out removedExchange);
+            _server.Exchanges.TryRemove(exchange, out removedExchange);
         }
 
         public void ExchangeDelete(string exchange)
@@ -121,10 +124,10 @@ namespace fake_rabbit
         public void ExchangeBind(string destination, string source, string routingKey, IDictionary arguments)
         {
             Exchange exchange;
-            Exchanges.TryGetValue(source, out exchange);
+            _server.Exchanges.TryGetValue(source, out exchange);
 
             models.Queue queue;
-            Queues.TryGetValue(destination, out queue);
+            _server.Queues.TryGetValue(destination, out queue);
 
             var binding = new ExchangeQueueBinding {Exchange = exchange, Queue = queue, RoutingKey = routingKey};
             if (exchange != null)
@@ -141,10 +144,10 @@ namespace fake_rabbit
         public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary arguments)
         {
             Exchange exchange;
-            Exchanges.TryGetValue(source, out exchange);
+            _server.Exchanges.TryGetValue(source, out exchange);
 
             models.Queue queue;
-            Queues.TryGetValue(destination, out queue);
+            _server.Queues.TryGetValue(destination, out queue);
 
             var binding = new ExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
             ExchangeQueueBinding removedBinding;
@@ -187,7 +190,7 @@ namespace fake_rabbit
             };
 
             Func<string,models.Queue,models.Queue> updateFunction = (name, existing) => existing;
-            Queues.AddOrUpdate(queue, queueInstance, updateFunction);
+            _server.Queues.AddOrUpdate(queue, queueInstance, updateFunction);
 
             return new QueueDeclareOk(queue, 0, 0);
         }
@@ -210,7 +213,7 @@ namespace fake_rabbit
         public uint QueuePurge(string queue)
         {
             models.Queue instance;
-            Queues.TryRemove(queue, out instance);
+            _server.Queues.TryRemove(queue, out instance);
 
             if (instance == null)
                 return 0u;
@@ -227,7 +230,7 @@ namespace fake_rabbit
         public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
         {
             models.Queue instance;
-            Queues.TryRemove(queue, out instance);
+            _server.Queues.TryRemove(queue, out instance);
 
             return instance != null ? 1u : 0u;
         }
@@ -291,7 +294,7 @@ namespace fake_rabbit
         public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary arguments, IBasicConsumer consumer)
         {
             models.Queue queueInstance;
-            Queues.TryGetValue(queue, out queueInstance);
+            _server.Queues.TryGetValue(queue, out queueInstance);
 
             if (queueInstance != null)
             {
@@ -330,7 +333,7 @@ namespace fake_rabbit
         public BasicGetResult BasicGet(string queue, bool noAck)
         {
             models.Queue queueInstance;
-            Queues.TryGetValue(queue, out queueInstance);
+            _server.Queues.TryGetValue(queue, out queueInstance);
 
             if (queueInstance == null)
                 return null;
@@ -412,7 +415,7 @@ namespace fake_rabbit
 
                 return existingExchange;
             };
-            this.Exchanges.AddOrUpdate(exchange, addExchange, updateExchange);
+            _server.Exchanges.AddOrUpdate(exchange, addExchange, updateExchange);
 
             NextPublishSeqNo++;
         }
@@ -437,7 +440,7 @@ namespace fake_rabbit
             if (message != null && requeue)
             {
                 models.Queue queueInstance;
-                Queues.TryGetValue(message.Queue, out queueInstance);
+                _server.Queues.TryGetValue(message.Queue, out queueInstance);
 
                 if (queueInstance != null)
                 {
@@ -453,7 +456,7 @@ namespace fake_rabbit
                 foreach (var message in _workingMessages)
                 {
                     models.Queue queueInstance;
-                    Queues.TryGetValue(message.Value.Queue, out queueInstance);
+                    _server.Queues.TryGetValue(message.Value.Queue, out queueInstance);
 
                     if (queueInstance != null)
                     {

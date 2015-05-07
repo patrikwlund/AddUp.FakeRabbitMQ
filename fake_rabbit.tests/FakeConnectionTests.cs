@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using fake_rabbit.models;
 using NUnit.Framework;
 
 namespace fake_rabbit.tests
@@ -10,7 +11,7 @@ namespace fake_rabbit.tests
         public void CreateModel_CreatesANewModel()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             var result = connection.CreateModel();
@@ -24,7 +25,7 @@ namespace fake_rabbit.tests
         public void CreateModel_MultipleTimes_CreatesManyModels()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             var result1 = connection.CreateModel();
@@ -39,7 +40,7 @@ namespace fake_rabbit.tests
         public void Close_NoArguments_ClosesTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Close();
@@ -53,7 +54,7 @@ namespace fake_rabbit.tests
         public void Close_TimeoutArguments_ClosesTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Close(timeout:2);
@@ -67,7 +68,7 @@ namespace fake_rabbit.tests
         public void Close_ReasonArguments_ClosesTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Close(reasonCode:3,reasonText:"foo");
@@ -82,7 +83,7 @@ namespace fake_rabbit.tests
         public void Close_AllArguments_ClosesTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Close(reasonCode: 3, reasonText: "foo",timeout:4);
@@ -97,7 +98,7 @@ namespace fake_rabbit.tests
         public void Close_ClosesAllModels()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
             connection.CreateModel();
 
             // Act
@@ -112,7 +113,7 @@ namespace fake_rabbit.tests
         public void Abort_NoArguments_AbortsTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Close();
@@ -126,7 +127,7 @@ namespace fake_rabbit.tests
         public void Abort_TimeoutArguments_AbortsTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Abort(timeout: 2);
@@ -140,7 +141,7 @@ namespace fake_rabbit.tests
         public void Abort_ReasonArguments_AbortsTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Abort(reasonCode: 3, reasonText: "foo");
@@ -155,7 +156,7 @@ namespace fake_rabbit.tests
         public void Abort_AllArguments_AbortsTheConnection()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             connection.Abort(reasonCode: 3, reasonText: "foo", timeout: 4);
@@ -170,7 +171,7 @@ namespace fake_rabbit.tests
         public void Abort_AbortsAllModels()
         {
             // Arrange
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
             connection.CreateModel();
 
             // Act

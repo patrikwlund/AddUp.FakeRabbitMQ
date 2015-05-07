@@ -14,7 +14,8 @@ namespace fake_rabbit.tests
         public void CreateBasicProperties_ReturnsBasicProperties()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             // Act
             var result = model.CreateBasicProperties();
@@ -27,7 +28,8 @@ namespace fake_rabbit.tests
         public void CreateFileProperties_ReturnsFileProperties()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             // Act
             var result = model.CreateFileProperties();
@@ -40,7 +42,8 @@ namespace fake_rabbit.tests
         public void CreateStreamProperties_ReturnsStreamProperties()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             // Act
             var result = model.CreateStreamProperties();
@@ -55,7 +58,8 @@ namespace fake_rabbit.tests
         public void ChannelFlow_SetsIfTheChannelIsActive(bool value)
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             // Act
             model.ChannelFlow(value);
@@ -68,7 +72,8 @@ namespace fake_rabbit.tests
         public void ExchangeDeclare_AllArguments_CreatesExchange()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             const string exchangeType = "someType";
@@ -80,9 +85,9 @@ namespace fake_rabbit.tests
             model.ExchangeDeclare(exchange:exchangeName,type:exchangeType,durable:isDurable,autoDelete:isAutoDelete,arguments:arguments);
         
             // Assert
-            Assert.That(model.Exchanges,Has.Count.EqualTo(1));
+            Assert.That(node.Exchanges,Has.Count.EqualTo(1));
 
-            var exchange = model.Exchanges.First();
+            var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, isAutoDelete, arguments, isDurable, exchangeType);
         }
 
@@ -90,7 +95,8 @@ namespace fake_rabbit.tests
         public void ExchangeDeclare_WithNameTypeAndDurable_CreatesExchange()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             const string exchangeType = "someType";
@@ -100,9 +106,9 @@ namespace fake_rabbit.tests
             model.ExchangeDeclare(exchange: exchangeName, type: exchangeType, durable: isDurable);
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(1));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
 
-            var exchange = model.Exchanges.First();
+            var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, false, null, isDurable, exchangeType);
         }
 
@@ -110,7 +116,8 @@ namespace fake_rabbit.tests
         public void ExchangeDeclare_WithNameType_CreatesExchange()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             const string exchangeType = "someType";
@@ -119,9 +126,9 @@ namespace fake_rabbit.tests
             model.ExchangeDeclare(exchange: exchangeName, type: exchangeType);
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(1));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
 
-            var exchange = model.Exchanges.First();
+            var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, false, null, false, exchangeType);
         }
 
@@ -129,7 +136,8 @@ namespace fake_rabbit.tests
         public void ExchangeDeclarePassive_WithName_CreatesExchange()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
 
@@ -137,9 +145,9 @@ namespace fake_rabbit.tests
             model.ExchangeDeclarePassive(exchange: exchangeName);
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(1));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
 
-            var exchange = model.Exchanges.First();
+            var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, false, null, false, null);
         }
 
@@ -147,7 +155,8 @@ namespace fake_rabbit.tests
         public void ExchangeDeclareNoWait_CreatesExchange()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             const string exchangeType = "someType";
@@ -159,9 +168,9 @@ namespace fake_rabbit.tests
             model.ExchangeDeclareNoWait(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(1));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
 
-            var exchange = model.Exchanges.First();
+            var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, isAutoDelete, arguments, isDurable, exchangeType);
         }
 
@@ -179,7 +188,8 @@ namespace fake_rabbit.tests
         public void ExchangeDelete_NameOnlyExchangeExists_RemovesTheExchange()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             model.ExchangeDeclare(exchangeName,"someType");
@@ -188,7 +198,7 @@ namespace fake_rabbit.tests
             model.ExchangeDelete(exchange: exchangeName);
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(0));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(0));
         }
 
         [Test]
@@ -197,7 +207,8 @@ namespace fake_rabbit.tests
         public void ExchangeDelete_ExchangeExists_RemovesTheExchange(bool ifUnused)
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             model.ExchangeDeclare(exchangeName, "someType");
@@ -206,7 +217,7 @@ namespace fake_rabbit.tests
             model.ExchangeDelete(exchange: exchangeName,ifUnused:ifUnused);
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(0));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(0));
         }
 
         [Test]
@@ -215,7 +226,8 @@ namespace fake_rabbit.tests
         public void ExchangeDeleteNoWait_ExchangeExists_RemovesTheExchange(bool ifUnused)
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             model.ExchangeDeclare(exchangeName, "someType");
@@ -224,14 +236,15 @@ namespace fake_rabbit.tests
             model.ExchangeDeleteNoWait(exchange: exchangeName, ifUnused: ifUnused);
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(0));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(0));
         }
 
         [Test]
         public void ExchangeDelete_ExchangeDoesNotExists_DoesNothing()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
             model.ExchangeDeclare(exchangeName, "someType");
@@ -240,7 +253,7 @@ namespace fake_rabbit.tests
             model.ExchangeDelete(exchange: "someOtherExchange");
 
             // Assert
-            Assert.That(model.Exchanges, Has.Count.EqualTo(1));
+            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
 
         }
 
@@ -248,7 +261,8 @@ namespace fake_rabbit.tests
         public void ExchangeBind_BindsAnExchangeToAQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
@@ -262,14 +276,15 @@ namespace fake_rabbit.tests
             model.ExchangeBind(queueName, exchangeName, routingKey, arguments);
 
             // Assert
-            AssertBinding(model, exchangeName, routingKey, queueName);
+            AssertBinding(node, exchangeName, routingKey, queueName);
         }
 
         [Test]
         public void QueueBind_BindsAnExchangeToAQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
@@ -283,21 +298,22 @@ namespace fake_rabbit.tests
             model.QueueBind(queueName, exchangeName, routingKey, arguments);
 
             // Assert
-            AssertBinding(model, exchangeName, routingKey, queueName);
+            AssertBinding(node, exchangeName, routingKey, queueName);
         }
 
-        private static void AssertBinding(FakeModel model, string exchangeName, string routingKey, string queueName)
+        private static void AssertBinding(RabbitServer server, string exchangeName, string routingKey, string queueName)
         {
-            Assert.That(model.Exchanges[exchangeName].Bindings, Has.Count.EqualTo(1));
-            Assert.That(model.Exchanges[exchangeName].Bindings.First().Value.RoutingKey, Is.EqualTo(routingKey));
-            Assert.That(model.Exchanges[exchangeName].Bindings.First().Value.Queue.Name, Is.EqualTo(queueName));
+            Assert.That(server.Exchanges[exchangeName].Bindings, Has.Count.EqualTo(1));
+            Assert.That(server.Exchanges[exchangeName].Bindings.First().Value.RoutingKey, Is.EqualTo(routingKey));
+            Assert.That(server.Exchanges[exchangeName].Bindings.First().Value.Queue.Name, Is.EqualTo(queueName));
         }
 
         [Test]
         public void ExchangeUnbind_RemovesBinding()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
@@ -312,15 +328,16 @@ namespace fake_rabbit.tests
             model.ExchangeUnbind(queueName, exchangeName, routingKey, arguments);
 
             // Assert
-            Assert.That(model.Exchanges[exchangeName].Bindings, Is.Empty);
-            Assert.That(model.Queues[queueName].Bindings, Is.Empty);
+            Assert.That(node.Exchanges[exchangeName].Bindings, Is.Empty);
+            Assert.That(node.Queues[queueName].Bindings, Is.Empty);
         }
 
         [Test]
         public void QueueUnbind_RemovesBinding()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
@@ -335,28 +352,30 @@ namespace fake_rabbit.tests
             model.QueueUnbind(queueName, exchangeName, routingKey, arguments);
 
             // Assert
-            Assert.That(model.Exchanges[exchangeName].Bindings, Is.Empty);
-            Assert.That(model.Queues[queueName].Bindings, Is.Empty);
+            Assert.That(node.Exchanges[exchangeName].Bindings, Is.Empty);
+            Assert.That(node.Queues[queueName].Bindings, Is.Empty);
         }
 
         [Test]
         public void QueueDeclare_NoArguments_CreatesQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             // Act
             model.QueueDeclare();
 
             // Assert
-            Assert.That(model.Queues,Has.Count.EqualTo(1));
+            Assert.That(node.Queues,Has.Count.EqualTo(1));
         }
 
         [Test]
         public void QueueDeclarePassive_WithName_CreatesQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "myQueue";
 
@@ -364,16 +383,17 @@ namespace fake_rabbit.tests
             model.QueueDeclarePassive(queueName);
 
             // Assert
-            Assert.That(model.Queues, Has.Count.EqualTo(1));
-            Assert.That(model.Queues.First().Key, Is.EqualTo(queueName));
-            Assert.That(model.Queues.First().Value.Name, Is.EqualTo(queueName));
+            Assert.That(node.Queues, Has.Count.EqualTo(1));
+            Assert.That(node.Queues.First().Key, Is.EqualTo(queueName));
+            Assert.That(node.Queues.First().Value.Name, Is.EqualTo(queueName));
         }
 
         [Test]
         public void QueueDeclare_CreatesQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "someQueue";
             const bool isDurable = true;
@@ -385,9 +405,9 @@ namespace fake_rabbit.tests
             model.QueueDeclare(queue:queueName,durable:isDurable,exclusive:isExclusive,autoDelete:isAutoDelete,arguments:arguments);
 
             // Assert
-            Assert.That(model.Queues, Has.Count.EqualTo(1));
+            Assert.That(node.Queues, Has.Count.EqualTo(1));
 
-            var queue = model.Queues.First();
+            var queue = node.Queues.First();
             AssertQueueDetails(queue, queueName, isAutoDelete, arguments, isDurable, isExclusive);
         }
 
@@ -405,7 +425,8 @@ namespace fake_rabbit.tests
         public void QueueDelete_NameOnly_DeletesTheQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
             
             const string queueName = "someName";
             model.QueueDeclare(queueName, true, true, true, null);
@@ -414,14 +435,15 @@ namespace fake_rabbit.tests
             model.QueueDelete(queueName);
 
             // Assert
-            Assert.That(model.Queues,Is.Empty);
+            Assert.That(node.Queues,Is.Empty);
         }
 
         [Test]
         public void QueueDelete_WithArguments_DeletesTheQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "someName";
             model.QueueDeclare(queueName, true, true, true, null);
@@ -430,14 +452,15 @@ namespace fake_rabbit.tests
             model.QueueDelete(queueName, true, true);
 
             // Assert
-            Assert.That(model.Queues, Is.Empty);
+            Assert.That(node.Queues, Is.Empty);
         }
 
         [Test]
         public void QueueDeleteNoWait_WithArguments_DeletesTheQueue()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             const string queueName = "someName";
             model.QueueDeclare(queueName, true, true, true, null);
@@ -446,20 +469,21 @@ namespace fake_rabbit.tests
             model.QueueDeleteNoWait(queueName, true, true);
 
             // Assert
-            Assert.That(model.Queues, Is.Empty);
+            Assert.That(node.Queues, Is.Empty);
         }
 
         [Test]
         public void QueueDelete_NonExistentQueue_DoesNothing()
         {
             // Arrange
-            var model = new FakeModel();
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
 
             // Act
             model.QueueDelete("someQueue");
 
             // Assert
-            Assert.That(model.Queues, Is.Empty);
+            Assert.That(node.Queues, Is.Empty);
         }
 
     }

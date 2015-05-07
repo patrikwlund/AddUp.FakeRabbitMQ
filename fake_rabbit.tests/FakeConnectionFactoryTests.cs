@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using fake_rabbit.models;
+using NUnit.Framework;
 
 namespace fake_rabbit.tests
 {
@@ -26,7 +27,7 @@ namespace fake_rabbit.tests
             // Arrange
             var factory = new FakeConnectionFactory();
 
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
 
             // Act
             factory.WithConnection(connection);
@@ -53,7 +54,7 @@ namespace fake_rabbit.tests
         {
             // Arrange
             var factory = new FakeConnectionFactory();
-            var connection = new FakeConnection();
+            var connection = new FakeConnection(new RabbitServer());
             factory.WithConnection(connection);
 
             // Act

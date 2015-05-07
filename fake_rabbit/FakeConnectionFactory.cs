@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using fake_rabbit.models;
 using RabbitMQ.Client;
 
 namespace fake_rabbit
@@ -6,10 +7,22 @@ namespace fake_rabbit
     public class FakeConnectionFactory:ConnectionFactory
     {
         public IConnection Connection { get; private set; }
+        public RabbitServer Server { get; private set; }
+
+        public FakeConnectionFactory()
+        {
+            Server = new RabbitServer();
+        }
 
         public FakeConnectionFactory WithConnection(IConnection connection)
         {
             Connection = connection;
+            return this;
+        }
+
+        public FakeConnectionFactory WithRabbitNode(RabbitServer server)
+        {
+            Server = server;
             return this;
         }
 
@@ -33,7 +46,7 @@ namespace fake_rabbit
         public override IConnection CreateConnection()
         {
             if(Connection == null)
-                Connection = new FakeConnection();
+                Connection = new FakeConnection(Server);
 
             return Connection;
         }

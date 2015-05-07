@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Net;
+using fake_rabbit.models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -8,8 +9,11 @@ namespace fake_rabbit
 {
     public class FakeConnection : IConnection
     {
-        public FakeConnection()
+        private readonly RabbitServer _server;
+
+        public FakeConnection(RabbitServer server)
         {
+            _server = server;
             Models = new List<FakeModel>();
         }
 
@@ -30,7 +34,7 @@ namespace fake_rabbit
 
         public IModel CreateModel()
         {
-            var model = new FakeModel();
+            var model = new FakeModel(_server);
             Models.Add(model);
 
             return model;
