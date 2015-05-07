@@ -1,8 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using fake_rabbit.models;
 using NUnit.Framework;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Framing.v0_8;
 using Queue = fake_rabbit.models.Queue;
 
 namespace fake_rabbit.tests
@@ -577,6 +580,82 @@ namespace fake_rabbit.tests
             Assert.That(model.IsClosed, Is.True);
             Assert.That(model.IsOpen, Is.False);
             Assert.That(model.CloseReason, Is.Not.Null);
+        }
+
+        [Test]
+        public void BasicPublish_PublishesMessage()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.ExchangeDeclare("my_exchange",ExchangeType.Direct);
+            model.QueueDeclarePassive("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var message = "hello world!";
+            var encodedMessage = Encoding.ASCII.GetBytes(message);
+
+            // Act
+            model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+
+            // Assert
+            Assert.That(node.Queues["my_queue"].Messages.Count,Is.EqualTo(1));
+            Assert.That(node.Queues["my_queue"].Messages.First().Body, Is.EqualTo(encodedMessage));
+        }
+
+        [Test]
+        public void BasicGet_MessageOnQueue_GetsMessage()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+            model.QueueDeclarePassive("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var message = "hello world!";
+            var encodedMessage = Encoding.ASCII.GetBytes(message);
+            model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+
+            // Act
+            var response = model.BasicGet("my_queue",false);
+
+            // Assert
+            Assert.That(response.Body, Is.EqualTo(encodedMessage));
+            Assert.That(response.DeliveryTag, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void BasicGet_NoMessageOnQueue_ReturnsNull()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.QueueDeclarePassive("my_queue");
+
+            // Act
+            var response = model.BasicGet("my_queue", false);
+
+            // Assert
+            Assert.That(response, Is.Null);
+        }
+
+        [Test]
+        public void BasicGet_NoQueue_ReturnsNull()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+
+            // Act
+            var response = model.BasicGet("my_queue", false);
+
+            // Assert
+            Assert.That(response, Is.Null);
         }
 
     }
