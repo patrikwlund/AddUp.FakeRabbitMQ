@@ -500,8 +500,7 @@ namespace fake_rabbit
 
         public void Close()
         {
-            IsClosed = true;
-            IsOpen = false;
+            Close(ushort.MaxValue, string.Empty);
         }
 
         public void Close(ushort replyCode, string replyText)
@@ -513,9 +512,7 @@ namespace fake_rabbit
 
         public void Abort()
         {
-            IsClosed = true;
-            IsOpen = false;
-            CloseReason = null;
+            Abort(ushort.MaxValue, string.Empty);
 
         }
 

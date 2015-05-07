@@ -511,5 +511,73 @@ namespace fake_rabbit.tests
             Assert.That(node.Queues["my_other_queue"].Messages, Is.Not.Empty);
         }
 
+        [Test]
+        public void Close_ClosesTheChannel()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            
+            // Act
+            model.Close();
+
+            // Assert
+            Assert.That(model.IsClosed,Is.True);
+            Assert.That(model.IsOpen,Is.False);
+            Assert.That(model.CloseReason,Is.Not.Null);
+        }
+
+        [Test]
+        public void Close_WithArguments_ClosesTheChannel()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+
+            // Act
+            model.Close(5,"some message");
+
+            // Assert
+            Assert.That(model.IsClosed, Is.True);
+            Assert.That(model.IsOpen, Is.False);
+            Assert.That(model.CloseReason, Is.Not.Null);
+        }
+
+        [Test]
+        public void Abort_ClosesTheChannel()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+
+            // Act
+            model.Abort();
+
+            // Assert
+            Assert.That(model.IsClosed, Is.True);
+            Assert.That(model.IsOpen, Is.False);
+            Assert.That(model.CloseReason, Is.Not.Null);
+        }
+
+        [Test]
+        public void Abort_WithArguments_ClosesTheChannel()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+
+            // Act
+            model.Abort(5, "some message");
+
+            // Assert
+            Assert.That(model.IsClosed, Is.True);
+            Assert.That(model.IsOpen, Is.False);
+            Assert.That(model.CloseReason, Is.Not.Null);
+        }
+
     }
 }
