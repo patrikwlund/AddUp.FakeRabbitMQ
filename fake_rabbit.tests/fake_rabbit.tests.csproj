@@ -49,6 +49,8 @@
     <Compile Include="FakeConnectionTests.cs" />
     <Compile Include="FakeModelTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UseCases\ReceiveMessages.cs" />
+    <Compile Include="UseCases\SendMessages.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
