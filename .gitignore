@@ -4,3 +4,6 @@ obj/
 bin/
 *.user
 packages/*
+_NCrunch.*
+*.ncrunchsolution
+*.suo
