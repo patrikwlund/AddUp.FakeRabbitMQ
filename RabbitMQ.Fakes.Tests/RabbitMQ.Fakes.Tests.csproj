@@ -56,7 +56,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\fake_rabbit\RabbitMQ.Fakes.csproj">
+    <ProjectReference Include="..\RabbitMQ.Fakes\RabbitMQ.Fakes.csproj">
       <Project>{4FF028D6-D99F-42A1-89AA-7DA4D1869BEB}</Project>
       <Name>RabbitMQ.Fakes</Name>
     </ProjectReference>
