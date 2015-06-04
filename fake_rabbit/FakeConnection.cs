@@ -1,11 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Net;
-using fake_rabbit.models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Fakes.models;
 
-namespace fake_rabbit
+namespace RabbitMQ.Fakes
 {
     public class FakeConnection : IConnection
     {

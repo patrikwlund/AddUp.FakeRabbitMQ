@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace fake_rabbit.models
+namespace RabbitMQ.Fakes.models
 {
     public class Exchange
     {

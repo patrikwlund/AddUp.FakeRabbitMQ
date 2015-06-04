@@ -1,10 +1,9 @@
 ﻿using System.Text;
-using System.Threading;
-using fake_rabbit.models;
 using NUnit.Framework;
 using RabbitMQ.Client;
+using RabbitMQ.Fakes.models;
 
-namespace fake_rabbit.tests.UseCases
+namespace RabbitMQ.Fakes.Tests.UseCases
 {
     [TestFixture]
     public class SendMessages

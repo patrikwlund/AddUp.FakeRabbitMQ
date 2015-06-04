@@ -1,7 +1,7 @@
-﻿using fake_rabbit.models;
-using NUnit.Framework;
+﻿using NUnit.Framework;
+using RabbitMQ.Fakes.models;
 
-namespace fake_rabbit.tests
+namespace RabbitMQ.Fakes.Tests
 {
     [TestFixture]
     public class FakeConnectionFactoryTests

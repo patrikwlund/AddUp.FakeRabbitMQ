@@ -1,4 +1,4 @@
-﻿namespace fake_rabbit.models
+﻿namespace RabbitMQ.Fakes.models
 {
     public class ExchangeQueueBinding
     {

@@ -3,12 +3,12 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
-using fake_rabbit.models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing.v0_8;
+using RabbitMQ.Fakes.models;
 
-namespace fake_rabbit
+namespace RabbitMQ.Fakes
 {
     public class FakeModel:IModel
     {

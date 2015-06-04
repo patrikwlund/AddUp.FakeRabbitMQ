@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using fake_rabbit.models;
 using NUnit.Framework;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Framing.v0_8;
-using Queue = fake_rabbit.models.Queue;
+using RabbitMQ.Fakes.models;
+using Queue = RabbitMQ.Fakes.models.Queue;
 
-namespace fake_rabbit.tests
+namespace RabbitMQ.Fakes.Tests
 {
     [TestFixture]
     public class FakeModelTests

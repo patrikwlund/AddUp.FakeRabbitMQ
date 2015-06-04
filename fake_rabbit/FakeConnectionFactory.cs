@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
-using fake_rabbit.models;
 using RabbitMQ.Client;
+using RabbitMQ.Fakes.models;
 
-namespace fake_rabbit
+namespace RabbitMQ.Fakes
 {
     public class FakeConnectionFactory:ConnectionFactory
     {

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace fake_rabbit.models
+namespace RabbitMQ.Fakes.models
 {
     public class Queue
     {
