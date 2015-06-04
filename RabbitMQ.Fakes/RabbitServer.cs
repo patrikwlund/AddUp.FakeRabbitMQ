@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
+using RabbitMQ.Fakes.models;
 
-namespace RabbitMQ.Fakes.models
+namespace RabbitMQ.Fakes
 {
     public class RabbitServer
     {

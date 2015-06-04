@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using RabbitMQ.Client;
-using RabbitMQ.Fakes.models;
 
 namespace RabbitMQ.Fakes
 {

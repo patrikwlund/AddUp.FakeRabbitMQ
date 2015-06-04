@@ -49,8 +49,8 @@
     <Compile Include="models\ExchangeQueueBinding.cs" />
     <Compile Include="models\RabbitMessage.cs" />
     <Compile Include="models\Queue.cs" />
-    <Compile Include="models\RabbitServer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RabbitServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
