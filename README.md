@@ -1,5 +1,5 @@
 # RabbitMQ.Fakes
-Fake implementations of the RabbitMQ interfaces for use in testing
+RabbitMQ.Fakes is a library that contains fake implementations of the RabbitMQ.Client interfaces.  These are intended to be used for testing so that unit tests who depend on RabbitMQ can be executed fully in memory withouth the dependence on an external RabbitMQ server.
 
 # Requirements
 * .NET 4.5
