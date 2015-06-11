@@ -1,13 +1,17 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using FluentAssertions;
 using NUnit.Framework;
 using RabbitMQ.Client;
-using RabbitMQ.Fakes.models;
+using RabbitMQ.Client.Framing.v0_8;
 
 namespace RabbitMQ.Fakes.Tests.UseCases
 {
     [TestFixture]
     public class ReceiveMessages
     {
+        private static readonly Dictionary<string, string> HeaderTemplate;
         [Test]
         public void ReceiveMessagesOnQueue()
         {
@@ -33,7 +37,58 @@ namespace RabbitMQ.Fakes.Tests.UseCases
 
         }
 
-        private static void SendMessage(RabbitServer rabbitServer, string exchange, string message)
+        [Test]
+        public void ReceiveMessagesOnQueueWithBasicProperties()
+        {
+            var rabbitServer = new RabbitServer();
+
+            ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
+            var basicProperties = new BasicProperties
+            {
+                Headers = new Dictionary<string, string>() {{"TestKey", "TestValue"}},
+                CorrelationId = Guid.NewGuid().ToString(),
+                ReplyTo = "TestQueue",
+                Timestamp = new AmqpTimestamp(123456),
+                ReplyToAddress = new PublicationAddress("exchangeType", "excahngeName", "routingKey"),
+                ClusterId = "1",
+                ContentEncoding = "encoding",
+                ContentType = "type",
+                DeliveryMode = 1,
+                Expiration = "none",
+                MessageId = "id",
+                Priority = 1,
+                Type = "type",
+                UserId = "1",
+                AppId = "1"
+            };
+
+
+
+            SendMessage(rabbitServer, "my_exchange", "hello_world", basicProperties);
+            var connectionFactory = new FakeConnectionFactory(rabbitServer);
+            using (var connection = connectionFactory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+
+
+                // First message
+                var message = channel.BasicGet("my_queue", noAck: false);
+
+                Assert.That(message, Is.Not.Null);
+                var messageBody = Encoding.ASCII.GetString(message.Body);
+
+                Assert.That(messageBody, Is.EqualTo("hello_world"));
+
+                var actualBasicProperties = message.BasicProperties;
+
+                actualBasicProperties.ShouldBeEquivalentTo(basicProperties);
+
+                channel.BasicAck(message.DeliveryTag, multiple: false);
+            }
+
+        }
+
+        private static void SendMessage(RabbitServer rabbitServer, string exchange, string message, IBasicProperties basicProperties = null)
         {
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
 
@@ -41,7 +96,7 @@ namespace RabbitMQ.Fakes.Tests.UseCases
             using (var channel = connection.CreateModel())
             {
                 var messageBody = Encoding.ASCII.GetBytes(message);
-                channel.BasicPublish(exchange: exchange, routingKey: null, mandatory: false, basicProperties: null,body: messageBody);
+                channel.BasicPublish(exchange: exchange, routingKey: null, mandatory: false, basicProperties: basicProperties, body: messageBody);
             }
         }
 

@@ -350,7 +350,7 @@ namespace RabbitMQ.Fakes
             var exchange = message.Exchange;
             var routingKey = message.RoutingKey;
             var messageCount = Convert.ToUInt32(queueInstance.Messages.Count);
-            var basicProperties = CreateBasicProperties();
+            var basicProperties = message.BasicProperties ?? CreateBasicProperties();
             var body = message.Body;
 
             Func<ulong, RabbitMessage, RabbitMessage> updateFunction = (key, existingMessage) => existingMessage;
