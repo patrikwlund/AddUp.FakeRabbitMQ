@@ -308,7 +308,7 @@ namespace RabbitMQ.Fakes
                     const bool redelivered = false;
                     var exchange = message.Exchange;
                     var routingKey = message.RoutingKey;
-                    var basicProperties = CreateBasicProperties();
+                    var basicProperties = message.BasicProperties ?? CreateBasicProperties();
                     var body = message.Body;
 
                     consumer.HandleBasicDeliver(consumerTag, deliveryTag,redelivered,exchange,routingKey,basicProperties,body);
