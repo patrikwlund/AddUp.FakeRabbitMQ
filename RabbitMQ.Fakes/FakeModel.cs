@@ -7,7 +7,6 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing.v0_8;
 using RabbitMQ.Fakes.models;
-using Queue = RabbitMQ.Fakes.models.Queue;
 
 namespace RabbitMQ.Fakes
 {
@@ -302,40 +301,21 @@ namespace RabbitMQ.Fakes
                 Func<string, IBasicConsumer, IBasicConsumer> updateFunction = (s, basicConsumer) => basicConsumer;
                 _consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
 
-                NotifyConsumerOfExistingMessages(consumerTag, consumer, queueInstance);
-                NotifyConsumerWhenMessagesArrive(consumerTag, consumer, queueInstance);
+                queueInstance.MessagePublished += (sender, message) =>
+                {
+                    Interlocked.Increment(ref _lastDeliveryTag);
+                    var deliveryTag = Convert.ToUInt64(_lastDeliveryTag);
+                    const bool redelivered = false;
+                    var exchange = message.Exchange;
+                    var routingKey = message.RoutingKey;
+                    var basicProperties = message.BasicProperties ?? CreateBasicProperties();
+                    var body = message.Body;
 
-                consumer.HandleBasicConsumeOk(consumerTag: consumerTag);
-                
+                    consumer.HandleBasicDeliver(consumerTag, deliveryTag,redelivered,exchange,routingKey,basicProperties,body);
+                };
             }
            
             return consumerTag;
-        }
-
-        private void NotifyConsumerWhenMessagesArrive(string consumerTag, IBasicConsumer consumer, Queue queueInstance)
-        {
-            queueInstance.MessagePublished += (sender, message) => { NotifyConsumerOfMessage(consumerTag, consumer, message); };
-        }
-
-        private void NotifyConsumerOfExistingMessages(string consumerTag, IBasicConsumer consumer, Queue queueInstance)
-        {
-            foreach (var message in queueInstance.Messages)
-            {
-                NotifyConsumerOfMessage(consumerTag, consumer, message);
-            }
-        }
-
-        private void NotifyConsumerOfMessage(string consumerTag, IBasicConsumer consumer, RabbitMessage message)
-        {
-            Interlocked.Increment(ref _lastDeliveryTag);
-            var deliveryTag = Convert.ToUInt64(_lastDeliveryTag);
-            const bool redelivered = false;
-            var exchange = message.Exchange;
-            var routingKey = message.RoutingKey;
-            var basicProperties = CreateBasicProperties();
-            var body = message.Body;
-
-            consumer.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
         }
 
         public void BasicCancel(string consumerTag)
@@ -370,7 +350,7 @@ namespace RabbitMQ.Fakes
             var exchange = message.Exchange;
             var routingKey = message.RoutingKey;
             var messageCount = Convert.ToUInt32(queueInstance.Messages.Count);
-            var basicProperties = CreateBasicProperties();
+            var basicProperties = message.BasicProperties ?? CreateBasicProperties();
             var body = message.Body;
 
             Func<ulong, RabbitMessage, RabbitMessage> updateFunction = (key, existingMessage) => existingMessage;
