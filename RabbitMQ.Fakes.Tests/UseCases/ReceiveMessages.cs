@@ -4,6 +4,7 @@ using System.Text;
 using FluentAssertions;
 using NUnit.Framework;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing.v0_8;
 
 namespace RabbitMQ.Fakes.Tests.UseCases
@@ -84,6 +85,69 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 actualBasicProperties.ShouldBeEquivalentTo(basicProperties);
 
                 channel.BasicAck(message.DeliveryTag, multiple: false);
+            }
+
+        }
+
+        [Test]
+        public void QueueingConsumer_MessagesOnQueueBeforeConsumerIsCreated_ReceiveMessagesOnQueue()
+        {
+            var rabbitServer = new RabbitServer();
+
+            ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
+            SendMessage(rabbitServer, "my_exchange", "hello_world");
+
+            var connectionFactory = new FakeConnectionFactory(rabbitServer);
+            using (var connection = connectionFactory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                var consumer = new QueueingBasicConsumer(channel);
+                channel.BasicConsume("my_queue", false, consumer);
+
+                object messageOut;
+                if (consumer.Queue.Dequeue(5000, out messageOut))
+                {
+                    var message = (BasicDeliverEventArgs) messageOut;
+                    var messageBody = Encoding.ASCII.GetString(message.Body);
+
+                    Assert.That(messageBody, Is.EqualTo("hello_world"));
+
+                    channel.BasicAck(message.DeliveryTag, multiple: false);
+                }
+
+                Assert.That(messageOut, Is.Not.Null);
+            }
+
+        }
+
+        [Test]
+        public void QueueingConsumer_MessagesSentAfterConsumerIsCreated_ReceiveMessagesOnQueue()
+        {
+            var rabbitServer = new RabbitServer();
+
+            ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
+           
+            var connectionFactory = new FakeConnectionFactory(rabbitServer);
+            using (var connection = connectionFactory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                var consumer = new QueueingBasicConsumer(channel);
+                channel.BasicConsume("my_queue", false, consumer);
+
+                SendMessage(rabbitServer, "my_exchange", "hello_world");
+
+                object messageOut;
+                if (consumer.Queue.Dequeue(5000, out messageOut))
+                {
+                    var message = (BasicDeliverEventArgs)messageOut;
+                    var messageBody = Encoding.ASCII.GetString(message.Body);
+
+                    Assert.That(messageBody, Is.EqualTo("hello_world"));
+
+                    channel.BasicAck(message.DeliveryTag, multiple: false);
+                }
+
+                Assert.That(messageOut, Is.Not.Null);
             }
 
         }
