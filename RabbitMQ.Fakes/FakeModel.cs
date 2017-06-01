@@ -5,13 +5,14 @@ using System.Collections.Generic;
 using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Framing.v0_8;
+using RabbitMQ.Client.Impl;
 using RabbitMQ.Fakes.models;
+using BasicProperties = RabbitMQ.Client.Framing.BasicProperties;
 using Queue = RabbitMQ.Fakes.models.Queue;
 
 namespace RabbitMQ.Fakes
 {
-    public class FakeModel:IModel
+    public class FakeModel : IModel
     {
         private readonly RabbitServer _server;
 
@@ -57,14 +58,9 @@ namespace RabbitMQ.Fakes
             return new BasicProperties();
         }
 
-        public IFileProperties CreateFileProperties()
+        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments)
         {
-            return new FileProperties();
-        }
-
-        public IStreamProperties CreateStreamProperties()
-        {
-            return new StreamProperties();
+            throw new NotImplementedException();
         }
 
         public void ChannelFlow(bool active)
@@ -72,7 +68,7 @@ namespace RabbitMQ.Fakes
             IsChannelFlowActive = active;
         }
 
-        public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary arguments)
+        public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
         {
             var exchangeInstance = new Exchange
             {
@@ -80,7 +76,7 @@ namespace RabbitMQ.Fakes
                 Type = type,
                 IsDurable = durable,
                 AutoDelete = autoDelete,
-                Arguments = arguments
+                Arguments = arguments as IDictionary
             };
             Func<string,Exchange,Exchange> updateFunction = (name, existing) => existing;
             _server.Exchanges.AddOrUpdate(exchange,exchangeInstance, updateFunction);
@@ -101,9 +97,9 @@ namespace RabbitMQ.Fakes
             ExchangeDeclare(exchange, type:null, durable: false, autoDelete: false, arguments: null);
         }
 
-        public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary arguments)
+        public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
         {
-            ExchangeDeclare(exchange, type, durable, autoDelete: false, arguments: arguments);
+            ExchangeDeclare(exchange, type, durable, autoDelete: false, arguments: arguments as IDictionary<string, object>);
         }
 
         public void ExchangeDelete(string exchange, bool ifUnused)
@@ -122,7 +118,17 @@ namespace RabbitMQ.Fakes
             ExchangeDelete(exchange, ifUnused: false);
         }
 
-        public void ExchangeBind(string destination, string source, string routingKey, IDictionary arguments)
+        public void ExchangeUnbindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
         {
             Exchange exchange;
             _server.Exchanges.TryGetValue(source, out exchange);
@@ -142,7 +148,7 @@ namespace RabbitMQ.Fakes
             ExchangeBind(destination:destination,source:source,routingKey:routingKey,arguments:null);
         }
 
-        public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary arguments)
+        public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
         {
             Exchange exchange;
             _server.Exchanges.TryGetValue(source, out exchange);
@@ -174,12 +180,22 @@ namespace RabbitMQ.Fakes
             return QueueDeclare(queue, durable: false, exclusive: false, autoDelete: false, arguments: null);
         }
 
-        public void QueueBind(string queue, string exchange, string routingKey, IDictionary arguments)
+        public uint MessageCount(string queue)
         {
-            ExchangeBind(queue,exchange,routingKey,arguments);
+            throw new NotImplementedException();
         }
 
-        public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary arguments)
+        public uint ConsumerCount(string queue)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
+        {
+            ExchangeBind(queue,exchange,routingKey,arguments as IDictionary<string, object>);
+        }
+
+        public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
         {
             var queueInstance = new models.Queue
             {
@@ -187,7 +203,7 @@ namespace RabbitMQ.Fakes
                 IsDurable = durable,
                 IsExclusive = exclusive,
                 IsAutoDelete = autoDelete,
-                Arguments = arguments
+                Arguments = arguments as IDictionary
             };
 
             Func<string,models.Queue,models.Queue> updateFunction = (name, existing) => existing;
@@ -196,7 +212,7 @@ namespace RabbitMQ.Fakes
             return new QueueDeclareOk(queue, 0, 0);
         }
 
-        public void QueueDeclareNoWait(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary arguments)
+        public void QueueDeclareNoWait(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
         {
             QueueDeclare(queue, durable, exclusive, autoDelete, arguments);
         }
@@ -206,7 +222,7 @@ namespace RabbitMQ.Fakes
             ExchangeBind(queue, exchange, routingKey);
         }
 
-        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary arguments)
+        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
         {
             ExchangeUnbind(queue,exchange,routingKey);
         }
@@ -276,6 +292,8 @@ namespace RabbitMQ.Fakes
             throw new NotImplementedException();
         }
 
+        public int ChannelNumber { get; }
+
         public string BasicConsume(string queue, bool noAck, IBasicConsumer consumer)
         {
             return BasicConsume(queue: queue, noAck: noAck, consumerTag: Guid.NewGuid().ToString(), noLocal: true, exclusive: false, arguments: null, consumer: consumer);      
@@ -286,13 +304,13 @@ namespace RabbitMQ.Fakes
            return BasicConsume(queue:queue,noAck:noAck,consumerTag:consumerTag,noLocal:true,exclusive:false,arguments:null,consumer:consumer);        
         }
 
-        public string BasicConsume(string queue, bool noAck, string consumerTag, IDictionary arguments, IBasicConsumer consumer)
+        public string BasicConsume(string queue, bool noAck, string consumerTag, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
             return BasicConsume(queue: queue, noAck: noAck, consumerTag: consumerTag, noLocal: true, exclusive: false, arguments: arguments, consumer: consumer);        
         }
 
         private readonly ConcurrentDictionary<string,IBasicConsumer> _consumers = new ConcurrentDictionary<string, IBasicConsumer>(); 
-        public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary arguments, IBasicConsumer consumer)
+        public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
             models.Queue queueInstance;
             _server.Queues.TryGetValue(queue, out queueInstance);
@@ -549,13 +567,47 @@ namespace RabbitMQ.Fakes
         public bool IsClosed { get; set; }
 
         public ulong NextPublishSeqNo { get; set; }
+        public TimeSpan ContinuationTimeout { get; set; }
+        event EventHandler<BasicAckEventArgs> IModel.BasicAcks
+        {
+            add { throw new NotImplementedException(); }
+            remove { throw new NotImplementedException(); }
+        }
 
-        public event ModelShutdownEventHandler ModelShutdown;
-        public event BasicReturnEventHandler BasicReturn;
-        public event BasicAckEventHandler BasicAcks;
-        public event BasicNackEventHandler BasicNacks;
-        public event CallbackExceptionEventHandler CallbackException;
-        public event FlowControlEventHandler FlowControl;
-        public event BasicRecoverOkEventHandler BasicRecoverOk;
+        event EventHandler<BasicNackEventArgs> IModel.BasicNacks
+        {
+            add { throw new NotImplementedException(); }
+            remove { throw new NotImplementedException(); }
+        }
+
+        event EventHandler<EventArgs> IModel.BasicRecoverOk
+        {
+            add { throw new NotImplementedException(); }
+            remove { throw new NotImplementedException(); }
+        }
+
+        event EventHandler<BasicReturnEventArgs> IModel.BasicReturn
+        {
+            add { throw new NotImplementedException(); }
+            remove { throw new NotImplementedException(); }
+        }
+
+        event EventHandler<CallbackExceptionEventArgs> IModel.CallbackException
+        {
+            add { throw new NotImplementedException(); }
+            remove { throw new NotImplementedException(); }
+        }
+
+        event EventHandler<FlowControlEventArgs> IModel.FlowControl
+        {
+            add { throw new NotImplementedException(); }
+            remove { throw new NotImplementedException(); }
+        }
+
+        event EventHandler<ShutdownEventArgs> IModel.ModelShutdown
+        {
+            add { throw new NotImplementedException(); }
+            remove { throw new NotImplementedException(); }
+        }
     }
 }

@@ -5,7 +5,7 @@ using FluentAssertions;
 using NUnit.Framework;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Framing.v0_8;
+using RabbitMQ.Client.Framing;
 
 namespace RabbitMQ.Fakes.Tests.UseCases
 {
@@ -46,7 +46,7 @@ namespace RabbitMQ.Fakes.Tests.UseCases
             ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
             var basicProperties = new BasicProperties
             {
-                Headers = new Dictionary<string, string>() {{"TestKey", "TestValue"}},
+                Headers = new Dictionary<string, object>() {{"TestKey", "TestValue"}},
                 CorrelationId = Guid.NewGuid().ToString(),
                 ReplyTo = "TestQueue",
                 Timestamp = new AmqpTimestamp(123456),
@@ -104,7 +104,7 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 var consumer = new QueueingBasicConsumer(channel);
                 channel.BasicConsume("my_queue", false, consumer);
 
-                object messageOut;
+                BasicDeliverEventArgs messageOut;
                 if (consumer.Queue.Dequeue(5000, out messageOut))
                 {
                     var message = (BasicDeliverEventArgs) messageOut;
@@ -136,7 +136,7 @@ namespace RabbitMQ.Fakes.Tests.UseCases
 
                 SendMessage(rabbitServer, "my_exchange", "hello_world");
 
-                object messageOut;
+                BasicDeliverEventArgs messageOut;
                 if (consumer.Queue.Dequeue(5000, out messageOut))
                 {
                     var message = (BasicDeliverEventArgs)messageOut;

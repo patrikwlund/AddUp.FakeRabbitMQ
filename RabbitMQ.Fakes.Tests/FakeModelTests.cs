@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Framing.v0_8;
+using RabbitMQ.Client.Framing;
 using RabbitMQ.Fakes.models;
 using Queue = RabbitMQ.Fakes.models.Queue;
 
@@ -25,34 +25,6 @@ namespace RabbitMQ.Fakes.Tests
 
             // Assert
             Assert.That(result,Is.Not.Null);
-        }
-
-        [Test]
-        public void CreateFileProperties_ReturnsFileProperties()
-        {
-            // Arrange
-            var node = new RabbitServer();
-            var model = new FakeModel(node);
-
-            // Act
-            var result = model.CreateFileProperties();
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
-        }
-
-        [Test]
-        public void CreateStreamProperties_ReturnsStreamProperties()
-        {
-            // Arrange
-            var node = new RabbitServer();
-            var model = new FakeModel(node);
-
-            // Act
-            var result = model.CreateStreamProperties();
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
         }
 
         [Test]
@@ -82,7 +54,7 @@ namespace RabbitMQ.Fakes.Tests
             const string exchangeType = "someType";
             const bool isDurable = true;
             const bool isAutoDelete = false;
-            var arguments = new Hashtable();
+            var arguments = new Dictionary<string, object>();
 
             // Act
             model.ExchangeDeclare(exchange:exchangeName,type:exchangeType,durable:isDurable,autoDelete:isAutoDelete,arguments:arguments);
@@ -165,7 +137,7 @@ namespace RabbitMQ.Fakes.Tests
             const string exchangeType = "someType";
             const bool isDurable = true;
             const bool isAutoDelete = false;
-            var arguments = new Hashtable();
+            var arguments = new Dictionary<string, object>();
 
             // Act
             model.ExchangeDeclareNoWait(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
@@ -177,7 +149,7 @@ namespace RabbitMQ.Fakes.Tests
             AssertExchangeDetails(exchange, exchangeName, isAutoDelete, arguments, isDurable, exchangeType);
         }
 
-        private static void AssertExchangeDetails(KeyValuePair<string, Exchange> exchange, string exchangeName, bool isAutoDelete,Hashtable arguments, bool isDurable, string exchangeType)
+        private static void AssertExchangeDetails(KeyValuePair<string, Exchange> exchange, string exchangeName, bool isAutoDelete,IDictionary<string, object> arguments, bool isDurable, string exchangeType)
         {
             Assert.That(exchange.Key, Is.EqualTo(exchangeName));
             Assert.That(exchange.Value.AutoDelete, Is.EqualTo(isAutoDelete));
@@ -270,7 +242,7 @@ namespace RabbitMQ.Fakes.Tests
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
             const string routingKey = "someRoutingKey";
-            var arguments = new Hashtable();
+            var arguments = new Dictionary<string, object>();
 
             model.ExchangeDeclare(exchangeName,"direct");
             model.QueueDeclarePassive(queueName);
@@ -292,7 +264,7 @@ namespace RabbitMQ.Fakes.Tests
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
             const string routingKey = "someRoutingKey";
-            var arguments = new Hashtable();
+            var arguments = new Dictionary<string, object>();
 
             model.ExchangeDeclare(exchangeName, "direct");
             model.QueueDeclarePassive(queueName);
@@ -321,7 +293,7 @@ namespace RabbitMQ.Fakes.Tests
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
             const string routingKey = "someRoutingKey";
-            var arguments = new Hashtable();
+            var arguments = new Dictionary<string, object>();
 
             model.ExchangeDeclare(exchangeName, "direct");
             model.QueueDeclarePassive(queueName);
@@ -345,7 +317,7 @@ namespace RabbitMQ.Fakes.Tests
             const string queueName = "someQueue";
             const string exchangeName = "someExchange";
             const string routingKey = "someRoutingKey";
-            var arguments = new Hashtable();
+            var arguments = new Dictionary<string, object>();
 
             model.ExchangeDeclare(exchangeName, "direct");
             model.QueueDeclarePassive(queueName);
@@ -402,7 +374,7 @@ namespace RabbitMQ.Fakes.Tests
             const bool isDurable = true;
             const bool isExclusive = true;
             const bool isAutoDelete = false;
-            var arguments = new Hashtable();
+            var arguments = new Dictionary<string, object>();
 
             // Act
             model.QueueDeclare(queue:queueName,durable:isDurable,exclusive:isExclusive,autoDelete:isAutoDelete,arguments:arguments);
@@ -414,7 +386,7 @@ namespace RabbitMQ.Fakes.Tests
             AssertQueueDetails(queue, queueName, isAutoDelete, arguments, isDurable, isExclusive);
         }
 
-        private static void AssertQueueDetails(KeyValuePair<string, Queue> queue, string exchangeName, bool isAutoDelete, Hashtable arguments, bool isDurable, bool isExclusive)
+        private static void AssertQueueDetails(KeyValuePair<string, Queue> queue, string exchangeName, bool isAutoDelete, Dictionary<string, object> arguments, bool isDurable, bool isExclusive)
         {
             Assert.That(queue.Key, Is.EqualTo(exchangeName));
             Assert.That(queue.Value.IsAutoDelete, Is.EqualTo(isAutoDelete));
