@@ -606,8 +606,10 @@ namespace RabbitMQ.Fakes
 
         event EventHandler<ShutdownEventArgs> IModel.ModelShutdown
         {
-            add { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
+            add{ AddedModelShutDownEvent += value; }
+            remove { AddedModelShutDownEvent -= value; }
         }
+
+        public EventHandler<ShutdownEventArgs> AddedModelShutDownEvent { get; set; }
     }
 }

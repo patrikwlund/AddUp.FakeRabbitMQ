@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,40 @@ namespace RabbitMQ.Fakes.Tests
     [TestFixture]
     public class FakeModelTests
     {
+        private bool _wasCalled;
+
+        [Test]
+        public void AddModelShutDownEvent_EventIsTracked()
+        {
+            //arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            //act
+            Assert.That(model.AddedModelShutDownEvent, Is.Null);
+            ((IModel) model).ModelShutdown += (args, e) => { _wasCalled = true; };
+
+            //Assert
+            Assert.That(model.AddedModelShutDownEvent, Is.Not.Null);
+        }
+
+        [Test]
+        public void AddModelShutDownEvent_EventIsRemoved()
+        {
+            //arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+            EventHandler<ShutdownEventArgs> onModelShutdown = (args, e) => { _wasCalled = true; };
+            ((IModel)model).ModelShutdown += onModelShutdown;
+
+            //act
+            Assert.That(model.AddedModelShutDownEvent, Is.Not.Null);
+            ((IModel)model).ModelShutdown -= onModelShutdown;
+
+            //Assert
+            Assert.That(model.AddedModelShutDownEvent, Is.Null);
+        }
+
         [Test]
         public void CreateBasicProperties_ReturnsBasicProperties()
         {
