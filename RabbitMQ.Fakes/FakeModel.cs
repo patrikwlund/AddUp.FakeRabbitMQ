@@ -374,7 +374,14 @@ namespace RabbitMQ.Fakes
                 return null;
 
             RabbitMessage message;
-            queueInstance.Messages.TryDequeue(out message);
+            if (!noAck)
+            {
+                queueInstance.Messages.TryDequeue(out message);
+            }
+            else
+            {
+                queueInstance.Messages.TryPeek(out message);
+            }
 
             if (message == null)
                 return null;

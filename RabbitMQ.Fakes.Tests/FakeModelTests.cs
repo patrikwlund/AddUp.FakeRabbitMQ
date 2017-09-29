@@ -611,6 +611,28 @@ namespace RabbitMQ.Fakes.Tests
         }
 
         [Test]
+        public void BasicAck()
+        {
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+            model.QueueDeclarePassive("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var message = "hello world!";
+            var encodedMessage = Encoding.ASCII.GetBytes(message);
+            model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+
+            // Act
+            var response = model.BasicGet("my_queue", true);
+            model.BasicAck(response.DeliveryTag, false);
+
+            // Assert
+            Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
+        }
+
+        [Test]
         public void BasicGet_MessageOnQueue_GetsMessage()
         {
             // Arrange
@@ -632,6 +654,8 @@ namespace RabbitMQ.Fakes.Tests
             Assert.That(response.Body, Is.EqualTo(encodedMessage));
             Assert.That(response.DeliveryTag, Is.GreaterThan(0));
         }
+
+        
 
         [Test]
         public void BasicGet_NoMessageOnQueue_ReturnsNull()
