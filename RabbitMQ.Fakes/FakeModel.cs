@@ -475,7 +475,7 @@ namespace RabbitMQ.Fakes
 
                 if (queue != null)
                 {
-                    queue.BasicAck();
+                    queue.Messages.TryDequeue(out message);
                 }
             }
         }
