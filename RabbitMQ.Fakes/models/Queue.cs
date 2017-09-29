@@ -31,5 +31,13 @@ namespace RabbitMQ.Fakes.models
 
             MessagePublished(this, queueMessage);
         }
+
+        public RabbitMessage BasicAck()
+        {
+            RabbitMessage dequeuedMessage;
+            this.Messages.TryDequeue(out dequeuedMessage);
+
+            return dequeuedMessage;
+        }
     }
 }

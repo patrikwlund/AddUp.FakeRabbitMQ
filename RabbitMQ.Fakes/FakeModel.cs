@@ -460,6 +460,17 @@ namespace RabbitMQ.Fakes
         {
             RabbitMessage message;
             _workingMessages.TryRemove(deliveryTag, out message);
+
+            if (message != null)
+            {
+                Queue queue;
+                _server.Queues.TryGetValue(message.Queue, out queue);
+
+                if (queue != null)
+                {
+                    queue.BasicAck();
+                }
+            }
         }
 
         public void BasicReject(ulong deliveryTag, bool requeue)
