@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing;
 using RabbitMQ.Fakes.models;
 using Queue = RabbitMQ.Fakes.models.Queue;
@@ -623,10 +624,11 @@ namespace RabbitMQ.Fakes.Tests
             var message = "hello world!";
             var encodedMessage = Encoding.ASCII.GetBytes(message);
             model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+            model.BasicConsume("my_queue", false, new EventingBasicConsumer(model));
 
             // Act
-            var response = model.BasicGet("my_queue", true);
-            model.BasicAck(response.DeliveryTag, false);
+            var deliveryTag = model._workingMessages.First().Key;
+            model.BasicAck(deliveryTag, false);
 
             // Assert
             Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
