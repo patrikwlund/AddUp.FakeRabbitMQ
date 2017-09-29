@@ -5,9 +5,8 @@ using System.Collections.Generic;
 using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Impl;
+using RabbitMQ.Client.Framing;
 using RabbitMQ.Fakes.models;
-using BasicProperties = RabbitMQ.Client.Framing.BasicProperties;
 using Queue = RabbitMQ.Fakes.models.Queue;
 
 namespace RabbitMQ.Fakes
@@ -34,7 +33,7 @@ namespace RabbitMQ.Fakes
 
         public IEnumerable<RabbitMessage> GetMessagesOnQueue(string queueName)
         {
-            models.Queue queueInstance;
+            Queue queueInstance;
             _server.Queues.TryGetValue(queueName, out queueInstance);
 
             if (queueInstance == null)
@@ -50,7 +49,7 @@ namespace RabbitMQ.Fakes
 
         public void Dispose()
         {
-            
+
         }
 
         public IBasicProperties CreateBasicProperties()
@@ -78,8 +77,8 @@ namespace RabbitMQ.Fakes
                 AutoDelete = autoDelete,
                 Arguments = arguments as IDictionary
             };
-            Func<string,Exchange,Exchange> updateFunction = (name, existing) => existing;
-            _server.Exchanges.AddOrUpdate(exchange,exchangeInstance, updateFunction);
+            Func<string, Exchange, Exchange> updateFunction = (name, existing) => existing;
+            _server.Exchanges.AddOrUpdate(exchange, exchangeInstance, updateFunction);
         }
 
         public void ExchangeDeclare(string exchange, string type, bool durable)
@@ -89,17 +88,17 @@ namespace RabbitMQ.Fakes
 
         public void ExchangeDeclare(string exchange, string type)
         {
-            ExchangeDeclare(exchange, type, durable:false, autoDelete: false, arguments: null);
+            ExchangeDeclare(exchange, type, durable: false, autoDelete: false, arguments: null);
         }
 
         public void ExchangeDeclarePassive(string exchange)
         {
-            ExchangeDeclare(exchange, type:null, durable: false, autoDelete: false, arguments: null);
+            ExchangeDeclare(exchange, type: null, durable: false, autoDelete: false, arguments: null);
         }
 
         public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
         {
-            ExchangeDeclare(exchange, type, durable, autoDelete: false, arguments: arguments as IDictionary<string, object>);
+            ExchangeDeclare(exchange, type, durable, autoDelete: false, arguments: arguments);
         }
 
         public void ExchangeDelete(string exchange, bool ifUnused)
@@ -133,19 +132,19 @@ namespace RabbitMQ.Fakes
             Exchange exchange;
             _server.Exchanges.TryGetValue(source, out exchange);
 
-            models.Queue queue;
+            Queue queue;
             _server.Queues.TryGetValue(destination, out queue);
 
-            var binding = new ExchangeQueueBinding {Exchange = exchange, Queue = queue, RoutingKey = routingKey};
+            var binding = new ExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
             if (exchange != null)
                 exchange.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
-            if(queue!=null)
+            if (queue != null)
                 queue.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
         }
 
         public void ExchangeBind(string destination, string source, string routingKey)
         {
-            ExchangeBind(destination:destination,source:source,routingKey:routingKey,arguments:null);
+            ExchangeBind(destination: destination, source: source, routingKey: routingKey, arguments: null);
         }
 
         public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
@@ -153,7 +152,7 @@ namespace RabbitMQ.Fakes
             Exchange exchange;
             _server.Exchanges.TryGetValue(source, out exchange);
 
-            models.Queue queue;
+            Queue queue;
             _server.Queues.TryGetValue(destination, out queue);
 
             var binding = new ExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
@@ -161,7 +160,7 @@ namespace RabbitMQ.Fakes
             if (exchange != null)
                 exchange.Bindings.TryRemove(binding.Key, out removedBinding);
             if (queue != null)
-                queue.Bindings.TryRemove(binding.Key,out removedBinding);
+                queue.Bindings.TryRemove(binding.Key, out removedBinding);
         }
 
         public void ExchangeUnbind(string destination, string source, string routingKey)
@@ -192,12 +191,12 @@ namespace RabbitMQ.Fakes
 
         public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
         {
-            ExchangeBind(queue,exchange,routingKey,arguments as IDictionary<string, object>);
+            ExchangeBind(queue, exchange, routingKey, arguments);
         }
 
         public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
         {
-            var queueInstance = new models.Queue
+            var queueInstance = new Queue
             {
                 Name = queue,
                 IsDurable = durable,
@@ -206,7 +205,7 @@ namespace RabbitMQ.Fakes
                 Arguments = arguments as IDictionary
             };
 
-            Func<string,models.Queue,models.Queue> updateFunction = (name, existing) => existing;
+            Func<string, Queue, Queue> updateFunction = (name, existing) => existing;
             _server.Queues.AddOrUpdate(queue, queueInstance, updateFunction);
 
             return new QueueDeclareOk(queue, 0, 0);
@@ -224,17 +223,17 @@ namespace RabbitMQ.Fakes
 
         public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments)
         {
-            ExchangeUnbind(queue,exchange,routingKey);
+            ExchangeUnbind(queue, exchange, routingKey);
         }
 
         public uint QueuePurge(string queue)
         {
-            models.Queue instance;
+            Queue instance;
             _server.Queues.TryGetValue(queue, out instance);
 
             if (instance == null)
                 return 0u;
-            
+
             while (!instance.Messages.IsEmpty)
             {
                 RabbitMessage itemToRemove;
@@ -246,7 +245,7 @@ namespace RabbitMQ.Fakes
 
         public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
         {
-            models.Queue instance;
+            Queue instance;
             _server.Queues.TryRemove(queue, out instance);
 
             return instance != null ? 1u : 0u;
@@ -254,7 +253,7 @@ namespace RabbitMQ.Fakes
 
         public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty)
         {
-            QueueDelete(queue,ifUnused:false,ifEmpty:false);
+            QueueDelete(queue, ifUnused: false, ifEmpty: false);
         }
 
         public uint QueueDelete(string queue)
@@ -296,23 +295,23 @@ namespace RabbitMQ.Fakes
 
         public string BasicConsume(string queue, bool noAck, IBasicConsumer consumer)
         {
-            return BasicConsume(queue: queue, noAck: noAck, consumerTag: Guid.NewGuid().ToString(), noLocal: true, exclusive: false, arguments: null, consumer: consumer);      
+            return BasicConsume(queue: queue, noAck: noAck, consumerTag: Guid.NewGuid().ToString(), noLocal: true, exclusive: false, arguments: null, consumer: consumer);
         }
 
         public string BasicConsume(string queue, bool noAck, string consumerTag, IBasicConsumer consumer)
         {
-           return BasicConsume(queue:queue,noAck:noAck,consumerTag:consumerTag,noLocal:true,exclusive:false,arguments:null,consumer:consumer);        
+            return BasicConsume(queue: queue, noAck: noAck, consumerTag: consumerTag, noLocal: true, exclusive: false, arguments: null, consumer: consumer);
         }
 
         public string BasicConsume(string queue, bool noAck, string consumerTag, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
-            return BasicConsume(queue: queue, noAck: noAck, consumerTag: consumerTag, noLocal: true, exclusive: false, arguments: arguments, consumer: consumer);        
+            return BasicConsume(queue: queue, noAck: noAck, consumerTag: consumerTag, noLocal: true, exclusive: false, arguments: arguments, consumer: consumer);
         }
 
-        private readonly ConcurrentDictionary<string,IBasicConsumer> _consumers = new ConcurrentDictionary<string, IBasicConsumer>(); 
+        private readonly ConcurrentDictionary<string, IBasicConsumer> _consumers = new ConcurrentDictionary<string, IBasicConsumer>();
         public string BasicConsume(string queue, bool noAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
-            models.Queue queueInstance;
+            Queue queueInstance;
             _server.Queues.TryGetValue(queue, out queueInstance);
 
             if (queueInstance != null)
@@ -323,7 +322,7 @@ namespace RabbitMQ.Fakes
                 NotifyConsumerOfExistingMessages(consumerTag, consumer, queueInstance);
                 NotifyConsumerWhenMessagesAreReceived(consumerTag, consumer, queueInstance);
             }
-           
+
             return consumerTag;
         }
 
@@ -350,6 +349,9 @@ namespace RabbitMQ.Fakes
             var basicProperties = message.BasicProperties ?? CreateBasicProperties();
             var body = message.Body;
 
+            Func<ulong, RabbitMessage, RabbitMessage> updateFunction = (key, existingMessage) => existingMessage;
+            _workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
+
             consumer.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
         }
 
@@ -362,12 +364,12 @@ namespace RabbitMQ.Fakes
                 consumer.HandleBasicCancelOk(consumerTag);
         }
 
-        private long _lastDeliveryTag = 0;
-        private readonly ConcurrentDictionary<ulong, RabbitMessage> _workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
- 
+        private long _lastDeliveryTag;
+        public readonly ConcurrentDictionary<ulong, RabbitMessage> _workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
+
         public BasicGetResult BasicGet(string queue, bool noAck)
         {
-            models.Queue queueInstance;
+            Queue queueInstance;
             _server.Queues.TryGetValue(queue, out queueInstance);
 
             if (queueInstance == null)
@@ -391,7 +393,7 @@ namespace RabbitMQ.Fakes
             Func<ulong, RabbitMessage, RabbitMessage> updateFunction = (key, existingMessage) => existingMessage;
             _workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
 
-            return new BasicGetResult(deliveryTag,redelivered,exchange,routingKey,messageCount,basicProperties,body);
+            return new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body);
 
         }
 
@@ -410,15 +412,15 @@ namespace RabbitMQ.Fakes
 
         public void BasicPublish(string exchange, string routingKey, IBasicProperties basicProperties, byte[] body)
         {
-            BasicPublish(exchange:exchange,routingKey:routingKey,mandatory:true,immediate:true,basicProperties:basicProperties,body:body);
+            BasicPublish(exchange: exchange, routingKey: routingKey, mandatory: true, immediate: true, basicProperties: basicProperties, body: body);
         }
 
         public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, byte[] body)
         {
-            BasicPublish(exchange:exchange,routingKey:routingKey,mandatory:mandatory,immediate:true,basicProperties:basicProperties,body:body);
+            BasicPublish(exchange: exchange, routingKey: routingKey, mandatory: mandatory, immediate: true, basicProperties: basicProperties, body: body);
         }
 
-        public void BasicPublish(string exchange, string routingKey, bool mandatory, bool immediate, IBasicProperties basicProperties,byte[] body)
+        public void BasicPublish(string exchange, string routingKey, bool mandatory, bool immediate, IBasicProperties basicProperties, byte[] body)
         {
             var parameters = new RabbitMessage
             {
@@ -460,11 +462,22 @@ namespace RabbitMQ.Fakes
         {
             RabbitMessage message;
             _workingMessages.TryRemove(deliveryTag, out message);
+
+            if (message != null)
+            {
+                Queue queue;
+                _server.Queues.TryGetValue(message.Queue, out queue);
+
+                if (queue != null)
+                {
+                    queue.Messages.TryDequeue(out message);
+                }
+            }
         }
 
         public void BasicReject(ulong deliveryTag, bool requeue)
         {
-           BasicNack(deliveryTag:deliveryTag,multiple:false,requeue:requeue);
+            BasicNack(deliveryTag: deliveryTag, multiple: false, requeue: requeue);
         }
 
         public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
@@ -474,7 +487,7 @@ namespace RabbitMQ.Fakes
 
             if (message != null && requeue)
             {
-                models.Queue queueInstance;
+                Queue queueInstance;
                 _server.Queues.TryGetValue(message.Queue, out queueInstance);
 
                 if (queueInstance != null)
@@ -490,7 +503,7 @@ namespace RabbitMQ.Fakes
             {
                 foreach (var message in _workingMessages)
                 {
-                    models.Queue queueInstance;
+                    Queue queueInstance;
                     _server.Queues.TryGetValue(message.Value.Queue, out queueInstance);
 
                     if (queueInstance != null)
@@ -555,7 +568,7 @@ namespace RabbitMQ.Fakes
         {
             IsClosed = true;
             IsOpen = false;
-            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library,replyCode,replyText);
+            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, replyCode, replyText);
         }
 
         public IBasicConsumer DefaultConsumer { get; set; }
@@ -606,7 +619,7 @@ namespace RabbitMQ.Fakes
 
         event EventHandler<ShutdownEventArgs> IModel.ModelShutdown
         {
-            add{ AddedModelShutDownEvent += value; }
+            add { AddedModelShutDownEvent += value; }
             remove { AddedModelShutDownEvent -= value; }
         }
 

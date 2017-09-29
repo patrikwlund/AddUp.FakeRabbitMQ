@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing;
 using RabbitMQ.Fakes.models;
 using Queue = RabbitMQ.Fakes.models.Queue;
@@ -611,6 +612,29 @@ namespace RabbitMQ.Fakes.Tests
         }
 
         [Test]
+        public void BasicAck()
+        {
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+            model.QueueDeclarePassive("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var message = "hello world!";
+            var encodedMessage = Encoding.ASCII.GetBytes(message);
+            model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+            model.BasicConsume("my_queue", false, new EventingBasicConsumer(model));
+
+            // Act
+            var deliveryTag = model._workingMessages.First().Key;
+            model.BasicAck(deliveryTag, false);
+
+            // Assert
+            Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
+        }
+
+        [Test]
         public void BasicGet_MessageOnQueue_GetsMessage()
         {
             // Arrange
@@ -632,6 +656,8 @@ namespace RabbitMQ.Fakes.Tests
             Assert.That(response.Body, Is.EqualTo(encodedMessage));
             Assert.That(response.DeliveryTag, Is.GreaterThan(0));
         }
+
+        
 
         [Test]
         public void BasicGet_NoMessageOnQueue_ReturnsNull()
