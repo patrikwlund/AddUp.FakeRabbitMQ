@@ -356,7 +356,7 @@ namespace RabbitMQ.Fakes
             var body = message.Body;
 
             Func<ulong, RabbitMessage, RabbitMessage> updateFunction = (key, existingMessage) => existingMessage;
-            _workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
+            WorkingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
 
             consumer.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
         }
@@ -371,15 +371,12 @@ namespace RabbitMQ.Fakes
         }
 
         private long _lastDeliveryTag;
-        public readonly ConcurrentDictionary<ulong, RabbitMessage> _workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
+        public readonly ConcurrentDictionary<ulong, RabbitMessage> WorkingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
 
         public BasicGetResult BasicGet(string queue, bool autoAck)
         {
-            Queue queueInstance;
-            _server.Queues.TryGetValue(queue, out queueInstance);
-
-            if (queueInstance == null)
-                return null;
+            _server.Queues.TryGetValue(queue, out var queueInstance);
+            if (queueInstance == null) return null;
 
             RabbitMessage message;
             if (autoAck)
@@ -390,9 +387,7 @@ namespace RabbitMQ.Fakes
             {
                 queueInstance.Messages.TryPeek(out message);
             }
-
-            if (message == null)
-                return null;
+            if (message == null) return null;
 
             Interlocked.Increment(ref _lastDeliveryTag);
             var deliveryTag = Convert.ToUInt64(_lastDeliveryTag);
@@ -403,13 +398,11 @@ namespace RabbitMQ.Fakes
             var basicProperties = message.BasicProperties ?? CreateBasicProperties();
             var body = message.Body;
 
-            Func<ulong, RabbitMessage, RabbitMessage> updateFunction = (key, existingMessage) => existingMessage;
-            _workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
+            RabbitMessage UpdateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
+            WorkingMessages.AddOrUpdate(deliveryTag, message, UpdateFunction);
 
             return new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body);
-
         }
-
 
         public void BasicQos(uint prefetchSize, ushort prefetchCount, bool global)
         {
@@ -474,7 +467,7 @@ namespace RabbitMQ.Fakes
         public void BasicAck(ulong deliveryTag, bool multiple)
         {
             RabbitMessage message;
-            _workingMessages.TryRemove(deliveryTag, out message);
+            WorkingMessages.TryRemove(deliveryTag, out message);
 
             if (message != null)
             {
@@ -497,7 +490,7 @@ namespace RabbitMQ.Fakes
         {
             if (requeue) return;
 
-            foreach (var queue in _workingMessages.Select(m => m.Value.Queue))
+            foreach (var queue in WorkingMessages.Select(m => m.Value.Queue))
             {
                 _server.Queues.TryGetValue(queue, out var queueInstance);
 
@@ -507,10 +500,10 @@ namespace RabbitMQ.Fakes
                 }
             }
 
-            _workingMessages.TryRemove(deliveryTag, out var message);
+            WorkingMessages.TryRemove(deliveryTag, out var message);
             if (message == null) return;
 
-            foreach (var workingMessage in _workingMessages)
+            foreach (var workingMessage in WorkingMessages)
             {
                 _server.Queues.TryGetValue(workingMessage.Value.Queue, out var queueInstance);
 
@@ -522,7 +515,7 @@ namespace RabbitMQ.Fakes
         {
             if (requeue)
             {
-                foreach (var message in _workingMessages)
+                foreach (var message in WorkingMessages)
                 {
                     Queue queueInstance;
                     _server.Queues.TryGetValue(message.Value.Queue, out queueInstance);
@@ -534,7 +527,7 @@ namespace RabbitMQ.Fakes
                 }
             }
 
-            _workingMessages.Clear();
+            WorkingMessages.Clear();
         }
 
         public void BasicRecoverAsync(bool requeue)

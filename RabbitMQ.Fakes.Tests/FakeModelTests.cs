@@ -627,7 +627,7 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicConsume("my_queue", false, new EventingBasicConsumer(model));
 
             // Act
-            var deliveryTag = model._workingMessages.First().Key;
+            var deliveryTag = model.WorkingMessages.First().Key;
             model.BasicAck(deliveryTag, false);
 
             // Assert
@@ -705,7 +705,7 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicConsume("my_queue", false, new EventingBasicConsumer(model));
 
             // act
-            var deliveryTag = model._workingMessages.First().Key;
+            var deliveryTag = model.WorkingMessages.First().Key;
             model.BasicNack(deliveryTag, false, requeue);
 
             // assert
