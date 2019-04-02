@@ -657,8 +657,6 @@ namespace RabbitMQ.Fakes.Tests
             Assert.That(response.DeliveryTag, Is.GreaterThan(0));
         }
 
-        
-
         [Test]
         public void BasicGet_NoMessageOnQueue_ReturnsNull()
         {
@@ -690,5 +688,33 @@ namespace RabbitMQ.Fakes.Tests
             Assert.That(response, Is.Null);
         }
 
+        [TestCase(true, true, Description = "BasicGet WITH auto-ack SHOULD be remove the message from the queue")]
+        [TestCase(false, false, Description = "BasicGet with NO auto-ack should NOT remove the message from the queue")]
+        public void BasicGet_Should_Not_Remove_The_Message_From_Queue_If_Not_Acked(bool acked, bool shouldBeRemovedFromQueue)
+        {
+            // arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+            model.QueueDeclare("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+            model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+
+            // act
+            var message = model.BasicGet("my_queue", acked);
+
+            // assert
+            if (shouldBeRemovedFromQueue)
+            {
+                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
+            }
+            else
+            {
+                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(1));
+            }
+        }
     }
 }

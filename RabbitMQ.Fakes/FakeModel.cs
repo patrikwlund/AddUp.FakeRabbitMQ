@@ -372,7 +372,7 @@ namespace RabbitMQ.Fakes
         private long _lastDeliveryTag;
         public readonly ConcurrentDictionary<ulong, RabbitMessage> _workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
 
-        public BasicGetResult BasicGet(string queue, bool noAck)
+        public BasicGetResult BasicGet(string queue, bool autoAck)
         {
             Queue queueInstance;
             _server.Queues.TryGetValue(queue, out queueInstance);
@@ -381,7 +381,14 @@ namespace RabbitMQ.Fakes
                 return null;
 
             RabbitMessage message;
-            queueInstance.Messages.TryDequeue(out message);
+            if (autoAck)
+            {
+                queueInstance.Messages.TryDequeue(out message);
+            }
+            else
+            {
+                queueInstance.Messages.TryPeek(out message);
+            }
 
             if (message == null)
                 return null;
