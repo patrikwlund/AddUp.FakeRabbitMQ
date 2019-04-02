@@ -712,10 +712,12 @@ namespace RabbitMQ.Fakes.Tests
             if (requeue)
             {
                 Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(1));
+                Assert.That(model.WorkingMessages.Count, Is.EqualTo(1));
             }
             else
             {
                 Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
+                Assert.That(model.WorkingMessages.IsEmpty);
             }
         }
 
@@ -741,10 +743,12 @@ namespace RabbitMQ.Fakes.Tests
             if (shouldBeRemovedFromQueue)
             {
                 Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
+                Assert.That(model.WorkingMessages.IsEmpty);
             }
             else
             {
                 Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(1));
+                Assert.That(model.WorkingMessages.Count, Is.EqualTo(1));
             }
         }
     }

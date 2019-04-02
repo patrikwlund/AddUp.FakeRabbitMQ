@@ -398,8 +398,15 @@ namespace RabbitMQ.Fakes
             var basicProperties = message.BasicProperties ?? CreateBasicProperties();
             var body = message.Body;
 
-            RabbitMessage UpdateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
-            WorkingMessages.AddOrUpdate(deliveryTag, message, UpdateFunction);
+            if (autoAck)
+            {
+                WorkingMessages.TryRemove(deliveryTag, out _);
+            }
+            else
+            {
+                RabbitMessage UpdateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
+                WorkingMessages.AddOrUpdate(deliveryTag, message, UpdateFunction);
+            }
 
             return new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body);
         }
