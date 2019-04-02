@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using FluentAssertions;
 using NUnit.Framework;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -688,9 +689,9 @@ namespace RabbitMQ.Fakes.Tests
             Assert.That(response, Is.Null);
         }
 
-        [TestCase(true, TestName = "If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit")]
-        [TestCase(false, TestName = "If requeue param to BasicNack is false, the message that is nacked should be removed from Rabbit")]
-        public void Nacking_Message_Should_Not_Reenqueue_Brand_New_Message(bool requeue) 
+        [TestCase(true, 1, TestName = "If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit")]
+        [TestCase(false, 0, TestName = "If requeue param to BasicNack is false, the message that is nacked should be removed from Rabbit")]
+        public void Nacking_Message_Should_Not_Reenqueue_Brand_New_Message(bool requeue, int expectedMessageCount) 
         {
             // arrange
             var node = new RabbitServer();
@@ -709,21 +710,13 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicNack(deliveryTag, false, requeue);
 
             // assert
-            if (requeue)
-            {
-                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(1));
-                Assert.That(model.WorkingMessages.Count, Is.EqualTo(1));
-            }
-            else
-            {
-                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
-                Assert.That(model.WorkingMessages.IsEmpty);
-            }
+            Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(expectedMessageCount));
+            Assert.That(model.WorkingMessages.Count, Is.EqualTo(expectedMessageCount));
         }
 
-        [TestCase(true, true, TestName = "BasicGet WITH auto-ack SHOULD remove the message from the queue")]
-        [TestCase(false, false, TestName = "BasicGet with NO auto-ack should NOT remove the message from the queue")]
-        public void BasicGet_Should_Not_Remove_The_Message_From_Queue_If_Not_Acked(bool acked, bool shouldBeRemovedFromQueue)
+        [TestCase(true, 0, TestName = "BasicGet WITH auto-ack SHOULD remove the message from the queue")]
+        [TestCase(false, 1, TestName = "BasicGet with NO auto-ack should NOT remove the message from the queue")]
+        public void BasicGet_Should_Not_Remove_The_Message_From_Queue_If_Not_Acked(bool autoAck, int expectedMessageCount)
         {
             // arrange
             var node = new RabbitServer();
@@ -737,19 +730,11 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
 
             // act
-            var message = model.BasicGet("my_queue", acked);
+            var message = model.BasicGet("my_queue", autoAck);
 
             // assert
-            if (shouldBeRemovedFromQueue)
-            {
-                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
-                Assert.That(model.WorkingMessages.IsEmpty);
-            }
-            else
-            {
-                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(1));
-                Assert.That(model.WorkingMessages.Count, Is.EqualTo(1));
-            }
+            Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(expectedMessageCount));
+            Assert.That(model.WorkingMessages.Count, Is.EqualTo(expectedMessageCount));
         }
     }
 }
