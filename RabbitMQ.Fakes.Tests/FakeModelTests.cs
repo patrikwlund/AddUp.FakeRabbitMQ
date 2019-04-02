@@ -688,8 +688,39 @@ namespace RabbitMQ.Fakes.Tests
             Assert.That(response, Is.Null);
         }
 
-        [TestCase(true, true, Description = "BasicGet WITH auto-ack SHOULD be remove the message from the queue")]
-        [TestCase(false, false, Description = "BasicGet with NO auto-ack should NOT remove the message from the queue")]
+        [TestCase(true, TestName = "If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit")]
+        [TestCase(false, TestName = "If requeue param to BasicNack is false, the message that is nacked should be removed from Rabbit")]
+        public void Nacking_Message_Should_Not_Reenqueue_Brand_New_Message(bool requeue) 
+        {
+            // arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+            model.QueueDeclare("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+            model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+            model.BasicConsume("my_queue", false, new EventingBasicConsumer(model));
+
+            // act
+            var deliveryTag = model._workingMessages.First().Key;
+            model.BasicNack(deliveryTag, false, requeue);
+
+            // assert
+            if (requeue)
+            {
+                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(1));
+            }
+            else
+            {
+                Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
+            }
+        }
+
+        [TestCase(true, true, TestName = "BasicGet WITH auto-ack SHOULD remove the message from the queue")]
+        [TestCase(false, false, TestName = "BasicGet with NO auto-ack should NOT remove the message from the queue")]
         public void BasicGet_Should_Not_Remove_The_Message_From_Queue_If_Not_Acked(bool acked, bool shouldBeRemovedFromQueue)
         {
             // arrange

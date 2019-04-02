@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -494,18 +495,26 @@ namespace RabbitMQ.Fakes
 
         public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
         {
-            RabbitMessage message;
-            _workingMessages.TryRemove(deliveryTag, out message);
+            if (requeue) return;
 
-            if (message != null && requeue)
+            foreach (var queue in _workingMessages.Select(m => m.Value.Queue))
             {
-                Queue queueInstance;
-                _server.Queues.TryGetValue(message.Queue, out queueInstance);
+                _server.Queues.TryGetValue(queue, out var queueInstance);
 
                 if (queueInstance != null)
                 {
-                    queueInstance.PublishMessage(message);
+                    queueInstance.Messages = new ConcurrentQueue<RabbitMessage>();
                 }
+            }
+
+            _workingMessages.TryRemove(deliveryTag, out var message);
+            if (message == null) return;
+
+            foreach (var workingMessage in _workingMessages)
+            {
+                _server.Queues.TryGetValue(workingMessage.Value.Queue, out var queueInstance);
+
+                queueInstance?.PublishMessage(workingMessage.Value);
             }
         }
 
