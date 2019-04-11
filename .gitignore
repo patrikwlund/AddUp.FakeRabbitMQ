@@ -7,3 +7,6 @@ packages/*
 _NCrunch*/**
 *.ncrunchsolution
 *.suo
+
+# Visual Studio 2015 cache/options directory
+.vs/
