@@ -1,19 +1,16 @@
-# RabbitMQ.Fakes
-RabbitMQ.Fakes is a library that contains fake implementations of the RabbitMQ.Client interfaces.  These are intended to be used for testing so that unit tests who depend on RabbitMQ can be executed fully in memory withouth the dependence on an external RabbitMQ server.
+# AddUp.RabbitMQ.Fakes
 
-# Requirements
-* .NET 4.5
-* Nuget Package Manger
+## About
 
-# Projects
-* __RabbitMQ.Fakes:__ Implementation of the fakes
-* __RabbitMQ.Fakes.Tests:__ Unit tests around the fake implementation
+**AddUp.RabbitMQ.Fakes** is a fork of <https://github.com/Parametric/RabbitMQ.Fakes>.
 
-# Fakes
-* __RabbitServer:__ In memory representation of a Rabbit server.  This is where the Exchanges / Queues / Bindings / Messages are held.
-* __FakeConnectionFactory:__ Fake implementation of the RabbitMQ ConnectionFactory.  Returns a FakeConnection when the .CreateConnection() method is called
-* __FakeConnection:__ Fake implementation of the RabbitMQ IConnection.  Returns a FakeModel when the .CreateModel() method is called
-* __FakeModel:__ Fake implementation of the RabbitMQ IModel.  Interacts with the RabbitServer instance passed into the FakeConnectionFactory.
+**AddUp.RabbitMQ.Fakes** is a library that contains fake implementations of the **RabbitMQ.Client** interfaces. These are intended to be used for testing so that unit tests that depend on RabbitMQ can be executed fully in memory withouth needing an external RabbitMQ server.
 
-# Sample Usage
-See the UseCases in the RabbitMQ.Fakes.Tests project for sample usage
+**AddUp.RabbitMQ.Fakes** builds on top of the original project:
+
+* Targets .NET Standard 2.0 (_WIP_)
+* Supports Topic and Fanout exchange types (_WIP_)
+
+## License
+
+This work is provided under the terms of the [MIT License](LICENSE).
