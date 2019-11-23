@@ -7,8 +7,8 @@
     <ProjectGuid>{4FF028D6-D99F-42A1-89AA-7DA4D1869BEB}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RabbitMQ.Fakes</RootNamespace>
-    <AssemblyName>RabbitMQ.Fakes</AssemblyName>
+    <RootNamespace>AddUp.RabbitMQ.Fakes</RootNamespace>
+    <AssemblyName>AddUp.RabbitMQ.Fakes</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
@@ -37,7 +37,7 @@
       <HintPath>..\packages\Microsoft.Diagnostics.Tracing.EventSource.Redist.1.1.28\lib\net40\Microsoft.Diagnostics.Tracing.EventSource.dll</HintPath>
     </Reference>
     <Reference Include="RabbitMQ.Client, Version=5.0.0.0, Culture=neutral, PublicKeyToken=89e7d7c5feba84ce, processorArchitecture=MSIL">
-      <HintPath>..\packages\RabbitMQ.Client.5.1.0\lib\net451\RabbitMQ.Client.dll</HintPath>
+      <HintPath>..\packages\RabbitMQ.Client.5.1.2\lib\net451\RabbitMQ.Client.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -60,7 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="RabbitMQ.Fakes.nuspec">
+    <None Include="AddUp.RabbitMQ.Fakes.nuspec">
       <SubType>Designer</SubType>
     </None>
   </ItemGroup>

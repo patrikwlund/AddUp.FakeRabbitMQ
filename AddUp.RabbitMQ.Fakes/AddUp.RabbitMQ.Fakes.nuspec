@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>RabbitMQ.Fakes</id>
+    <id>AddUp.RabbitMQ.Fakes</id>
     <version>$version$</version>
-    <authors>Parametric Portfolio Associates</authors>
-    <owners>Parametric Portfolio Associates</owners>
+    <authors>AddUp</authors>
+    <owners>AddUp</owners>
     <description>Fake RabbitMQ implementation for usage in testing</description>
-    <copyright>Copyright 2015</copyright>
+    <copyright>Copyright 2019</copyright>
     <tags>RabbitMQ Fake Fakes AMQP</tags>
 
     <dependencies>

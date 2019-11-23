@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28729.10
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMQ.Fakes", "RabbitMQ.Fakes\RabbitMQ.Fakes.csproj", "{4FF028D6-D99F-42A1-89AA-7DA4D1869BEB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AddUp.RabbitMQ.Fakes", "AddUp.RabbitMQ.Fakes\AddUp.RabbitMQ.Fakes.csproj", "{4FF028D6-D99F-42A1-89AA-7DA4D1869BEB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitMQ.Fakes.Tests", "RabbitMQ.Fakes.Tests\RabbitMQ.Fakes.Tests.csproj", "{771074CF-01D3-4E35-9C5B-192CF7FD84DD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AddUp.RabbitMQ.Fakes.Tests", "AddUp.RabbitMQ.Fakes.Tests\AddUp.RabbitMQ.Fakes.Tests.csproj", "{771074CF-01D3-4E35-9C5B-192CF7FD84DD}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DF69A266-2A27-4AB2-99B5-FE67634FB818}"
 	ProjectSection(SolutionItems) = preProject

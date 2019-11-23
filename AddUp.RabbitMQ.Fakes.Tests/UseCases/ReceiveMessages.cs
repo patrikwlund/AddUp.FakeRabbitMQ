@@ -82,7 +82,7 @@ namespace RabbitMQ.Fakes.Tests.UseCases
 
                 var actualBasicProperties = message.BasicProperties;
 
-                actualBasicProperties.ShouldBeEquivalentTo(basicProperties);
+                actualBasicProperties.Should().BeEquivalentTo(basicProperties);
 
                 channel.BasicAck(message.DeliveryTag, multiple: false);
             }
