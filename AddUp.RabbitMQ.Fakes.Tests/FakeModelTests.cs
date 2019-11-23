@@ -1,23 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
-using FluentAssertions;
-using NUnit.Framework;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing;
 using RabbitMQ.Fakes.models;
+using Xunit;
 using Queue = RabbitMQ.Fakes.models.Queue;
 
 namespace RabbitMQ.Fakes.Tests
 {
-    [TestFixture]
+    [ExcludeFromCodeCoverage]
     public class FakeModelTests
     {
         private bool _wasCalled;
 
-        [Test]
+        [Fact]
         public void AddModelShutDownEvent_EventIsTracked()
         {
             //arrange
@@ -25,14 +25,14 @@ namespace RabbitMQ.Fakes.Tests
             var model = new FakeModel(node);
 
             //act
-            Assert.That(model.AddedModelShutDownEvent, Is.Null);
-            ((IModel) model).ModelShutdown += (args, e) => { _wasCalled = true; };
+            Assert.Null(model.AddedModelShutDownEvent);
+            ((IModel)model).ModelShutdown += (args, e) => { _wasCalled = true; };
 
             //Assert
-            Assert.That(model.AddedModelShutDownEvent, Is.Not.Null);
+            Assert.NotNull(model.AddedModelShutDownEvent);
         }
 
-        [Test]
+        [Fact]
         public void AddModelShutDownEvent_EventIsRemoved()
         {
             //arrange
@@ -42,14 +42,14 @@ namespace RabbitMQ.Fakes.Tests
             ((IModel)model).ModelShutdown += onModelShutdown;
 
             //act
-            Assert.That(model.AddedModelShutDownEvent, Is.Not.Null);
+            Assert.NotNull(model.AddedModelShutDownEvent);
             ((IModel)model).ModelShutdown -= onModelShutdown;
 
             //Assert
-            Assert.That(model.AddedModelShutDownEvent, Is.Null);
+            Assert.Null(model.AddedModelShutDownEvent);
         }
 
-        [Test]
+        [Fact]
         public void CreateBasicProperties_ReturnsBasicProperties()
         {
             // Arrange
@@ -60,12 +60,12 @@ namespace RabbitMQ.Fakes.Tests
             var result = model.CreateBasicProperties();
 
             // Assert
-            Assert.That(result,Is.Not.Null);
+            Assert.NotNull(result);
         }
 
-        [Test]
-        [TestCase(true)]
-        [TestCase(false)]
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
         public void ChannelFlow_SetsIfTheChannelIsActive(bool value)
         {
             // Arrange
@@ -76,10 +76,10 @@ namespace RabbitMQ.Fakes.Tests
             model.ChannelFlow(value);
 
             // Assert
-            Assert.That(model.IsChannelFlowActive,Is.EqualTo(value));
+            Assert.Equal(value, model.IsChannelFlowActive);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeDeclare_AllArguments_CreatesExchange()
         {
             // Arrange
@@ -93,16 +93,16 @@ namespace RabbitMQ.Fakes.Tests
             var arguments = new Dictionary<string, object>();
 
             // Act
-            model.ExchangeDeclare(exchange:exchangeName,type:exchangeType,durable:isDurable,autoDelete:isAutoDelete,arguments:arguments);
-        
+            model.ExchangeDeclare(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
+
             // Assert
-            Assert.That(node.Exchanges,Has.Count.EqualTo(1));
+            Assert.Single(node.Exchanges);
 
             var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, isAutoDelete, arguments, isDurable, exchangeType);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeDeclare_WithNameTypeAndDurable_CreatesExchange()
         {
             // Arrange
@@ -117,13 +117,13 @@ namespace RabbitMQ.Fakes.Tests
             model.ExchangeDeclare(exchange: exchangeName, type: exchangeType, durable: isDurable);
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
+            Assert.Single(node.Exchanges);
 
             var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, false, null, isDurable, exchangeType);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeDeclare_WithNameType_CreatesExchange()
         {
             // Arrange
@@ -137,13 +137,13 @@ namespace RabbitMQ.Fakes.Tests
             model.ExchangeDeclare(exchange: exchangeName, type: exchangeType);
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
+            Assert.Single(node.Exchanges);
 
             var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, false, null, false, exchangeType);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeDeclarePassive_WithName_CreatesExchange()
         {
             // Arrange
@@ -156,13 +156,13 @@ namespace RabbitMQ.Fakes.Tests
             model.ExchangeDeclarePassive(exchange: exchangeName);
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
+            Assert.Single(node.Exchanges);
 
             var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, false, null, false, null);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeDeclareNoWait_CreatesExchange()
         {
             // Arrange
@@ -179,23 +179,23 @@ namespace RabbitMQ.Fakes.Tests
             model.ExchangeDeclareNoWait(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
+            Assert.Single(node.Exchanges);
 
             var exchange = node.Exchanges.First();
             AssertExchangeDetails(exchange, exchangeName, isAutoDelete, arguments, isDurable, exchangeType);
         }
 
-        private static void AssertExchangeDetails(KeyValuePair<string, Exchange> exchange, string exchangeName, bool isAutoDelete,IDictionary<string, object> arguments, bool isDurable, string exchangeType)
+        private static void AssertExchangeDetails(KeyValuePair<string, Exchange> exchange, string exchangeName, bool isAutoDelete, IDictionary<string, object> arguments, bool isDurable, string exchangeType)
         {
-            Assert.That(exchange.Key, Is.EqualTo(exchangeName));
-            Assert.That(exchange.Value.AutoDelete, Is.EqualTo(isAutoDelete));
-            Assert.That(exchange.Value.Arguments, Is.EqualTo(arguments));
-            Assert.That(exchange.Value.IsDurable, Is.EqualTo(isDurable));
-            Assert.That(exchange.Value.Name, Is.EqualTo(exchangeName));
-            Assert.That(exchange.Value.Type, Is.EqualTo(exchangeType));
+            Assert.Equal(exchangeName, exchange.Key);
+            Assert.Equal(isAutoDelete, exchange.Value.AutoDelete);
+            Assert.Equal((System.Collections.IDictionary)arguments, exchange.Value.Arguments);
+            Assert.Equal(isDurable, exchange.Value.IsDurable);
+            Assert.Equal(exchangeName, exchange.Value.Name);
+            Assert.Equal(exchangeType, exchange.Value.Type);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeDelete_NameOnlyExchangeExists_RemovesTheExchange()
         {
             // Arrange
@@ -203,18 +203,18 @@ namespace RabbitMQ.Fakes.Tests
             var model = new FakeModel(node);
 
             const string exchangeName = "someExchange";
-            model.ExchangeDeclare(exchangeName,"someType");
+            model.ExchangeDeclare(exchangeName, "someType");
 
             // Act
             model.ExchangeDelete(exchange: exchangeName);
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(0));
+            Assert.Empty(node.Exchanges);
         }
 
-        [Test]
-        [TestCase(true)]
-        [TestCase(false)]
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
         public void ExchangeDelete_ExchangeExists_RemovesTheExchange(bool ifUnused)
         {
             // Arrange
@@ -225,15 +225,15 @@ namespace RabbitMQ.Fakes.Tests
             model.ExchangeDeclare(exchangeName, "someType");
 
             // Act
-            model.ExchangeDelete(exchange: exchangeName,ifUnused:ifUnused);
+            model.ExchangeDelete(exchange: exchangeName, ifUnused: ifUnused);
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(0));
+            Assert.Empty(node.Exchanges);
         }
 
-        [Test]
-        [TestCase(true)]
-        [TestCase(false)]
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
         public void ExchangeDeleteNoWait_ExchangeExists_RemovesTheExchange(bool ifUnused)
         {
             // Arrange
@@ -247,10 +247,10 @@ namespace RabbitMQ.Fakes.Tests
             model.ExchangeDeleteNoWait(exchange: exchangeName, ifUnused: ifUnused);
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(0));
+            Assert.Empty(node.Exchanges);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeDelete_ExchangeDoesNotExists_DoesNothing()
         {
             // Arrange
@@ -264,11 +264,10 @@ namespace RabbitMQ.Fakes.Tests
             model.ExchangeDelete(exchange: "someOtherExchange");
 
             // Assert
-            Assert.That(node.Exchanges, Has.Count.EqualTo(1));
-
+            Assert.Single(node.Exchanges);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeBind_BindsAnExchangeToAQueue()
         {
             // Arrange
@@ -280,7 +279,7 @@ namespace RabbitMQ.Fakes.Tests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName,"direct");
+            model.ExchangeDeclare(exchangeName, "direct");
             model.QueueDeclarePassive(queueName);
 
             // Act
@@ -290,7 +289,7 @@ namespace RabbitMQ.Fakes.Tests
             AssertBinding(node, exchangeName, routingKey, queueName);
         }
 
-        [Test]
+        [Fact]
         public void QueueBind_BindsAnExchangeToAQueue()
         {
             // Arrange
@@ -314,12 +313,12 @@ namespace RabbitMQ.Fakes.Tests
 
         private static void AssertBinding(RabbitServer server, string exchangeName, string routingKey, string queueName)
         {
-            Assert.That(server.Exchanges[exchangeName].Bindings, Has.Count.EqualTo(1));
-            Assert.That(server.Exchanges[exchangeName].Bindings.First().Value.RoutingKey, Is.EqualTo(routingKey));
-            Assert.That(server.Exchanges[exchangeName].Bindings.First().Value.Queue.Name, Is.EqualTo(queueName));
+            Assert.Single(server.Exchanges[exchangeName].Bindings);
+            Assert.Equal(routingKey, server.Exchanges[exchangeName].Bindings.First().Value.RoutingKey);
+            Assert.Equal(queueName, server.Exchanges[exchangeName].Bindings.First().Value.Queue.Name);
         }
 
-        [Test]
+        [Fact]
         public void ExchangeUnbind_RemovesBinding()
         {
             // Arrange
@@ -333,17 +332,17 @@ namespace RabbitMQ.Fakes.Tests
 
             model.ExchangeDeclare(exchangeName, "direct");
             model.QueueDeclarePassive(queueName);
-            model.ExchangeBind(exchangeName,queueName,routingKey,arguments);
+            model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
 
             // Act
             model.ExchangeUnbind(queueName, exchangeName, routingKey, arguments);
 
             // Assert
-            Assert.That(node.Exchanges[exchangeName].Bindings, Is.Empty);
-            Assert.That(node.Queues[queueName].Bindings, Is.Empty);
+            Assert.True(node.Exchanges[exchangeName].Bindings.IsEmpty);
+            Assert.True(node.Queues[queueName].Bindings.IsEmpty);
         }
 
-        [Test]
+        [Fact]
         public void QueueUnbind_RemovesBinding()
         {
             // Arrange
@@ -363,11 +362,11 @@ namespace RabbitMQ.Fakes.Tests
             model.QueueUnbind(queueName, exchangeName, routingKey, arguments);
 
             // Assert
-            Assert.That(node.Exchanges[exchangeName].Bindings, Is.Empty);
-            Assert.That(node.Queues[queueName].Bindings, Is.Empty);
+            Assert.True(node.Exchanges[exchangeName].Bindings.IsEmpty);
+            Assert.True(node.Queues[queueName].Bindings.IsEmpty);
         }
 
-        [Test]
+        [Fact]
         public void QueueDeclare_NoArguments_CreatesQueue()
         {
             // Arrange
@@ -378,10 +377,10 @@ namespace RabbitMQ.Fakes.Tests
             model.QueueDeclare();
 
             // Assert
-            Assert.That(node.Queues,Has.Count.EqualTo(1));
+            Assert.Single(node.Queues);
         }
 
-        [Test]
+        [Fact]
         public void QueueDeclarePassive_WithName_CreatesQueue()
         {
             // Arrange
@@ -394,12 +393,12 @@ namespace RabbitMQ.Fakes.Tests
             model.QueueDeclarePassive(queueName);
 
             // Assert
-            Assert.That(node.Queues, Has.Count.EqualTo(1));
-            Assert.That(node.Queues.First().Key, Is.EqualTo(queueName));
-            Assert.That(node.Queues.First().Value.Name, Is.EqualTo(queueName));
+            Assert.Single(node.Queues);
+            Assert.Equal(queueName, node.Queues.First().Key);
+            Assert.Equal(queueName, node.Queues.First().Value.Name);
         }
 
-        [Test]
+        [Fact]
         public void QueueDeclare_CreatesQueue()
         {
             // Arrange
@@ -413,10 +412,10 @@ namespace RabbitMQ.Fakes.Tests
             var arguments = new Dictionary<string, object>();
 
             // Act
-            model.QueueDeclare(queue:queueName,durable:isDurable,exclusive:isExclusive,autoDelete:isAutoDelete,arguments:arguments);
+            model.QueueDeclare(queue: queueName, durable: isDurable, exclusive: isExclusive, autoDelete: isAutoDelete, arguments: arguments);
 
             // Assert
-            Assert.That(node.Queues, Has.Count.EqualTo(1));
+            Assert.Single(node.Queues);
 
             var queue = node.Queues.First();
             AssertQueueDetails(queue, queueName, isAutoDelete, arguments, isDurable, isExclusive);
@@ -424,21 +423,21 @@ namespace RabbitMQ.Fakes.Tests
 
         private static void AssertQueueDetails(KeyValuePair<string, Queue> queue, string exchangeName, bool isAutoDelete, Dictionary<string, object> arguments, bool isDurable, bool isExclusive)
         {
-            Assert.That(queue.Key, Is.EqualTo(exchangeName));
-            Assert.That(queue.Value.IsAutoDelete, Is.EqualTo(isAutoDelete));
-            Assert.That(queue.Value.Arguments, Is.EqualTo(arguments));
-            Assert.That(queue.Value.IsDurable, Is.EqualTo(isDurable));
-            Assert.That(queue.Value.Name, Is.EqualTo(exchangeName));
-            Assert.That(queue.Value.IsExclusive, Is.EqualTo(isExclusive));
+            Assert.Equal(exchangeName, queue.Key);
+            Assert.Equal(isAutoDelete, queue.Value.IsAutoDelete);
+            Assert.Equal(arguments, queue.Value.Arguments);
+            Assert.Equal(isDurable, queue.Value.IsDurable);
+            Assert.Equal(exchangeName, queue.Value.Name);
+            Assert.Equal(isExclusive, queue.Value.IsExclusive);
         }
 
-        [Test]
+        [Fact]
         public void QueueDelete_NameOnly_DeletesTheQueue()
         {
             // Arrange
             var node = new RabbitServer();
             var model = new FakeModel(node);
-            
+
             const string queueName = "someName";
             model.QueueDeclare(queueName, true, true, true, null);
 
@@ -446,10 +445,10 @@ namespace RabbitMQ.Fakes.Tests
             model.QueueDelete(queueName);
 
             // Assert
-            Assert.That(node.Queues,Is.Empty);
+            Assert.True(node.Queues.IsEmpty);
         }
 
-        [Test]
+        [Fact]
         public void QueueDelete_WithArguments_DeletesTheQueue()
         {
             // Arrange
@@ -463,10 +462,10 @@ namespace RabbitMQ.Fakes.Tests
             model.QueueDelete(queueName, true, true);
 
             // Assert
-            Assert.That(node.Queues, Is.Empty);
+            Assert.True(node.Queues.IsEmpty);
         }
 
-        [Test]
+        [Fact]
         public void QueueDeleteNoWait_WithArguments_DeletesTheQueue()
         {
             // Arrange
@@ -480,10 +479,10 @@ namespace RabbitMQ.Fakes.Tests
             model.QueueDeleteNoWait(queueName, true, true);
 
             // Assert
-            Assert.That(node.Queues, Is.Empty);
+            Assert.True(node.Queues.IsEmpty);
         }
 
-        [Test]
+        [Fact]
         public void QueueDelete_NonExistentQueue_DoesNothing()
         {
             // Arrange
@@ -494,10 +493,10 @@ namespace RabbitMQ.Fakes.Tests
             model.QueueDelete("someQueue");
 
             // Assert
-            Assert.That(node.Queues, Is.Empty);
+            Assert.True(node.Queues.IsEmpty);
         }
 
-        [Test]
+        [Fact]
         public void QueuePurge_RemovesAllMessagesFromQueue()
         {
             // Arrange
@@ -518,28 +517,28 @@ namespace RabbitMQ.Fakes.Tests
             model.QueuePurge("my_queue");
 
             // Assert
-            Assert.That(node.Queues["my_queue"].Messages, Is.Empty);
-            Assert.That(node.Queues["my_other_queue"].Messages, Is.Not.Empty);
+            Assert.True(node.Queues["my_queue"].Messages.IsEmpty);
+            Assert.False(node.Queues["my_other_queue"].Messages.IsEmpty);
         }
 
-        [Test]
+        [Fact]
         public void Close_ClosesTheChannel()
         {
             // Arrange
             var node = new RabbitServer();
             var model = new FakeModel(node);
 
-            
+
             // Act
             model.Close();
 
             // Assert
-            Assert.That(model.IsClosed,Is.True);
-            Assert.That(model.IsOpen,Is.False);
-            Assert.That(model.CloseReason,Is.Not.Null);
+            Assert.True(model.IsClosed);
+            Assert.False(model.IsOpen);
+            Assert.NotNull(model.CloseReason);
         }
 
-        [Test]
+        [Fact]
         public void Close_WithArguments_ClosesTheChannel()
         {
             // Arrange
@@ -548,15 +547,15 @@ namespace RabbitMQ.Fakes.Tests
 
 
             // Act
-            model.Close(5,"some message");
+            model.Close(5, "some message");
 
             // Assert
-            Assert.That(model.IsClosed, Is.True);
-            Assert.That(model.IsOpen, Is.False);
-            Assert.That(model.CloseReason, Is.Not.Null);
+            Assert.True(model.IsClosed);
+            Assert.False(model.IsOpen);
+            Assert.NotNull(model.CloseReason);
         }
 
-        [Test]
+        [Fact]
         public void Abort_ClosesTheChannel()
         {
             // Arrange
@@ -568,12 +567,12 @@ namespace RabbitMQ.Fakes.Tests
             model.Abort();
 
             // Assert
-            Assert.That(model.IsClosed, Is.True);
-            Assert.That(model.IsOpen, Is.False);
-            Assert.That(model.CloseReason, Is.Not.Null);
+            Assert.True(model.IsClosed);
+            Assert.False(model.IsOpen);
+            Assert.NotNull(model.CloseReason);
         }
 
-        [Test]
+        [Fact]
         public void Abort_WithArguments_ClosesTheChannel()
         {
             // Arrange
@@ -585,19 +584,19 @@ namespace RabbitMQ.Fakes.Tests
             model.Abort(5, "some message");
 
             // Assert
-            Assert.That(model.IsClosed, Is.True);
-            Assert.That(model.IsOpen, Is.False);
-            Assert.That(model.CloseReason, Is.Not.Null);
+            Assert.True(model.IsClosed);
+            Assert.False(model.IsOpen);
+            Assert.NotNull(model.CloseReason);
         }
 
-        [Test]
+        [Fact]
         public void BasicPublish_PublishesMessage()
         {
             // Arrange
             var node = new RabbitServer();
             var model = new FakeModel(node);
 
-            model.ExchangeDeclare("my_exchange",ExchangeType.Direct);
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
             model.QueueDeclarePassive("my_queue");
             model.ExchangeBind("my_queue", "my_exchange", null);
 
@@ -608,11 +607,11 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
 
             // Assert
-            Assert.That(node.Queues["my_queue"].Messages.Count,Is.EqualTo(1));
-            Assert.That(node.Queues["my_queue"].Messages.First().Body, Is.EqualTo(encodedMessage));
+            Assert.Single(node.Queues["my_queue"].Messages);
+            Assert.Equal(encodedMessage, node.Queues["my_queue"].Messages.First().Body);
         }
 
-        [Test]
+        [Fact]
         public void BasicAck()
         {
             var node = new RabbitServer();
@@ -632,10 +631,10 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicAck(deliveryTag, false);
 
             // Assert
-            Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(0));
+            Assert.Empty(node.Queues["my_queue"].Messages);
         }
 
-        [Test]
+        [Fact]
         public void BasicGet_MessageOnQueue_GetsMessage()
         {
             // Arrange
@@ -651,14 +650,14 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
 
             // Act
-            var response = model.BasicGet("my_queue",false);
+            var response = model.BasicGet("my_queue", false);
 
             // Assert
-            Assert.That(response.Body, Is.EqualTo(encodedMessage));
-            Assert.That(response.DeliveryTag, Is.GreaterThan(0));
+            Assert.Equal(encodedMessage, response.Body);
+            Assert.True(response.DeliveryTag > 0ul);
         }
 
-        [Test]
+        [Fact]
         public void BasicGet_NoMessageOnQueue_ReturnsNull()
         {
             // Arrange
@@ -671,10 +670,10 @@ namespace RabbitMQ.Fakes.Tests
             var response = model.BasicGet("my_queue", false);
 
             // Assert
-            Assert.That(response, Is.Null);
+            Assert.Null(response);
         }
 
-        [Test]
+        [Fact]
         public void BasicGet_NoQueue_ReturnsNull()
         {
             // Arrange
@@ -686,12 +685,13 @@ namespace RabbitMQ.Fakes.Tests
             var response = model.BasicGet("my_queue", false);
 
             // Assert
-            Assert.That(response, Is.Null);
+            Assert.Null(response);
         }
-
-        [TestCase(true, 1, TestName = "If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit")]
-        [TestCase(false, 0, TestName = "If requeue param to BasicNack is false, the message that is nacked should be removed from Rabbit")]
-        public void Nacking_Message_Should_Not_Reenqueue_Brand_New_Message(bool requeue, int expectedMessageCount) 
+        
+        [Theory]
+        [InlineData(true, 1)] // If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit
+        [InlineData(false, 0)] // If requeue param to BasicNack is false, the message that is nacked should be removed from Rabbit
+        public void Nacking_Message_Should_Not_Reenqueue_Brand_New_Message(bool requeue, int expectedMessageCount)
         {
             // arrange
             var node = new RabbitServer();
@@ -710,12 +710,13 @@ namespace RabbitMQ.Fakes.Tests
             model.BasicNack(deliveryTag, false, requeue);
 
             // assert
-            Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(expectedMessageCount));
-            Assert.That(model.WorkingMessages.Count, Is.EqualTo(expectedMessageCount));
+            Assert.Equal(expectedMessageCount, node.Queues["my_queue"].Messages.Count);
+            Assert.Equal(expectedMessageCount, model.WorkingMessages.Count);
         }
 
-        [TestCase(true, 0, TestName = "BasicGet WITH auto-ack SHOULD remove the message from the queue")]
-        [TestCase(false, 1, TestName = "BasicGet with NO auto-ack should NOT remove the message from the queue")]
+        [Theory]
+        [InlineData(true, 0)] // BasicGet WITH auto-ack SHOULD remove the message from the queue
+        [InlineData(false, 1)] // BasicGet with NO auto-ack should NOT remove the message from the queue
         public void BasicGet_Should_Not_Remove_The_Message_From_Queue_If_Not_Acked(bool autoAck, int expectedMessageCount)
         {
             // arrange
@@ -733,8 +734,8 @@ namespace RabbitMQ.Fakes.Tests
             var message = model.BasicGet("my_queue", autoAck);
 
             // assert
-            Assert.That(node.Queues["my_queue"].Messages.Count, Is.EqualTo(expectedMessageCount));
-            Assert.That(model.WorkingMessages.Count, Is.EqualTo(expectedMessageCount));
+            Assert.Equal(expectedMessageCount, node.Queues["my_queue"].Messages.Count);
+            Assert.Equal(expectedMessageCount, model.WorkingMessages.Count);
         }
     }
 }

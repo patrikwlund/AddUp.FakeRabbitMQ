@@ -1,0 +1,37 @@
+<Project>
+  <!-- Reference: https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2017 -->
+  <PropertyGroup>
+    <BaseVersion>1.0.0</BaseVersion>
+    
+    <Authors>AddUp</Authors>
+    <Company>AddUp</Company>
+    <Product>RabitMQ Fakes Library</Product>
+    <Copyright>Copyright © 2019 - AddUp.</Copyright>
+    <PackageProjectUrl>https://github.com/addupsolutions/AddUp.RabbitMQ.Fakes</PackageProjectUrl>
+    <PackageIconUrl>http://www.addupsolutions.com/content/themes/addup/images/logo-main.png</PackageIconUrl>
+  </PropertyGroup>
+
+  <!-- Needed for packages publication and AssemblyInfo generation -->
+  <PropertyGroup Condition="'$(BranchType)' == 'MASTER'">
+    <Version>$(BaseVersion)</Version>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(BranchType)' == 'LOCAL' OR '$(BranchType)' == ''">
+    <Version>$(BaseVersion)-alpha-local</Version>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(BranchType)' != 'MASTER' AND '$(BranchType)' != 'LOCAL' AND '$(BranchType)' != ''">
+    <!-- alpha local will be replaced by a suffix dependent on the source branch -->
+    <!-- commit number will be replaced by the current commit number -->
+    <Version>$(BaseVersion)-alpha-local-commit-number</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AssemblyVersion>$(BaseVersion).0</AssemblyVersion>
+    <FileVersion>$(BaseVersion).0</FileVersion>    
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <!-- See https://docs.microsoft.com/en-us/dotnet/core/tools/csproj#includesymbols -->
+    <IncludeSymbols>True</IncludeSymbols>
+    <IncludeSource>True</IncludeSource>
+  </PropertyGroup>
+</Project>

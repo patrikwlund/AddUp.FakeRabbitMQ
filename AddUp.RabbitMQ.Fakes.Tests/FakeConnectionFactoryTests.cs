@@ -1,12 +1,12 @@
-﻿using NUnit.Framework;
-using RabbitMQ.Fakes.models;
+﻿using System.Diagnostics.CodeAnalysis;
+using Xunit;
 
 namespace RabbitMQ.Fakes.Tests
 {
-    [TestFixture]
+    [ExcludeFromCodeCoverage]
     public class FakeConnectionFactoryTests
     {
-        [Test]
+        [Fact]
         public void CreateConnection_ConnectionNotSupplied_ReturnsFakeConnection()
         {
             // Arrange
@@ -16,12 +16,12 @@ namespace RabbitMQ.Fakes.Tests
             var result = factory.CreateConnection();
 
             // Assert
-            Assert.That(result,Is.Not.Null);
-            Assert.That(result,Is.InstanceOf<FakeConnection>());
-            Assert.That(factory.UnderlyingConnection, Is.SameAs(result));
+            Assert.NotNull(result);
+            Assert.IsType<FakeConnection>(result);
+            Assert.Same(factory.UnderlyingConnection, result);
         }
 
-        [Test]
+        [Fact]
         public void WithConnection_WhenSet_SetsTheUnderlyingConnection()
         {
             // Arrange
@@ -33,10 +33,10 @@ namespace RabbitMQ.Fakes.Tests
             factory.WithConnection(connection);
 
             // Assert
-            Assert.That(factory.Connection,Is.SameAs(connection));
+            Assert.Same(connection, factory.Connection);
         }
 
-        [Test]
+        [Fact]
         public void UnderlyingConnection_NoConnection_ReturnsNull()
         {
             // Arrange
@@ -46,10 +46,10 @@ namespace RabbitMQ.Fakes.Tests
             var result = factory.UnderlyingConnection;
 
             // Assert
-            Assert.That(result,Is.Null);
+            Assert.Null(result);
         }
 
-        [Test]
+        [Fact]
         public void UnderlyingConnection_WithConnection_ReturnsConnection()
         {
             // Arrange
@@ -61,10 +61,10 @@ namespace RabbitMQ.Fakes.Tests
             var result = factory.UnderlyingConnection;
 
             // Assert
-            Assert.That(result, Is.SameAs(connection));
+            Assert.Same(connection, result);
         }
 
-        [Test]
+        [Fact]
         public void UnderlyingConnection_WithoutConnection_ReturnsEmptyList()
         {
             // Arrange
@@ -74,10 +74,10 @@ namespace RabbitMQ.Fakes.Tests
             var result = factory.UnderlyingModel;
 
             // Assert
-            Assert.That(result, Is.Null);
+            Assert.Null(result);
         }
 
-        [Test]
+        [Fact]
         public void WithRabbitServer_SetsServer()
         {
             // Arrange
@@ -89,9 +89,7 @@ namespace RabbitMQ.Fakes.Tests
             var result = factory.Server;
 
             // Assert
-            Assert.That(result, Is.SameAs(otherServer));
+            Assert.Same(otherServer, result);
         }
-
-
     }
 }

@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FluentAssertions;
-using NUnit.Framework;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing;
+using Xunit;
 
 namespace RabbitMQ.Fakes.Tests.UseCases
 {
-    [TestFixture]
+    [ExcludeFromCodeCoverage]
     public class ReceiveMessages
     {
         private static readonly Dictionary<string, string> HeaderTemplate;
-        [Test]
+
+        [Fact]
         public void ReceiveMessagesOnQueue()
         {
             var rabbitServer = new RabbitServer();
@@ -28,17 +30,16 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 // First message
                 var message = channel.BasicGet("my_queue", autoAck: false);
                 
-                Assert.That(message,Is.Not.Null);
+                Assert.NotNull(message);
                 var messageBody = Encoding.ASCII.GetString(message.Body);
 
-                Assert.That(messageBody,Is.EqualTo("hello_world"));
+                Assert.Equal("hello_world", messageBody);
 
                 channel.BasicAck(message.DeliveryTag,multiple:false);
             }
-
         }
 
-        [Test]
+        [Fact]
         public void ReceiveMessagesOnQueueWithBasicProperties()
         {
             var rabbitServer = new RabbitServer();
@@ -63,8 +64,6 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 AppId = "1"
             };
 
-
-
             SendMessage(rabbitServer, "my_exchange", "hello_world", basicProperties);
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
             using (var connection = connectionFactory.CreateConnection())
@@ -75,10 +74,10 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 // First message
                 var message = channel.BasicGet("my_queue", autoAck: false);
 
-                Assert.That(message, Is.Not.Null);
+                Assert.NotNull(message);
                 var messageBody = Encoding.ASCII.GetString(message.Body);
 
-                Assert.That(messageBody, Is.EqualTo("hello_world"));
+                Assert.Equal("hello_world", messageBody);
 
                 var actualBasicProperties = message.BasicProperties;
 
@@ -89,7 +88,7 @@ namespace RabbitMQ.Fakes.Tests.UseCases
 
         }
 
-        [Test]
+        [Fact]
         public void QueueingConsumer_MessagesOnQueueBeforeConsumerIsCreated_ReceiveMessagesOnQueue()
         {
             var rabbitServer = new RabbitServer();
@@ -110,17 +109,16 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                     var message = (BasicDeliverEventArgs) messageOut;
                     var messageBody = Encoding.ASCII.GetString(message.Body);
 
-                    Assert.That(messageBody, Is.EqualTo("hello_world"));
+                    Assert.Equal("hello_world", messageBody);
 
                     channel.BasicAck(message.DeliveryTag, multiple: false);
                 }
 
-                Assert.That(messageOut, Is.Not.Null);
+                Assert.NotNull(messageOut);
             }
-
         }
 
-        [Test]
+        [Fact]
         public void QueueingConsumer_MessagesSentAfterConsumerIsCreated_ReceiveMessagesOnQueue()
         {
             var rabbitServer = new RabbitServer();
@@ -142,14 +140,13 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                     var message = (BasicDeliverEventArgs)messageOut;
                     var messageBody = Encoding.ASCII.GetString(message.Body);
 
-                    Assert.That(messageBody, Is.EqualTo("hello_world"));
+                    Assert.Equal("hello_world", messageBody);
 
                     channel.BasicAck(message.DeliveryTag, multiple: false);
                 }
 
-                Assert.That(messageOut, Is.Not.Null);
+                Assert.NotNull(messageOut);
             }
-
         }
 
         private static void SendMessage(RabbitServer rabbitServer, string exchange, string message, IBasicProperties basicProperties = null)
