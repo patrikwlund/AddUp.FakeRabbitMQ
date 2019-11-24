@@ -13,8 +13,6 @@ namespace RabbitMQ.Fakes.Tests.UseCases
     [ExcludeFromCodeCoverage]
     public class ReceiveMessages
     {
-        private static readonly Dictionary<string, string> HeaderTemplate;
-
         [Fact]
         public void ReceiveMessagesOnQueue()
         {
@@ -106,12 +104,9 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 BasicDeliverEventArgs messageOut;
                 if (consumer.Queue.Dequeue(5000, out messageOut))
                 {
-                    var message = (BasicDeliverEventArgs) messageOut;
-                    var messageBody = Encoding.ASCII.GetString(message.Body);
-
+                    var messageBody = Encoding.ASCII.GetString(messageOut.Body);
                     Assert.Equal("hello_world", messageBody);
-
-                    channel.BasicAck(message.DeliveryTag, multiple: false);
+                    channel.BasicAck(messageOut.DeliveryTag, multiple: false);
                 }
 
                 Assert.NotNull(messageOut);
@@ -137,12 +132,9 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 BasicDeliverEventArgs messageOut;
                 if (consumer.Queue.Dequeue(5000, out messageOut))
                 {
-                    var message = (BasicDeliverEventArgs)messageOut;
-                    var messageBody = Encoding.ASCII.GetString(message.Body);
-
+                    var messageBody = Encoding.ASCII.GetString(messageOut.Body);
                     Assert.Equal("hello_world", messageBody);
-
-                    channel.BasicAck(message.DeliveryTag, multiple: false);
+                    channel.BasicAck(messageOut.DeliveryTag, multiple: false);
                 }
 
                 Assert.NotNull(messageOut);

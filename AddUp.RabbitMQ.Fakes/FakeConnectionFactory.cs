@@ -1,23 +1,26 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using RabbitMQ.Client;
 
 namespace RabbitMQ.Fakes
 {
-    public class FakeConnectionFactory:ConnectionFactory
+    public sealed class FakeConnectionFactory:ConnectionFactory
     {
+        public FakeConnectionFactory():this(new RabbitServer()) { }
+        public FakeConnectionFactory(RabbitServer rabbitServer) => Server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
+
         public IConnection Connection { get; private set; }
         public RabbitServer Server { get; private set; }
 
+        internal FakeConnection UnderlyingConnection => (FakeConnection)Connection;
 
-
-        public FakeConnectionFactory():this(new RabbitServer())
+        internal List<FakeModel> UnderlyingModel
         {
-           
-        }
-
-        public FakeConnectionFactory(RabbitServer server)
-        {
-            Server = server;
+            get
+            {
+                var connection = UnderlyingConnection;
+                return connection?.Models;
+            }
         }
 
         public FakeConnectionFactory WithConnection(IConnection connection)
@@ -30,24 +33,7 @@ namespace RabbitMQ.Fakes
         {
             Server = server;
             return this;
-        }
-
-        public FakeConnection UnderlyingConnection
-        {
-            get { return (FakeConnection) Connection; }
-        }
-
-        public List<FakeModel> UnderlyingModel
-        {
-            get
-            {
-                var connection = UnderlyingConnection;
-                if (connection== null)
-                    return null;
-
-                return connection.Models;
-            }
-        }
+        }        
 
         public override IConnection CreateConnection()
         {

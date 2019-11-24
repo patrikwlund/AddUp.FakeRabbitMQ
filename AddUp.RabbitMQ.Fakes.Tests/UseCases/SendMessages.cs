@@ -41,7 +41,7 @@ namespace RabbitMQ.Fakes.Tests.UseCases
                 channel.BasicPublish(exchange: "my_exchange", routingKey: null, mandatory: false, basicProperties: null, body: messageBody);
             }
 
-            Assert.Equal(1, rabbitServer.Queues["some_queue"].Messages.Count);
+            Assert.Single(rabbitServer.Queues["some_queue"].Messages);
         }
 
         [Fact]
