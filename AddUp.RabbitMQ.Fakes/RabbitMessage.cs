@@ -1,6 +1,6 @@
 ﻿using RabbitMQ.Client;
 
-namespace RabbitMQ.Fakes
+namespace AddUp.RabbitMQ.Fakes
 {
     internal sealed class RabbitMessage
     {

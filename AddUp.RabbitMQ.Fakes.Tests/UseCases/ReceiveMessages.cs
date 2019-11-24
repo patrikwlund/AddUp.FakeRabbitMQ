@@ -8,7 +8,7 @@ using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing;
 using Xunit;
 
-namespace RabbitMQ.Fakes.Tests.UseCases
+namespace AddUp.RabbitMQ.Fakes.Tests.UseCases
 {
     [ExcludeFromCodeCoverage]
     public class ReceiveMessages

@@ -5,25 +5,30 @@ using System.Net;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace RabbitMQ.Fakes
+namespace AddUp.RabbitMQ.Fakes
 {
     internal sealed class FakeConnection : IConnection
     {
         private readonly RabbitServer server;
 
-        public FakeConnection(RabbitServer rabbitServer)
+        public FakeConnection(RabbitServer rabbitServer) : this(rabbitServer, "") { }
+        public FakeConnection(RabbitServer rabbitServer, string name)
         {
             server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
+            ClientProvidedName = name ?? string.Empty;
             Models = new List<FakeModel>();
         }
 
+#pragma warning disable 67
         public event EventHandler<CallbackExceptionEventArgs> CallbackException;
         public event EventHandler<EventArgs> RecoverySucceeded;
         public event EventHandler<ConnectionRecoveryErrorEventArgs> ConnectionRecoveryError;
         public event EventHandler<ConnectionBlockedEventArgs> ConnectionBlocked;
         public event EventHandler<ShutdownEventArgs> ConnectionShutdown;
         public event EventHandler<EventArgs> ConnectionUnblocked;
+#pragma warning restore 67
 
+        public string ClientProvidedName { get; }
         public List<FakeModel> Models { get; private set; }
         public EndPoint LocalEndPoint { get; set; }
         public EndPoint RemoteEndPoint { get; set; }
@@ -31,7 +36,6 @@ namespace RabbitMQ.Fakes
         public int RemotePort { get; set; }
         public AmqpTcpEndpoint Endpoint { get; set; }
         public IProtocol Protocol { get; set; }
-        public string ClientProvidedName { get; }
         public ConsumerWorkService ConsumerWorkService { get; }
         public ushort ChannelMax { get; set; }        
         public uint FrameMax { get; set; }

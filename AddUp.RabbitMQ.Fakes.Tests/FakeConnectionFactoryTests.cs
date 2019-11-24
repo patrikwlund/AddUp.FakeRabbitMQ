@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
-namespace RabbitMQ.Fakes.Tests
+namespace AddUp.RabbitMQ.Fakes.Tests
 {
     [ExcludeFromCodeCoverage]
     public class FakeConnectionFactoryTests
@@ -74,7 +74,7 @@ namespace RabbitMQ.Fakes.Tests
             var result = factory.UnderlyingModel;
 
             // Assert
-            Assert.Null(result);
+            Assert.Empty(result);
         }
 
         [Fact]

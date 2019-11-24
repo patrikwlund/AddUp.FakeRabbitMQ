@@ -7,7 +7,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing;
 
-namespace RabbitMQ.Fakes
+namespace AddUp.RabbitMQ.Fakes
 {
     internal sealed class FakeModel : IModel
     {
@@ -21,44 +21,44 @@ namespace RabbitMQ.Fakes
 
         event EventHandler<ShutdownEventArgs> IModel.ModelShutdown
         {
-            add { AddedModelShutDownEvent += value; }
-            remove { AddedModelShutDownEvent -= value; }
+            add => AddedModelShutDownEvent += value;
+            remove => AddedModelShutDownEvent -= value;
         }
 
         event EventHandler<BasicAckEventArgs> IModel.BasicAcks
         {
-            add { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
+            add => throw new NotImplementedException();
+            remove => throw new NotImplementedException();
         }
 
         event EventHandler<BasicNackEventArgs> IModel.BasicNacks
         {
-            add { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
+            add => throw new NotImplementedException();
+            remove => throw new NotImplementedException();
         }
 
         event EventHandler<EventArgs> IModel.BasicRecoverOk
         {
-            add { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
+            add => throw new NotImplementedException();
+            remove => throw new NotImplementedException();
         }
 
         event EventHandler<BasicReturnEventArgs> IModel.BasicReturn
         {
-            add { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
+            add => throw new NotImplementedException();
+            remove => throw new NotImplementedException();
         }
 
         event EventHandler<CallbackExceptionEventArgs> IModel.CallbackException
         {
-            add { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
+            add => throw new NotImplementedException();
+            remove => throw new NotImplementedException();
         }
 
         event EventHandler<FlowControlEventArgs> IModel.FlowControl
         {
-            add { throw new NotImplementedException(); }
-            remove { throw new NotImplementedException(); }
+            add => throw new NotImplementedException();
+            remove => throw new NotImplementedException();
         }
 
         public readonly ConcurrentDictionary<ulong, RabbitMessage> WorkingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
@@ -107,10 +107,9 @@ namespace RabbitMQ.Fakes
             ExchangeDeclare(exchange, type, durable, false, arguments);
         public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
         {
-            var exchangeInstance = new RabbitExchange
+            var exchangeInstance = new RabbitExchange(type)
             {
                 Name = exchange,
-                Type = type,
                 IsDurable = durable,
                 AutoDelete = autoDelete,
                 Arguments = arguments
@@ -164,9 +163,13 @@ namespace RabbitMQ.Fakes
             QueueDeclare(queue, durable, exclusive, autoDelete, arguments);
         public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
         {
+            // This handles 'default' queues creations with constructs such as:
+            // var queueName = Channel.QueueDeclare(); // temporary anonymous queue
+            var q = string.IsNullOrEmpty(queue) ? Guid.NewGuid().ToString() : queue;
+
             var queueInstance = new RabbitQueue
             {
-                Name = queue,
+                Name = q,
                 IsDurable = durable,
                 IsExclusive = exclusive,
                 IsAutoDelete = autoDelete,
@@ -174,9 +177,9 @@ namespace RabbitMQ.Fakes
             };
 
             RabbitQueue updateFunction(string name, RabbitQueue existing) => existing;
-            _ = server.Queues.AddOrUpdate(queue, queueInstance, updateFunction);
+            _ = server.Queues.AddOrUpdate(q, queueInstance, updateFunction);
 
-            return new QueueDeclareOk(queue, 0, 0);
+            return new QueueDeclareOk(q, 0, 0);
         }
 
         public uint MessageCount(string queue) => throw new NotImplementedException();
@@ -198,9 +201,7 @@ namespace RabbitMQ.Fakes
         public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty) => QueueDelete(queue, false, false);
         public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
         {
-            RabbitQueue instance;
-            server.Queues.TryRemove(queue, out instance);
-
+            _ = server.Queues.TryRemove(queue, out var instance);
             return instance != null ? 1u : 0u;
         }
 
@@ -210,7 +211,6 @@ namespace RabbitMQ.Fakes
         public bool WaitForConfirms(TimeSpan timeout, out bool timedOut) => throw new NotImplementedException();
         public void WaitForConfirmsOrDie() => throw new NotImplementedException();
         public void WaitForConfirmsOrDie(TimeSpan timeout) => throw new NotImplementedException();
-
 
         public string BasicConsume(string queue, bool autoAck, IBasicConsumer consumer) => BasicConsume(queue, autoAck, Guid.NewGuid().ToString(), true, false, null, consumer);
         public string BasicConsume(string queue, bool autoAck, string consumerTag, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, null, consumer);
@@ -231,7 +231,7 @@ namespace RabbitMQ.Fakes
         }
 
         private void NotifyConsumerWhenMessagesAreReceived(string consumerTag, IBasicConsumer consumer, RabbitQueue queueInstance) =>
-            queueInstance.MessagePublished += (sender, message) => { NotifyConsumerOfMessage(consumerTag, consumer, message); };
+            queueInstance.MessagePublished += (sender, message) => NotifyConsumerOfMessage(consumerTag, consumer, message);
 
         private void NotifyConsumerOfExistingMessages(string consumerTag, IBasicConsumer consumer, RabbitQueue queueInstance)
         {
@@ -268,11 +268,9 @@ namespace RabbitMQ.Fakes
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance == null) return null;
 
-            RabbitMessage message;
-            if (autoAck)
-                _ = queueInstance.Messages.TryDequeue(out message);
-            else
-                _ = queueInstance.Messages.TryPeek(out message);
+            _ = autoAck ?
+                queueInstance.Messages.TryDequeue(out var message) :
+                queueInstance.Messages.TryPeek(out message);
 
             if (message == null) return null;
 
@@ -320,13 +318,12 @@ namespace RabbitMQ.Fakes
 
             RabbitExchange addExchange(string s)
             {
-                var newExchange = new RabbitExchange
+                var newExchange = new RabbitExchange(ExchangeType.Direct)
                 {
                     Name = exchange,
                     Arguments = null,
                     AutoDelete = false,
-                    IsDurable = false,
-                    Type = "direct"
+                    IsDurable = false
                 };
 
                 newExchange.PublishMessage(parameters);
@@ -395,8 +392,6 @@ namespace RabbitMQ.Fakes
         public void TxSelect() => throw new NotImplementedException();
         public void TxCommit() => throw new NotImplementedException();
         public void TxRollback() => throw new NotImplementedException();
-        public void DtxSelect() => throw new NotImplementedException();
-        public void DtxStart(string dtxIdentifier) => throw new NotImplementedException();
 
         public void Close() => Close(ushort.MaxValue, string.Empty);
         public void Close(ushort replyCode, string replyText)

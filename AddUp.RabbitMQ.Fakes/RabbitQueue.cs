@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace RabbitMQ.Fakes
+namespace AddUp.RabbitMQ.Fakes
 {
     internal sealed class RabbitQueue
     {
@@ -16,7 +16,7 @@ namespace RabbitMQ.Fakes
         public event EventHandler<RabbitMessage> MessagePublished;
 
         public ConcurrentQueue<RabbitMessage> Messages { get; }
-        public ConcurrentDictionary<string,RabbitExchangeQueueBinding> Bindings { get; }
+        public ConcurrentDictionary<string, RabbitExchangeQueueBinding> Bindings { get; }
         public IDictionary<string, object> Arguments { get; set; }
         public string Name { get; set; }
         public bool IsDurable { get; set; }
@@ -30,7 +30,7 @@ namespace RabbitMQ.Fakes
             Messages.Enqueue(queueMessage);
             MessagePublished?.Invoke(this, queueMessage);
         }
-
+        
         public void ClearMessages()
         {
             while (Messages.TryDequeue(out _))

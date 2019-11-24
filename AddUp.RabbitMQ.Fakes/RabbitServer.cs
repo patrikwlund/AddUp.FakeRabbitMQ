@@ -1,11 +1,17 @@
 ﻿using System.Collections.Concurrent;
 
-namespace RabbitMQ.Fakes
+namespace AddUp.RabbitMQ.Fakes
 {
     public sealed class RabbitServer
     {
-        internal ConcurrentDictionary<string, RabbitExchange> Exchanges { get; } = new ConcurrentDictionary<string, RabbitExchange>();
-        internal ConcurrentDictionary<string, RabbitQueue> Queues { get; } = new ConcurrentDictionary<string, RabbitQueue>();
+        public RabbitServer()
+        {
+            Exchanges = new ConcurrentDictionary<string, RabbitExchange>();
+            Queues = new ConcurrentDictionary<string, RabbitQueue>();
+        }
+
+        internal ConcurrentDictionary<string, RabbitExchange> Exchanges { get; }
+        internal ConcurrentDictionary<string, RabbitQueue> Queues { get; }
         
         public void Reset()
         {
