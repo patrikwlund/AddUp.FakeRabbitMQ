@@ -8,7 +8,7 @@
 
 **AddUp.RabbitMQ.Fakes** builds on top of the original project:
 
-* Targets .NET Standard 2.0 (_WIP_)
+* Targets .NET Standard 2.0
 * Supports Topic and Fanout exchange types (_WIP_)
 
 ## License
