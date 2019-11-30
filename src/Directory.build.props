@@ -1,7 +1,7 @@
 <Project>
   <!-- Reference: https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2017 -->
   <PropertyGroup>
-    <BaseVersion>1.0.0</BaseVersion>
+    <BaseVersion>1.2.0</BaseVersion>
     
     <Authors>AddUp</Authors>
     <Company>AddUp</Company>
