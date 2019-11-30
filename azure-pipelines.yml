@@ -46,4 +46,4 @@ steps:
     command: 'test'
     projects: 'src'
     arguments: '-c $(buildConfiguration)'
-    testRunTitle: 'Unit Tests'
+    testRunTitle: 'Unit Tests on $(rid)'
