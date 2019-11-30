@@ -1,0 +1,48 @@
+strategy:
+  matrix:
+    linux:
+      imageName: 'ubuntu-18.04'
+      rid: 'linux-x64'
+    windows:
+      imageName: 'windows-2019'
+      rid: 'windows-x64'
+
+trigger:
+  branches:
+    include:
+    - master
+
+pool:
+  vmImage: $(imageName)
+
+variables:
+  solution: 'src/AddUp.RabbitMQ.Fakes.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Install .NET Core SDK'
+  inputs:
+    packageType: sdk
+    version: 3.0.100
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+- task: DotNetCoreCLI@2
+  displayName: 'Restore'
+  inputs:
+    command: 'restore'
+    projects: 'src'
+    feedsToUse: 'config'
+- task: DotNetCoreCLI@2
+  displayName: 'Build'
+  inputs:
+    command: 'build'
+    projects: 'src'
+    arguments: '-c $(buildConfiguration)'
+- task: DotNetCoreCLI@2
+  displayName: 'Tests'
+  inputs:
+    command: 'test'
+    projects: 'src'
+    arguments: '-c $(buildConfiguration)'
+    testRunTitle: 'Unit Tests'
