@@ -10,7 +10,7 @@
 
 * Targets .NET Standard 2.0
 * Supports Default, Direct, Topic and Fanout exchange types.
-  * NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Default type)
+  * NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Fanout type)
 
 ## License
 
