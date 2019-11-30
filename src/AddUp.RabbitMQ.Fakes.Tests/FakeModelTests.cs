@@ -8,7 +8,7 @@ using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Framing;
 using Xunit;
 
-namespace AddUp.RabbitMQ.Fakes.Tests
+namespace AddUp.RabbitMQ.Fakes
 {
     [ExcludeFromCodeCoverage]
     public class FakeModelTests

@@ -3,7 +3,7 @@ using System.Text;
 using RabbitMQ.Client;
 using Xunit;
 
-namespace AddUp.RabbitMQ.Fakes.Tests.UseCases
+namespace AddUp.RabbitMQ.Fakes.UseCases
 {
     [ExcludeFromCodeCoverage]
     public class SendMessages

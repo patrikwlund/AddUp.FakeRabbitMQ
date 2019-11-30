@@ -9,7 +9,8 @@
 **AddUp.RabbitMQ.Fakes** builds on top of the original project:
 
 * Targets .NET Standard 2.0
-* Supports Topic and Fanout exchange types (_WIP_)
+* Supports Default, Direct, Topic and Fanout exchange types.
+  * NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Default type)
 
 ## License
 

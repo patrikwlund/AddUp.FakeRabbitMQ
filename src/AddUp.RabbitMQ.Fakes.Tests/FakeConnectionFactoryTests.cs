@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
-namespace AddUp.RabbitMQ.Fakes.Tests
+namespace AddUp.RabbitMQ.Fakes
 {
     [ExcludeFromCodeCoverage]
     public class FakeConnectionFactoryTests

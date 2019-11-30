@@ -3,7 +3,7 @@ using System.Linq;
 using FluentAssertions;
 using Xunit;
 
-namespace AddUp.RabbitMQ.Fakes.Tests
+namespace AddUp.RabbitMQ.Fakes
 {
     [ExcludeFromCodeCoverage]
     public class FakeConnectionTests

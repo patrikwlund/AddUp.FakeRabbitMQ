@@ -7,12 +7,13 @@
     <RootNamespace>AddUp.RabbitMQ.Fakes</RootNamespace>
     <AssemblyName>AddUp.RabbitMQ.Fakes</AssemblyName>
     <Description>RabbitMQ In-memory fake implementation</Description>
-    <!-- <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>todo</AssemblyOriginatorKeyFile>
-    <DelaySign>false</DelaySign> -->
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>../common/AddUp.RabbitMQ.Fakes.snk</AssemblyOriginatorKeyFile>
+    <DelaySign>false</DelaySign>
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <SignAssembly>true</SignAssembly>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -27,10 +28,6 @@
 
   <ItemGroup>
     <PackageReference Include="RabbitMQ.Client" Version="5.1.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="models\" />
   </ItemGroup>
 
 </Project>
