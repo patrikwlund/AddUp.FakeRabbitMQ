@@ -33,6 +33,7 @@ steps:
     command: 'restore'
     projects: 'src'
     feedsToUse: 'config'
+    nugetConfigPath: './nuget.config'
 - task: DotNetCoreCLI@2
   displayName: 'Build'
   inputs:
