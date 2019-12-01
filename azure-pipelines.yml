@@ -41,8 +41,15 @@ steps:
   inputs:
     command: 'test'
     projects: 'src'
-    arguments: '-c $(buildConfiguration)'
+    arguments: '-c $(buildConfiguration) --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=./coverage/'
     testRunTitle: 'Unit Tests on $(rid)'
+- task: Bash@3
+  displayName: 'Upload Code Coverage Report'
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Write your commands here
+      bash <(curl -s https://codecov.io/bash) -t $(CODECOV_TOKEN)
 - task: CopyFiles@2
   displayName: Collect Nuget Packages
   inputs:
