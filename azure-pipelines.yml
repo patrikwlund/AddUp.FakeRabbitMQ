@@ -48,8 +48,8 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      # Write your commands here
-      bash <(curl -s https://codecov.io/bash) -t $(CODECOV_TOKEN)
+      bash <(curl -s https://codecov.io/bash) -t $(CODECOV_TOKEN) -v
+  condition: eq(variables['rid'], 'linux-x64')
 - task: CopyFiles@2
   displayName: Collect Nuget Packages
   inputs:
