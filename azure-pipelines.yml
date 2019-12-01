@@ -6,20 +6,16 @@ strategy:
     windows:
       imageName: 'windows-2019'
       rid: 'windows-x64'
-
 trigger:
   branches:
     include:
     - master
-
 pool:
   vmImage: $(imageName)
-
 variables:
   solution: 'src/AddUp.RabbitMQ.Fakes.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-
 steps:
 - task: UseDotNet@2
   displayName: 'Install .NET Core SDK'
@@ -47,3 +43,18 @@ steps:
     projects: 'src'
     arguments: '-c $(buildConfiguration)'
     testRunTitle: 'Unit Tests on $(rid)'
+- task: CopyFiles@2
+  displayName: Collect Nuget Packages
+  inputs:
+    SourceFolder: src/AddUp.RabbitMQ.Fakes/bin/$(buildConfiguration)/
+    Contents: |
+      *.nupkg
+    TargetFolder: $(Build.ArtifactStagingDirectory)/Packages
+  condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
+- task: PublishBuildArtifacts@1
+  displayName: Publish Packages as Build Artifacts
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/Packages
+    ArtifactName: Packages
+    publishLocation: Container
+  condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
