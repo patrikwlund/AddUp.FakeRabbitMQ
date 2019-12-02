@@ -1,5 +1,7 @@
 # AddUp.RabbitMQ.Fakes
 
+[![codecov.io](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes/coverage.svg?branch=master)](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes?branch=master)
+
 ## About
 
 **AddUp.RabbitMQ.Fakes** is a fork of <https://github.com/Parametric/RabbitMQ.Fakes>.
