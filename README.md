@@ -1,6 +1,7 @@
 # AddUp.RabbitMQ.Fakes
 
 [![codecov.io](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes/coverage.svg?branch=master)](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes?branch=master)
+[![Build Status](https://dev.azure.com/addupsolutions/AddUp.RabbitMQ.Fakes/_apis/build/status/addupsolutions.AddUp.RabbitMQ.Fakes?branchName=master)](https://dev.azure.com/addupsolutions/AddUp.RabbitMQ.Fakes/_build/latest?definitionId=3&branchName=master)
 
 ## About
 
