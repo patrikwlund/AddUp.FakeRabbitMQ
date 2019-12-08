@@ -69,6 +69,7 @@ namespace AddUp.RabbitMQ.Fakes
 
                 pattern = new Regex("#(?:\\.#)+").Replace(pattern, "(?:" + word + "\\.)*", 1);
                 pattern = new Regex("\\.#").Replace(pattern, "(?:\\." + word + ")*", 1);
+                pattern = new Regex("#\\.").Replace(pattern, "(?:" + word + "\\.)*", 1); // This one is when the key starts with #.
 
                 var regex = new Regex("^" + pattern + "$");
                 _ = cache.TryAdd(key, regex);
