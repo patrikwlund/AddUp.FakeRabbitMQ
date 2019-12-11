@@ -7,8 +7,9 @@
     <Company>AddUp</Company>
     <Product>RabitMQ Fakes Library</Product>
     <Copyright>Copyright © 2019 - AddUp.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/addupsolutions/AddUp.RabbitMQ.Fakes</PackageProjectUrl>
-    <PackageIconUrl>http://www.addupsolutions.com/content/themes/addup/images/logo-main.png</PackageIconUrl>
+    <PackageIcon>logo.png</PackageIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
