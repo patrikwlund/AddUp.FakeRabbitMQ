@@ -19,50 +19,16 @@ namespace AddUp.RabbitMQ.Fakes
 
         public EventHandler<ShutdownEventArgs> AddedModelShutDownEvent { get; set; }
 
-        event EventHandler<ShutdownEventArgs> IModel.ModelShutdown
-        {
-            add => AddedModelShutDownEvent += value;
-            remove => AddedModelShutDownEvent -= value;
-        }
-
-        event EventHandler<BasicAckEventArgs> IModel.BasicAcks
-        {
-            add => throw new NotImplementedException();
-            remove => throw new NotImplementedException();
-        }
-
-        event EventHandler<BasicNackEventArgs> IModel.BasicNacks
-        {
-            add => throw new NotImplementedException();
-            remove => throw new NotImplementedException();
-        }
-
-        event EventHandler<EventArgs> IModel.BasicRecoverOk
-        {
-            add => throw new NotImplementedException();
-            remove => throw new NotImplementedException();
-        }
-
-        event EventHandler<BasicReturnEventArgs> IModel.BasicReturn
-        {
-            add => throw new NotImplementedException();
-            remove => throw new NotImplementedException();
-        }
-
-        event EventHandler<CallbackExceptionEventArgs> IModel.CallbackException
-        {
-            add => throw new NotImplementedException();
-            remove => throw new NotImplementedException();
-        }
-
-        event EventHandler<FlowControlEventArgs> IModel.FlowControl
-        {
-            add => throw new NotImplementedException();
-            remove => throw new NotImplementedException();
-        }
+        public event EventHandler<BasicAckEventArgs> BasicAcks;
+        public event EventHandler<BasicNackEventArgs> BasicNacks;
+        public event EventHandler<EventArgs> BasicRecoverOk;
+        public event EventHandler<BasicReturnEventArgs> BasicReturn;
+        public event EventHandler<CallbackExceptionEventArgs> CallbackException;
+        public event EventHandler<FlowControlEventArgs> FlowControl;
+        public event EventHandler<ShutdownEventArgs> ModelShutdown;
 
         public readonly ConcurrentDictionary<ulong, RabbitMessage> WorkingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
-
+        
         public int ChannelNumber { get; }
         public bool ApplyPrefetchToAllChannels { get; private set; }
         public ushort PrefetchCount { get; private set; }
