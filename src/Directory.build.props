@@ -3,6 +3,7 @@
   <PropertyGroup>
     <BaseVersion>1.2.0</BaseVersion>
     
+    <Version>$(BaseVersion)</Version>
     <Authors>AddUp</Authors>
     <Company>AddUp</Company>
     <Product>RabitMQ Fakes Library</Product>
@@ -11,19 +12,10 @@
     <PackageIconUrl>http://www.addupsolutions.com/content/themes/addup/images/logo-main.png</PackageIconUrl>
   </PropertyGroup>
 
-  <!-- Needed for packages publication and AssemblyInfo generation -->
-  <PropertyGroup Condition="'$(BranchType)' == 'MASTER'">
-    <Version>$(BaseVersion)</Version>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Version>$(BaseVersion)-debug</Version>    
   </PropertyGroup>
-  <PropertyGroup Condition="'$(BranchType)' == 'LOCAL' OR '$(BranchType)' == ''">
-    <Version>$(BaseVersion)-alpha-local</Version>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(BranchType)' != 'MASTER' AND '$(BranchType)' != 'LOCAL' AND '$(BranchType)' != ''">
-    <!-- alpha local will be replaced by a suffix dependent on the source branch -->
-    <!-- commit number will be replaced by the current commit number -->
-    <Version>$(BaseVersion)-alpha-local-commit-number</Version>
-  </PropertyGroup>
-
+  
   <PropertyGroup>
     <AssemblyVersion>$(BaseVersion).0</AssemblyVersion>
     <FileVersion>$(BaseVersion).0</FileVersion>    
