@@ -14,45 +14,6 @@ namespace AddUp.RabbitMQ.Fakes
     public class FakeModelTests
     {
         [Fact]
-        public void AddModelShutDownEvent_EventIsTracked()
-        {
-            // TODO: make this test really useful...
-
-            // Arrange
-            var wasCalled = false;
-            using (var model = new FakeModel(new RabbitServer()))
-            {
-                // Act
-                Assert.Null(model.AddedModelShutDownEvent);
-                ((IModel)model).ModelShutdown += (args, e) => wasCalled = true;
-
-                // Assert
-                Assert.NotNull(model.AddedModelShutDownEvent);
-            }
-        }
-
-        [Fact]
-        public void AddModelShutDownEvent_EventIsRemoved()
-        {
-            // TODO: make this test really useful...
-
-            // Arrange
-            var wasCalled = false;
-            using (var model = new FakeModel(new RabbitServer()))
-            {
-                EventHandler<ShutdownEventArgs> onModelShutdown = (args, e) => wasCalled = true;
-                ((IModel)model).ModelShutdown += onModelShutdown;
-
-                // Act
-                Assert.NotNull(model.AddedModelShutDownEvent);
-                ((IModel)model).ModelShutdown -= onModelShutdown;
-
-                // Assert
-                Assert.Null(model.AddedModelShutDownEvent);
-            }
-        }
-
-        [Fact]
         public void CreateBasicProperties_ReturnsBasicProperties()
         {
             // Arrange

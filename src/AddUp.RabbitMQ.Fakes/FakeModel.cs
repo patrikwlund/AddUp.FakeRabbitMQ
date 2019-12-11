@@ -17,8 +17,6 @@ namespace AddUp.RabbitMQ.Fakes
 
         public FakeModel(RabbitServer rabbitServer) => server = rabbitServer;
 
-        public EventHandler<ShutdownEventArgs> AddedModelShutDownEvent { get; set; }
-
         public event EventHandler<BasicAckEventArgs> BasicAcks;
         public event EventHandler<BasicNackEventArgs> BasicNacks;
         public event EventHandler<EventArgs> BasicRecoverOk;
