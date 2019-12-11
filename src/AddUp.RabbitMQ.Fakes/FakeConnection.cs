@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 
 namespace AddUp.RabbitMQ.Fakes
 {
@@ -37,23 +37,23 @@ namespace AddUp.RabbitMQ.Fakes
         public AmqpTcpEndpoint Endpoint { get; set; }
         public IProtocol Protocol { get; set; }
         public ConsumerWorkService ConsumerWorkService { get; }
-        public ushort ChannelMax { get; set; }        
+        public ushort ChannelMax { get; set; }
         public uint FrameMax { get; set; }
         public ushort Heartbeat { get; set; }
-        public IDictionary ClientProperties { get; set; }
-        public IDictionary ServerProperties { get; set; }
+                
         public AmqpTcpEndpoint[] KnownHosts { get; set; }
-        public ShutdownEventArgs CloseReason { get; set; }
-        public bool IsOpen { get; set; }
+        
+        public ShutdownEventArgs CloseReason { get; private set; }
+        public bool IsOpen => CloseReason == null;
         public bool AutoClose { get; set; }
-        public IList ShutdownReport { get; set; }
-        IDictionary<string, object> IConnection.ServerProperties => throw new NotImplementedException();
-        IList<ShutdownReportEntry> IConnection.ShutdownReport => throw new NotImplementedException();
-        IDictionary<string, object> IConnection.ClientProperties => throw new NotImplementedException();
+
+        public IDictionary<string, object> ServerProperties { get; } = new Dictionary<string, object>();
+        public IList<ShutdownReportEntry> ShutdownReport { get; set; } = new List<ShutdownReportEntry>();
+        public IDictionary<string, object> ClientProperties { get; } = new Dictionary<string, object>();
 
         public void Dispose()
         {
-            // Fake implementation. Nothing to do here.
+            if (IsOpen) Abort(); // Abort rather than Close because we do not want Dispose to throw
         }
 
         public IModel CreateModel()
@@ -64,27 +64,42 @@ namespace AddUp.RabbitMQ.Fakes
             return model;
         }
 
-        public void Close() => Close(1, null, 0);
-        public void Close(ushort reasonCode, string reasonText) => Close(reasonCode, reasonText, 0);
-        public void Close(int timeout) => Close(1, null, timeout);
+        // Close and Abort (implementation inspired by RabbitMQ.Client)
 
-        public void Close(ushort reasonCode, string reasonText, int timeout)
+        public void Abort() => Abort(-1);
+        public void Abort(int timeout) => Abort(200, "Connection close forced", timeout);
+        public void Abort(ushort reasonCode, string reasonText) => Abort(reasonCode, reasonText, -1);
+        public void Abort(ushort reasonCode, string reasonText, int timeout) =>
+            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: true, timeout);
+
+        public void Close() => Close(200, "Goodbye", -1);
+        public void Close(int timeout) => Close(200, "Goodbye", timeout);
+        public void Close(ushort reasonCode, string reasonText) => Close(reasonCode, reasonText, -1);
+        public void Close(ushort reasonCode, string reasonText, int timeout) =>
+            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: false, timeout);
+
+        private void Close(ShutdownEventArgs reason, bool abort, int timeout)
         {
-            IsOpen = false;
-            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, reasonCode, reasonText);
+            try
+            {
+                if (!IsOpen)
+                    throw new AlreadyClosedException(reason);
 
-            Models.ForEach(m => m.Close());
-        }
+                CloseReason = reason;
+                Models.ForEach(m =>
+                {
+                    if (abort)
+                        m.Abort();
+                    else
+                        m.Close();
+                });
 
-        public void Abort() => Abort(1, null, 0);
-        public void Abort(int timeout) => Abort(1, null, timeout);
-        public void Abort(ushort reasonCode, string reasonText) => Abort(reasonCode, reasonText, 0);
-        public void Abort(ushort reasonCode, string reasonText, int timeout)
-        {
-            IsOpen = false;
-            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, reasonCode, reasonText);
-
-            Models.ForEach(m => m.Abort());
+                ConnectionShutdown?.Invoke(this, reason);
+            }
+            catch
+            {
+                if (!abort) throw;
+            }
         }
 
         public void HandleConnectionBlocked(string reason)

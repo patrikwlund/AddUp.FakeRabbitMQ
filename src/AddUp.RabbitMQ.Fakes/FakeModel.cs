@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using RabbitMQ.Client.Framing;
 
 namespace AddUp.RabbitMQ.Fakes
@@ -35,11 +36,17 @@ namespace AddUp.RabbitMQ.Fakes
         public uint PrefetchSize { get; private set; }
         public bool IsChannelFlowActive { get; private set; }
         public IBasicConsumer DefaultConsumer { get; set; }
-        public ShutdownEventArgs CloseReason { get; set; }
-        public bool IsOpen { get; set; }
-        public bool IsClosed { get; set; }
         public ulong NextPublishSeqNo { get; set; }
         public TimeSpan ContinuationTimeout { get; set; }
+
+        public ShutdownEventArgs CloseReason { get; private set; }
+        public bool IsOpen => CloseReason == null;
+        public bool IsClosed => !IsOpen;
+
+        public void Dispose()
+        {
+            if (IsOpen) Abort(); // Abort rather than Close because we do not want Dispose to throw
+        }
 
         public IEnumerable<RabbitMessage> GetMessagesPublishedToExchange(string exchange)
         {
@@ -56,12 +63,7 @@ namespace AddUp.RabbitMQ.Fakes
                 new List<RabbitMessage>() :
                 (IEnumerable<RabbitMessage>)queueInstance.Messages;
         }
-
-        public void Dispose()
-        {
-            // Fake implementation. Nothing to do here.
-        }
-
+        
         public IBasicProperties CreateBasicProperties() => new BasicProperties();
         public void ChannelFlow(bool active) => IsChannelFlowActive = active;
         public IBasicPublishBatch CreateBasicPublishBatch() => throw new NotImplementedException();
@@ -359,20 +361,29 @@ namespace AddUp.RabbitMQ.Fakes
         public void TxCommit() => throw new NotImplementedException();
         public void TxRollback() => throw new NotImplementedException();
 
-        public void Close() => Close(ushort.MaxValue, string.Empty);
-        public void Close(ushort replyCode, string replyText)
-        {
-            IsClosed = true;
-            IsOpen = false;
-            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, replyCode, replyText);
-        }
+        // Close and Abort (implementation inspired by RabbitMQ.Client)
 
-        public void Abort() => Abort(ushort.MaxValue, string.Empty);
-        public void Abort(ushort replyCode, string replyText)
+        public void Abort() => Abort(200, "Goodbye");
+        public void Abort(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: true);
+
+        public void Close() => Close(200, "Goodbye");
+        public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
+        
+        private void Close(ushort replyCode, string replyText, bool abort) =>
+            Close(new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText), abort);
+
+        private void Close(ShutdownEventArgs reason, bool abort)
         {
-            IsClosed = true;
-            IsOpen = false;
-            CloseReason = new ShutdownEventArgs(ShutdownInitiator.Library, replyCode, replyText);
+            try
+            {
+                if (IsClosed) throw new AlreadyClosedException(reason);
+                CloseReason = reason;
+                ModelShutdown?.Invoke(this, reason);
+            }
+            catch
+            {
+                if (!abort) throw;
+            }
         }
     }
 }
