@@ -2,6 +2,7 @@
 
 [![codecov.io](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes/coverage.svg?branch=master)](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes?branch=master)
 [![Build Status](https://dev.azure.com/addupsolutions/AddUp.RabbitMQ.Fakes/_apis/build/status/addupsolutions.AddUp.RabbitMQ.Fakes?branchName=master)](https://dev.azure.com/addupsolutions/AddUp.RabbitMQ.Fakes/_build/latest?definitionId=3&branchName=master)
+[![NuGet](https://img.shields.io/nuget/v/AddUp.RabbitMQ.Fakes.svg)](https://www.nuget.org/packages/AddUp.RabbitMQ.Fakes/)
 
 ## About
 
