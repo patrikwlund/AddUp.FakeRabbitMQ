@@ -17,6 +17,7 @@ namespace AddUp.RabbitMQ.Fakes
 
         public FakeModel(RabbitServer rabbitServer) => server = rabbitServer;
 
+#pragma warning disable 67
         public event EventHandler<BasicAckEventArgs> BasicAcks;
         public event EventHandler<BasicNackEventArgs> BasicNacks;
         public event EventHandler<EventArgs> BasicRecoverOk;
@@ -24,6 +25,7 @@ namespace AddUp.RabbitMQ.Fakes
         public event EventHandler<CallbackExceptionEventArgs> CallbackException;
         public event EventHandler<FlowControlEventArgs> FlowControl;
         public event EventHandler<ShutdownEventArgs> ModelShutdown;
+#pragma warning restore 67
 
         public readonly ConcurrentDictionary<ulong, RabbitMessage> WorkingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
         
