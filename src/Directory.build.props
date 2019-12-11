@@ -1,9 +1,8 @@
 <Project>
   <!-- Reference: https://docs.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2017 -->
   <PropertyGroup>
-    <BaseVersion>1.2.0</BaseVersion>
-    
-    <Version>$(BaseVersion)</Version>
+    <BaseVersion>1.2.1</BaseVersion>
+    <VersionSuffix>-alpha</VersionSuffix>
     <Authors>AddUp</Authors>
     <Company>AddUp</Company>
     <Product>RabitMQ Fakes Library</Product>
@@ -13,12 +12,14 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <Version>$(BaseVersion)-debug</Version>    
+    <VersionSuffix>$(VersionSuffix)-debug</VersionSuffix>
   </PropertyGroup>
-  
+
   <PropertyGroup>
+    <Version>$(BaseVersion)$(VersionSuffix)</Version>
     <AssemblyVersion>$(BaseVersion).0</AssemblyVersion>
-    <FileVersion>$(BaseVersion).0</FileVersion>    
+    <FileVersion>$(BaseVersion).0</FileVersion>
+    <InformationalVersion>$(BaseVersion).0$(VersionSuffix)</InformationalVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
