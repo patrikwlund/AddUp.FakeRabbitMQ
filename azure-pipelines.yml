@@ -36,7 +36,7 @@ steps:
     SonarCloud: 'Sonarcloud - addupsolutions-github'
     organization: 'addupsolutions-github'
     scannerMode: 'MSBuild'
-    projectKey: 'rabbitmq-fakes'
+    projectKey: 'addup-rabbitmq-fakes'
     projectName: 'AddUp.RabbitMQ.Fakes'
     projectVersion: '1.2'
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
@@ -57,7 +57,7 @@ steps:
   displayName: 'Sonarcloud - Analyze'
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 - task: SonarCloudPublish@1
-  displayName: 'Sonarcloud - Piblish'
+  displayName: 'Sonarcloud - Publish'
   inputs:
     pollingTimeoutSec: '300'
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
