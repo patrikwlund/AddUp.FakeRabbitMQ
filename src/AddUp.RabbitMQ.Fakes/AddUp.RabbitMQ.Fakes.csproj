@@ -13,6 +13,9 @@
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <SonarQubeTestProject>False</SonarQubeTestProject>
+    <SonarQubeExclude>False</SonarQubeExclude>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -25,12 +28,24 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <CodeAnalysisRuleSet>AddUp.RabbitMQ.Fakes.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <CodeAnalysisRuleSet>AddUp.RabbitMQ.Fakes.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="RabbitMQ.Client" Version="5.1.2" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.5.0.15942">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="images/logo.png" Pack="true" PackagePath="\"/>
+    <None Include="images/logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
