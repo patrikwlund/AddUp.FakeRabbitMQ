@@ -1,11 +1,11 @@
 strategy:
   matrix:
-    linux:
-      imageName: 'ubuntu-18.04'
-      rid: 'linux-x64'
     windows:
       imageName: 'windows-2019'
       rid: 'windows-x64'
+    linux:
+      imageName: 'ubuntu-18.04'
+      rid: 'linux-x64'
 trigger:
   branches:
     include:
@@ -44,15 +44,23 @@ steps:
   displayName: 'Build'
   inputs:
     command: 'build'
-    projects: 'src'
+    projects: 'src/**/*.sln'
     arguments: '-c $(buildConfiguration)'
 - task: DotNetCoreCLI@2
-  displayName: 'Tests'
+  displayName: 'Tests for Sonarcloud'
+  inputs:
+    command: 'test'
+    projects: 'src/**/*.csproj'
+    arguments: '-c $(buildConfiguration) --no-build --collect "Code Coverage"'
+    testRunTitle: 'Unit Tests on $(rid) (Sonarcloud)'
+  condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
+- task: DotNetCoreCLI@2
+  displayName: 'Tests for Coverlet'
   inputs:
     command: 'test'
     projects: 'src'
     arguments: '-c $(buildConfiguration) --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=./coverage/'
-    testRunTitle: 'Unit Tests on $(rid)'
+    testRunTitle: 'Unit Tests on $(rid) (Coverlet)'
 - task: SonarCloudAnalyze@1
   displayName: 'Sonarcloud - Analyze'
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
