@@ -30,6 +30,16 @@ steps:
     projects: 'src'
     feedsToUse: 'config'
     nugetConfigPath: './nuget.config'
+- task: SonarCloudPrepare@1
+  displayName: 'Sonarcloud - Prepare'
+  inputs:
+    SonarCloud: 'Sonarcloud - addupsolutions-github'
+    organization: 'addupsolutions-github'
+    scannerMode: 'MSBuild'
+    projectKey: 'rabbitmq-fakes'
+    projectName: 'AddUp.RabbitMQ.Fakes'
+    projectVersion: '1.2'
+  condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 - task: DotNetCoreCLI@2
   displayName: 'Build'
   inputs:
@@ -43,6 +53,14 @@ steps:
     projects: 'src'
     arguments: '-c $(buildConfiguration) --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=./coverage/'
     testRunTitle: 'Unit Tests on $(rid)'
+- task: SonarCloudAnalyze@1
+  displayName: 'Sonarcloud - Analyze'
+  condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
+- task: SonarCloudPublish@1
+  displayName: 'Sonarcloud - Piblish'
+  inputs:
+    pollingTimeoutSec: '300'
+  condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 - task: Bash@3
   displayName: 'Upload Code Coverage Report'
   inputs:
