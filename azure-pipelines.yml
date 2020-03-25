@@ -27,7 +27,7 @@ steps:
   displayName: 'Restore'
   inputs:
     command: 'restore'
-    projects: 'src'
+    projects: 'src/AddUp.RabbitMQ.Fakes.sln'
     feedsToUse: 'config'
     nugetConfigPath: './nuget.config'
 - task: SonarCloudPrepare@1
