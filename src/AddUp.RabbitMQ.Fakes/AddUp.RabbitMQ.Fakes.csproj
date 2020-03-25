@@ -47,4 +47,12 @@
     <None Include="images/logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!-- Until https://github.com/SonarSource/sonar-scanner-msbuild/issues/844 is fixed, let's override the exclusion/test detection logic -->
+  <Target Name="SonarQubeCategoriseProject" Condition=" $(SonarQubeTempPath) != '' ">
+    <PropertyGroup>
+      <SonarQubeExclude>false</SonarQubeExclude>
+      <SonarQubeTestProject>false</SonarQubeTestProject>
+    </PropertyGroup>
+  </Target>
+
 </Project>
