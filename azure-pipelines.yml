@@ -41,8 +41,8 @@ steps:
     projectVersion: '1.2'
     extraProperties: |
       # As per https://community.sonarsource.com/t/c-code-not-being-analyze-in-vsts-pipeline/18818/22
-      sonar.inclusions=src/**/AddUp.RabbitMQ.Fakes/*
-      sonar.test.inclusions=src/**/AddUp.RabbitMQ.Fakes.Tests/*
+      # sonar.inclusions=src/**/AddUp.RabbitMQ.Fakes/*
+      # sonar.test.inclusions=src/**/AddUp.RabbitMQ.Fakes.Tests/*
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 - task: DotNetCoreCLI@2
   displayName: 'Build'
@@ -68,6 +68,13 @@ steps:
 - task: SonarCloudAnalyze@1
   displayName: 'Sonarcloud - Analyze'
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
+
+- task: CmdLine@2
+  inputs:
+    script: |
+      echo Write your commands here
+      
+      echo Hello world
 
 - task: CmdLine@2
   inputs:
