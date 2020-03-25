@@ -69,23 +69,34 @@ steps:
   displayName: 'Sonarcloud - Analyze'
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 
-- task: CmdLine@2
-  inputs:
-    script: |
-      echo Write your commands here
+# - task: CmdLine@2
+#   inputs:
+#     script: |
+#       echo Write your commands here
       
-      echo Hello world
+#       echo Hello world
 
-- task: CmdLine@2
-  inputs:
-    script: |
-      echo BEG1
-      type D:/a/1/.sonarqube/conf/SonarQubeAnalysisConfig.xml
-      echo NEXT
-      type D:/a/1/.sonarqube/out/sonar-project.properties
-      echo NEXT
-      dir D:/a/1/TestResults
-      echo END1
+# - task: CmdLine@2
+#   inputs:
+#     script: |
+#       echo BEG1
+#       type D:/a/1/.sonarqube/conf/SonarQubeAnalysisConfig.xml
+#       echo NEXT
+#       type D:/a/1/.sonarqube/out/sonar-project.properties
+#       echo NEXT
+#       dir D:/a/1/TestResults
+#       echo END1
+
+
+- script: |
+    echo BEG1
+    type D:/a/1/.sonarqube/conf/SonarQubeAnalysisConfig.xml
+    echo NEXT
+    type D:/a/1/.sonarqube/out/sonar-project.properties
+    echo NEXT
+    dir D:/a/1/TestResults
+    echo END1
+  condition: succeededOrFailed()      
 
 - task: SonarCloudPublish@1
   displayName: 'Sonarcloud - Publish'
