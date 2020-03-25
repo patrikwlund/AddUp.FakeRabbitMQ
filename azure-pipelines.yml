@@ -39,13 +39,16 @@ steps:
     projectKey: 'addup-rabbitmq-fakes'
     projectName: 'AddUp.RabbitMQ.Fakes'
     projectVersion: '1.2'
+    extraProperties: |
+      # As per https://community.sonarsource.com/t/c-code-not-being-analyze-in-vsts-pipeline/18818/22
+      sonar.language=cs
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 - task: DotNetCoreCLI@2
   displayName: 'Build'
   inputs:
     command: 'build'
     projects: 'src/**/*.sln'
-    arguments: '-c $(buildConfiguration)'
+    arguments: '-c $(buildConfiguration) /p:ExcludeProjectsFromAnalysis=false'
 - task: DotNetCoreCLI@2
   displayName: 'Tests for Sonarcloud'
   inputs:
