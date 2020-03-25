@@ -16,7 +16,7 @@
     <SignAssembly>true</SignAssembly>
 
     <SonarQubeTestProject>true</SonarQubeTestProject>
-    <SonarQubeExclude>true</SonarQubeExclude>
+    <SonarQubeExclude>false</SonarQubeExclude>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -36,7 +36,7 @@
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="5.9.0" />
     <!-- 
-    We explicitely reference a recent version of Microsoft.NET.Test.Sdk, because xunit.runner.visualstudio 
+    We explicitly reference a recent version of Microsoft.NET.Test.Sdk, because xunit.runner.visualstudio 
     depends on version 15 which is achingly slow!
     -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
