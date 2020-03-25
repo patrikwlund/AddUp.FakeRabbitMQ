@@ -41,7 +41,8 @@ steps:
     projectVersion: '1.2'
     extraProperties: |
       # As per https://community.sonarsource.com/t/c-code-not-being-analyze-in-vsts-pipeline/18818/22
-      sonar.exclusions=**/*.bin    
+      sonar.inclusions=src/**/AddUp.RabbitMQ.Fakes/*
+      sonar.test.inclusions=src/**/AddUp.RabbitMQ.Fakes.Tests/*
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 - task: DotNetCoreCLI@2
   displayName: 'Build'
@@ -72,11 +73,11 @@ steps:
   inputs:
     script: |
       echo BEG1
-      type D:\a\1\.sonarqube\conf\SonarQubeAnalysisConfig.xml
+      type D:/a/1/.sonarqube/conf/SonarQubeAnalysisConfig.xml
       echo NEXT
-      type D:\a\1\.sonarqube\out\sonar-project.properties
+      type D:/a/1/.sonarqube/out/sonar-project.properties
       echo NEXT
-      dir D:\a\1\TestResults
+      dir D:/a/1/TestResults
       echo END1
 
 - task: SonarCloudPublish@1
