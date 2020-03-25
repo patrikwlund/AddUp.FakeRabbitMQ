@@ -3,9 +3,9 @@ strategy:
     windows:
       imageName: 'windows-2019'
       rid: 'windows-x64'
-    linux:
-      imageName: 'ubuntu-18.04'
-      rid: 'linux-x64'
+    # linux:
+    #   imageName: 'ubuntu-18.04'
+    #   rid: 'linux-x64'
 trigger:
   branches:
     include:
