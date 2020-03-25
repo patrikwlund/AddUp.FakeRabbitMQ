@@ -14,8 +14,8 @@
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
-    <SonarQubeTestProject>False</SonarQubeTestProject>
-    <SonarQubeExclude>False</SonarQubeExclude>
+    <SonarQubeTestProject>false</SonarQubeTestProject>
+    <SonarQubeExclude>false</SonarQubeExclude>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

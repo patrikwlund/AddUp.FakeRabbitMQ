@@ -15,8 +15,8 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <SignAssembly>true</SignAssembly>
 
-    <SonarQubeTestProject>True</SonarQubeTestProject>
-    <SonarQubeExclude>True</SonarQubeExclude>
+    <SonarQubeTestProject>true</SonarQubeTestProject>
+    <SonarQubeExclude>true</SonarQubeExclude>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
