@@ -71,14 +71,13 @@ steps:
 - task: CmdLine@2
   inputs:
     script: |
-      echo BEG1----------------------------
+      echo BEG1
       type D:\a\1\.sonarqube\conf\SonarQubeAnalysisConfig.xml
-      echo --------------------------------
+      echo NEXT
       type D:\a\1\.sonarqube\out\sonar-project.properties
-      echo --------------------------------
+      echo NEXT
       dir D:\a\1\TestResults
-      echo END1----------------------------
-
+      echo END1
 
 - task: SonarCloudPublish@1
   displayName: 'Sonarcloud - Publish'
