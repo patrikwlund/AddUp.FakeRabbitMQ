@@ -39,10 +39,6 @@ steps:
     projectKey: 'addup-rabbitmq-fakes'
     projectName: 'AddUp.RabbitMQ.Fakes'
     projectVersion: '1.2'
-    extraProperties: |
-      # As per https://community.sonarsource.com/t/c-code-not-being-analyze-in-vsts-pipeline/18818/22
-      # sonar.inclusions=src/**/AddUp.RabbitMQ.Fakes/*
-      # sonar.test.inclusions=src/**/AddUp.RabbitMQ.Fakes.Tests/*
   condition: and(eq(variables['rid'], 'windows-x64'), eq(variables['buildConfiguration'], 'Release'))
 - task: DotNetCoreCLI@2
   displayName: 'Build'
