@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  SOLUTION: src/AddUp.RabbitMQ.Fakes.sln
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build:
+
+    runs-on: windows-2019
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.101
+    - name: Restore
+      run: dotnet restore "$SOLUTION" --configfile ./nuget.config
+    - name: Build
+      run: dotnet build "$SOLUTION" --configuration "$BUILD_CONFIGURATION" --no-restore
+    - name: Test
+      run: dotnet test src/**/*.csproj --configuration "$BUILD_CONFIGURATION" --no-restore --collect "Code Coverage" --verbosity normal
