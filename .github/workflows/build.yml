@@ -22,8 +22,8 @@ jobs:
       with:
         dotnet-version: 3.1.101
     - name: Restore
-      run: dotnet restore "$SOLUTION" --configfile ./nuget.config
+      run: dotnet restore "${SOLUTION}" --configfile ./nuget.config
     - name: Build
-      run: dotnet build "$SOLUTION" --configuration "$BUILD_CONFIGURATION" --no-restore
+      run: dotnet build "${SOLUTION}" --configuration "${BUILD_CONFIGURATION}" --no-restore
     - name: Test
-      run: dotnet test src/**/*.csproj --configuration "$BUILD_CONFIGURATION" --no-restore --collect "Code Coverage" --verbosity normal
+      run: dotnet test src/**/*.csproj --configuration "${BUILD_CONFIGURATION}" --no-restore --collect "Code Coverage" --verbosity normal
