@@ -1,7 +1,8 @@
 # AddUp.RabbitMQ.Fakes
 
-[![codecov.io](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes/coverage.svg?branch=master)](https://codecov.io/github/AddUpSolutions/AddUp.RabbitMQ.Fakes?branch=master)
-[![Build Status](https://dev.azure.com/addupsolutions/oss/_apis/build/status/addupsolutions.AddUp.RabbitMQ.Fakes?branchName=master)](https://dev.azure.com/addupsolutions/oss/_build/latest?definitionId=3&branchName=master)
+![Build](https://github.com/addupsolutions/AddUp.RabbitMQ.Fakes/workflows/Build/badge.svg)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.RabbitMQ.Fakes&metric=alert_status)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.RabbitMQ.Fakes)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.RabbitMQ.Fakes&metric=coverage)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.RabbitMQ.Fakes)
 [![NuGet](https://img.shields.io/nuget/v/AddUp.RabbitMQ.Fakes.svg)](https://www.nuget.org/packages/AddUp.RabbitMQ.Fakes/)
 
 ## About
@@ -12,9 +13,9 @@
 
 **AddUp.RabbitMQ.Fakes** builds on top of the original project:
 
-* Targets .NET Standard 2.0
+* Targets **.NET Standard 2.0**
 * Supports Default, Direct, Topic and Fanout exchange types.
-  * NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Fanout type)
+  * _NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Fanout type)_
 
 ## License
 
