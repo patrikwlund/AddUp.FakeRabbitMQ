@@ -18,8 +18,9 @@ jobs:
     steps:
     - name: Dump Variables
       run: |
-        echo "Solution: $SOLUTION - %SOLUTION% - ${SOLUTION} - ${{ SOLUTION }}" 
-        echo "Config  : $BUILD_CONFIGURATION" 
+        echo "S1: ${{env.SOLUTION}}" 
+        echo "S2: $SOLUTION"
+        echo "S3: %SOLUTION%"
     - uses: actions/checkout@v2
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
