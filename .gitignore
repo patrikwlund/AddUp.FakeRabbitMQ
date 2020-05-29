@@ -350,3 +350,4 @@ MigrationBackup/
 .ionide/
 /build
 /.sonarqube
+/src/AddUp.RabbitMQ.Fakes.Tests/coverage
