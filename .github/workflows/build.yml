@@ -9,6 +9,7 @@ on:
 env:
   SOLUTION: src/AddUp.RabbitMQ.Fakes.sln
   BUILD_CONFIGURATION: Release
+  VERSION: 1.2.1
 
 jobs:
   build:
@@ -20,14 +21,21 @@ jobs:
       run: |
         echo "Solution     : ${{env.SOLUTION}}" 
         echo "Configuration: ${{env.BUILD_CONFIGURATION}}"
+        echo "Version      : ${{env.VERSION}}"
     - uses: actions/checkout@v2
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1.101
+    - name: Install SonarScanner
+      run: dotnet tool install --global dotnet-sonarscanner
     - name: Restore
       run: dotnet restore "${{env.SOLUTION}}" --configfile ./nuget.config
+    - name: Begin Sonar Analysis
+      run: dotnet sonarscanner begin /key:"addupsolutions_AddUp.RabbitMQ.Fakes" /name:"AddUp.RabbitMQ.Fakes" /version:"${{env.VERSION}}" /d:sonar.login="${{secrets.SONAR_TOKEN}}" /d:sonar.verbose=true /d:sonar.host.url=https://sonarcloud.io
     - name: Build
       run: dotnet build "${{env.SOLUTION}}" --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore
     - name: Test
       run: dotnet test "${{env.SOLUTION}}" --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore --collect "Code Coverage" --verbosity normal
+    - name: End Sonar Analysis
+      run: dotnet sonarscanner end /d:sonar.login="${{secrets.SONAR_TOKEN}}"
