@@ -16,19 +16,18 @@ jobs:
     runs-on: windows-2019
 
     steps:
-    - name: Dump Variables
+    - name: Dump Environment
       run: |
-        echo "S1: ${{env.SOLUTION}}" 
-        echo "S2: $SOLUTION"
-        echo "S3: %SOLUTION%"
+        echo "Solution     : ${{env.SOLUTION}}" 
+        echo "Configuration: ${{env.BUILD_CONFIGURATION}}"
     - uses: actions/checkout@v2
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1.101
     - name: Restore
-      run: dotnet restore "${SOLUTION}" --configfile ./nuget.config
+      run: dotnet restore "${{env.SOLUTION}}" --configfile ./nuget.config
     - name: Build
-      run: dotnet build "${SOLUTION}" --configuration "${BUILD_CONFIGURATION}" --no-restore
+      run: dotnet build "${{env.SOLUTION}}" --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore
     - name: Test
-      run: dotnet test src/**/*.csproj --configuration "${BUILD_CONFIGURATION}" --no-restore --collect "Code Coverage" --verbosity normal
+      run: dotnet test src/**/*.csproj --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore --collect "Code Coverage" --verbosity normal
