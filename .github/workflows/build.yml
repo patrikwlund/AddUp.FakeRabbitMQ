@@ -30,4 +30,4 @@ jobs:
     - name: Build
       run: dotnet build "${{env.SOLUTION}}" --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore
     - name: Test
-      run: dotnet test src/**/*.csproj --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore --collect "Code Coverage" --verbosity normal
+      run: dotnet test "${{env.SOLUTION}}" --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore --collect "Code Coverage" --verbosity normal

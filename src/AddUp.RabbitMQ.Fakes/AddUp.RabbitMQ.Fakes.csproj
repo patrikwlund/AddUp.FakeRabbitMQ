@@ -13,7 +13,7 @@
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-
+    <SonarQubeExclude>false</SonarQubeExclude>
     <SonarQubeTestProject>false</SonarQubeTestProject>
   </PropertyGroup>
 

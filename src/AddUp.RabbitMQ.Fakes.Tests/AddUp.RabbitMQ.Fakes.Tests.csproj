@@ -14,7 +14,7 @@
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <SignAssembly>true</SignAssembly>
-
+    <SonarQubeExclude>false</SonarQubeExclude>
     <SonarQubeTestProject>true</SonarQubeTestProject>
   </PropertyGroup>
 
