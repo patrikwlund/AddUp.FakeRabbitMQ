@@ -13,8 +13,6 @@
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <SignAssembly>true</SignAssembly>
-    <SonarQubeExclude>false</SonarQubeExclude>
     <SonarQubeTestProject>true</SonarQubeTestProject>
   </PropertyGroup>
 
@@ -29,18 +27,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.msbuild" Version="2.7.0">
+    <PackageReference Include="coverlet.msbuild" Version="2.8.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="FluentAssertions" Version="5.9.0" />
+    <PackageReference Include="FluentAssertions" Version="5.10.3" />
     <!-- 
     We explicitly reference a recent version of Microsoft.NET.Test.Sdk, because xunit.runner.visualstudio 
     depends on version 15 which is achingly slow!
     -->
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
-    <PackageReference Include="Microsoft.CodeCoverage" Version="16.4.0" />
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.5.0.15942">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.6.1" />
+    <PackageReference Include="Microsoft.CodeCoverage" Version="16.6.1" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.7.0.17535">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
