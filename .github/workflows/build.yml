@@ -70,7 +70,7 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: nuget-packages
-        path: public      
+        path: artifacts      
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -81,7 +81,7 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: true
         prerelease: false
-    - name: Upload Release Asset
+    - name: Upload Nuget package to Release
       id: upload_release 
       uses: actions/upload-release-asset@v1
       env:
@@ -90,7 +90,7 @@ jobs:
         # This pulls from the CREATE RELEASE step above, referencing its ID to get its outputs object, which includes an `upload_url`. 
         # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ./public/nuget-packages.zip
-        asset_name: nuget-packages.zip
+        asset_path: ./artifacts/AddUp.RabbitMQ.Fakes.${{ jobs.build.steps.gitversion.outputs.majorMinorPatch }}.nupkg
+        asset_name: nuget-package
         asset_content_type: application/zip      
 
