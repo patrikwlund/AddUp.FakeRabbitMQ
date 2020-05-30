@@ -10,7 +10,7 @@
     <PackageIcon>logo.png</PackageIcon>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+  <PropertyGroup>
     <!-- See https://docs.microsoft.com/en-us/dotnet/core/tools/csproj#includesymbols -->
     <IncludeSymbols>True</IncludeSymbols>
     <IncludeSource>True</IncludeSource>
