@@ -4,8 +4,6 @@ on:
   push:
     branches: [ ci-tests ]
     
-env:
-
 jobs:
   build:
 
