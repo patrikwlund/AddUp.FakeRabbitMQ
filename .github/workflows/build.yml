@@ -10,7 +10,6 @@ on:
 env:
   SOLUTION: src/AddUp.RabbitMQ.Fakes.sln
   BUILD_CONFIGURATION: Release
-  VERSION: 1.2.1
 
 jobs:
   build:
@@ -22,7 +21,6 @@ jobs:
       run: |
         echo "Solution     : ${{env.SOLUTION}}" 
         echo "Configuration: ${{env.BUILD_CONFIGURATION}}"
-        echo "Version      : ${{env.VERSION}}"
     - name: Checkout
       uses: actions/checkout@v2
       # Git history is needed by GitVersion
@@ -38,12 +36,19 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1.101
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.3
+      with:
+          versionSpec: '5.x' 
+    - name: Use GitVersion
+      id: gitversion # step id used as reference for output values
+      uses: gittools/actions/gitversion/execute@v0.9.3
     - name: Install SonarScanner
       run: dotnet tool install --global dotnet-sonarscanner
     - name: Restore
       run: dotnet restore "${{env.SOLUTION}}" --configfile ./nuget.config
     - name: Begin Sonar Analysis
-      run: dotnet sonarscanner begin /key:"addupsolutions_AddUp.RabbitMQ.Fakes" /name:"AddUp.RabbitMQ.Fakes" /version:"${{env.VERSION}}" /organization:"addupsolutions-oss" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/*.opencover.xml" /d:sonar.coverage.exclusions="**Tests.cs" /d:sonar.login="${{secrets.SONAR_TOKEN}}" /d:sonar.verbose=true /d:sonar.host.url=https://sonarcloud.io
+      run: dotnet sonarscanner begin /key:"addupsolutions_AddUp.RabbitMQ.Fakes" /name:"AddUp.RabbitMQ.Fakes" /version:"${{ steps.gitversion.outputs.majorMinorPatch }}"" /organization:"addupsolutions-oss" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/*.opencover.xml" /d:sonar.coverage.exclusions="**Tests.cs" /d:sonar.login="${{secrets.SONAR_TOKEN}}" /d:sonar.verbose=true /d:sonar.host.url=https://sonarcloud.io
     - name: Build
       run: dotnet build "${{env.SOLUTION}}" --configuration "${{env.BUILD_CONFIGURATION}}" --no-restore
     - name: Test
