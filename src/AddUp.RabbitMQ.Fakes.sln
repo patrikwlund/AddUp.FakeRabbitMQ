@@ -10,7 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DF69A266-2A27-4AB2-99B5-FE67634FB818}"
 	ProjectSection(SolutionItems) = preProject
 		common\AddUp.RabbitMQ.Fakes.snk = common\AddUp.RabbitMQ.Fakes.snk
-		Directory.build.props = Directory.build.props
+		Directory.Build.props = Directory.Build.props
 		..\LICENSE = ..\LICENSE
 		..\README.md = ..\README.md
 	EndProjectSection
