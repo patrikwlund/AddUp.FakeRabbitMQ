@@ -14,6 +14,5 @@
     <!-- See https://docs.microsoft.com/en-us/dotnet/core/tools/csproj#includesymbols -->
     <IncludeSymbols>True</IncludeSymbols>
     <IncludeSource>True</IncludeSource>
-    <ContinuousIntegrationBuild>True</ContinuousIntegrationBuild>
   </PropertyGroup>
 </Project>
