@@ -17,6 +17,13 @@
 * Supports Default, Direct, Topic and Fanout exchange types.
   * _NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Fanout type)_
 
+## History
+
+### Version 1.2.0 - 2019/12/11
+
+* First released version of **AddUp.RabbitMQ.Fakes**. Based on [RabbitMQ.Client version 5.1.2](https://www.nuget.org/packages/RabbitMQ.Client/5.1.2)
+* _NB: the version starts at 1.2.0 so as not to collide with previous internal versions._
+
 ## License
 
 This work is provided under the terms of the [MIT License](LICENSE).
