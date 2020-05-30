@@ -83,7 +83,7 @@ jobs:
         # This pulls from the CREATE RELEASE step above, referencing its ID to get its outputs object, which includes an `upload_url`. 
         # See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ./src/AddUp.RabbitMQ.Fakes/bin/${{ env.BUILD_CONFIGURATION }}/AddUp.RabbitMQ.Fakes.${{ steps.gitversion.outputs.majorMinorPatch }}.nupkg
+        asset_path: ./src/AddUp.RabbitMQ.Fakes/bin/${{ env.BUILD_CONFIGURATION }}/AddUp.RabbitMQ.Fakes.${{ steps.gitversion.outputs.SemVer }}.nupkg
         asset_name: nuget-package
         asset_content_type: application/zip         
 
