@@ -57,3 +57,8 @@ jobs:
       run: dotnet sonarscanner end /d:sonar.login="${{secrets.SONAR_TOKEN}}"
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+    - name: Collect Nuget Packages
+      uses: actions/upload-artifact@v2
+      with:
+        name: nuget-packages
+        path: ./src/AddUp.RabbitMQ.Fakes/bin/${{env.BUILD_CONFIGURATION}}/*.nupkg
