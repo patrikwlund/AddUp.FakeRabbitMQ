@@ -1,4 +1,4 @@
-name: Build
+name: "CI Tests"
 
 on:
   push:
@@ -10,8 +10,6 @@ jobs:
     runs-on: windows-2019
 
     steps:
-    - name: Dump Environment
-      run: set
     - name: Checkout
       uses: actions/checkout@v2
       # Git history is needed by GitVersion
