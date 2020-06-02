@@ -19,6 +19,10 @@
 
 ## History
 
+### [Version 1.2.2 - 2020/06/02](https://github.com/addupsolutions/AddUp.RabbitMQ.Fakes/releases/tag/v1.2.2)
+
+* BUGFIX: Closing a connection could throw if owned models were closed before.
+
 ### [Version 1.2.1 - 2020/05/30](https://github.com/addupsolutions/AddUp.RabbitMQ.Fakes/releases/tag/v1.2.1)
 
 * Updated to **RabbitMQ.Client** to version [5.2.0](https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/master/CHANGELOG.md#changes-between-512-and-520)
