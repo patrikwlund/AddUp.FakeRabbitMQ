@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -16,7 +17,7 @@ namespace AddUp.RabbitMQ.Fakes
         {
             server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
             ClientProvidedName = name ?? string.Empty;
-            Models = new List<FakeModel>();
+            Models = new List<IModel>();
         }
 
 #pragma warning disable 67
@@ -29,7 +30,7 @@ namespace AddUp.RabbitMQ.Fakes
 #pragma warning restore 67
 
         public string ClientProvidedName { get; }
-        public List<FakeModel> Models { get; private set; }
+        public List<IModel> Models { get; private set; }
         public EndPoint LocalEndPoint { get; set; }
         public EndPoint RemoteEndPoint { get; set; }
         public int LocalPort { get; set; }
@@ -59,9 +60,20 @@ namespace AddUp.RabbitMQ.Fakes
         public IModel CreateModel()
         {
             var model = new FakeModel(server);
+            model.ModelShutdown += OnModelShutdown;
             Models.Add(model);
 
             return model;
+        }
+        
+        public void HandleConnectionBlocked(string reason)
+        {
+            // Fake implementation. Nothing to do here.
+        }
+
+        public void HandleConnectionUnblocked()
+        {
+            // Fake implementation. Nothing to do here.
         }
 
         // Close and Abort (implementation inspired by RabbitMQ.Client)
@@ -70,15 +82,15 @@ namespace AddUp.RabbitMQ.Fakes
         public void Abort(int timeout) => Abort(200, "Connection close forced", timeout);
         public void Abort(ushort reasonCode, string reasonText) => Abort(reasonCode, reasonText, -1);
         public void Abort(ushort reasonCode, string reasonText, int timeout) =>
-            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: true, timeout);
+            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: true);
 
         public void Close() => Close(200, "Goodbye", -1);
         public void Close(int timeout) => Close(200, "Goodbye", timeout);
         public void Close(ushort reasonCode, string reasonText) => Close(reasonCode, reasonText, -1);
         public void Close(ushort reasonCode, string reasonText, int timeout) =>
-            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: false, timeout);
+            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: false);
 
-        private void Close(ShutdownEventArgs reason, bool abort, int timeout)
+        private void Close(ShutdownEventArgs reason, bool abort)
         {
             try
             {
@@ -86,7 +98,8 @@ namespace AddUp.RabbitMQ.Fakes
                     throw new AlreadyClosedException(reason);
 
                 CloseReason = reason;
-                Models.ForEach(m =>
+                var modelsCopy = Models.ToList();
+                modelsCopy.ForEach(m =>
                 {
                     if (abort)
                         m.Abort();
@@ -102,14 +115,11 @@ namespace AddUp.RabbitMQ.Fakes
             }
         }
 
-        public void HandleConnectionBlocked(string reason)
+        private void OnModelShutdown(object sender, ShutdownEventArgs e)
         {
-            // Fake implementation. Nothing to do here.
-        }
-
-        public void HandleConnectionUnblocked()
-        {
-            // Fake implementation. Nothing to do here.
+            var model = (IModel)sender;
+            model.ModelShutdown -= OnModelShutdown;
+            _ = Models.Remove(model);
         }
     }
 }

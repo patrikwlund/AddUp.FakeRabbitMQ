@@ -26,7 +26,7 @@ namespace AddUp.RabbitMQ.Fakes
         public TimeSpan ContinuationTimeout { get; set; }
         
         internal FakeConnection UnderlyingConnection => (FakeConnection)Connection;
-        internal List<FakeModel> UnderlyingModel => UnderlyingConnection?.Models ?? new List<FakeModel>();
+        internal List<IModel> UnderlyingModel => UnderlyingConnection?.Models ?? new List<IModel>();
 
         public FakeConnectionFactory WithConnection(IConnection connection)
         {
