@@ -4,6 +4,7 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.RabbitMQ.Fakes&metric=alert_status)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.RabbitMQ.Fakes)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.RabbitMQ.Fakes&metric=coverage)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.RabbitMQ.Fakes)
 [![NuGet](https://img.shields.io/nuget/v/AddUp.RabbitMQ.Fakes.svg)](https://www.nuget.org/packages/AddUp.RabbitMQ.Fakes/)
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=addupsolutions/AddUp.RabbitMQ.Fakes)](https://dependabot.com)
 
 ## About
 
