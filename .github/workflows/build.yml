@@ -21,9 +21,8 @@ jobs:
         echo "Configuration: ${{ env.BUILD_CONFIGURATION }}"
     - name: Checkout
       uses: actions/checkout@v2
-      # Git history is needed by GitVersion
-    - name: Fetch all history for all tags and branches
-      run: git fetch --prune --unshallow
+      with:
+        fetch-depth: 0 # See https://github.com/GitTools/GitVersion/issues/2301  
       # Java 11 is needed by Sonar analyzer
     - uses: actions/setup-java@v1
       with:
