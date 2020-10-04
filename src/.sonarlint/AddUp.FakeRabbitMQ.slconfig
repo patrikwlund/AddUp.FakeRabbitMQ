@@ -1,0 +1,15 @@
+{
+  "ServerUri": "https://sonarcloud.io/",
+  "Organization": {
+    "Key": "addupsolutions-oss",
+    "Name": "AddUp - Global Additive Solutions (Open Source Software)"
+  },
+  "ProjectKey": "addupsolutions_AddUp.RabbitMQ.Fakes",
+  "ProjectName": "AddUp.FakeRabbitMQ",
+  "Profiles": {
+    "CSharp": {
+      "ProfileKey": "AXEMIQKV-VNpMIB1tcJG",
+      "ProfileTimestamp": "2020-07-20T13:51:42Z"
+    }
+  }
+}

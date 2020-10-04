@@ -3,27 +3,18 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
-    <LangVersion>7.3</LangVersion>
+    <!-- The root namespace must be kept this way (for compatibiliy purpose) -->
     <RootNamespace>AddUp.RabbitMQ.Fakes</RootNamespace>
-    <AssemblyName>AddUp.RabbitMQ.Fakes.Tests</AssemblyName>
-    <Description>AddUp.RabbitMQ.Fakes Unit Tests</Description>
+    <AssemblyName>AddUp.FakeRabbitMQ.Tests</AssemblyName>
+    <Description>AddUp.FakeRabbitMQ Unit Tests</Description>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>../common/AddUp.RabbitMQ.Fakes.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>../common/AddUp.FakeRabbitMQ.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <SonarQubeTestProject>true</SonarQubeTestProject>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -54,7 +45,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AddUp.RabbitMQ.Fakes\AddUp.RabbitMQ.Fakes.csproj" />
+    <ProjectReference Include="..\AddUp.FakeRabbitMQ\AddUp.FakeRabbitMQ.csproj" />
   </ItemGroup>
 
 </Project>

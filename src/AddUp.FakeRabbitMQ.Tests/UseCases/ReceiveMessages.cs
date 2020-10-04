@@ -95,22 +95,22 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             SendMessage(rabbitServer, "my_exchange", "hello_world");
 
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using (var connection = connectionFactory.CreateConnection())
-            using (var channel = connection.CreateModel())
+            using var connection = connectionFactory.CreateConnection();
+            using var channel = connection.CreateModel();
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            var consumer = new QueueingBasicConsumer(channel);
+#pragma warning restore CS0618 // Type or member is obsolete
+            channel.BasicConsume("my_queue", false, consumer);
+
+            if (consumer.Queue.Dequeue(5000, out var messageOut))
             {
-                var consumer = new QueueingBasicConsumer(channel);
-                channel.BasicConsume("my_queue", false, consumer);
-
-                BasicDeliverEventArgs messageOut;
-                if (consumer.Queue.Dequeue(5000, out messageOut))
-                {
-                    var messageBody = Encoding.ASCII.GetString(messageOut.Body);
-                    Assert.Equal("hello_world", messageBody);
-                    channel.BasicAck(messageOut.DeliveryTag, multiple: false);
-                }
-
-                Assert.NotNull(messageOut);
+                var messageBody = Encoding.ASCII.GetString(messageOut.Body);
+                Assert.Equal("hello_world", messageBody);
+                channel.BasicAck(messageOut.DeliveryTag, multiple: false);
             }
+
+            Assert.NotNull(messageOut);
         }
 
         [Fact]
@@ -121,49 +121,46 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
            
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using (var connection = connectionFactory.CreateConnection())
-            using (var channel = connection.CreateModel())
+            using var connection = connectionFactory.CreateConnection();
+            using var channel = connection.CreateModel();
+#pragma warning disable CS0618 // Type or member is obsolete
+            var consumer = new QueueingBasicConsumer(channel);
+#pragma warning restore CS0618 // Type or member is obsolete
+            channel.BasicConsume("my_queue", false, consumer);
+
+            SendMessage(rabbitServer, "my_exchange", "hello_world");
+
+            if (consumer.Queue.Dequeue(5000, out var messageOut))
             {
-                var consumer = new QueueingBasicConsumer(channel);
-                channel.BasicConsume("my_queue", false, consumer);
-
-                SendMessage(rabbitServer, "my_exchange", "hello_world");
-
-                BasicDeliverEventArgs messageOut;
-                if (consumer.Queue.Dequeue(5000, out messageOut))
-                {
-                    var messageBody = Encoding.ASCII.GetString(messageOut.Body);
-                    Assert.Equal("hello_world", messageBody);
-                    channel.BasicAck(messageOut.DeliveryTag, multiple: false);
-                }
-
-                Assert.NotNull(messageOut);
+                var messageBody = Encoding.ASCII.GetString(messageOut.Body);
+                Assert.Equal("hello_world", messageBody);
+                channel.BasicAck(messageOut.DeliveryTag, multiple: false);
             }
+
+            Assert.NotNull(messageOut);
         }
 
         private static void SendMessage(RabbitServer rabbitServer, string exchange, string message, IBasicProperties basicProperties = null)
         {
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
 
-            using (var connection = connectionFactory.CreateConnection())
-            using (var channel = connection.CreateModel())
-            {
-                var messageBody = Encoding.ASCII.GetBytes(message);
-                channel.BasicPublish(exchange: exchange, routingKey: null, mandatory: false, basicProperties: basicProperties, body: messageBody);
-            }
+            using var connection = connectionFactory.CreateConnection();
+            using var channel = connection.CreateModel();
+
+            var messageBody = Encoding.ASCII.GetBytes(message);
+            channel.BasicPublish(exchange: exchange, routingKey: null, mandatory: false, basicProperties: basicProperties, body: messageBody);
         }
 
         private void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)
         {
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using (var connection = connectionFactory.CreateConnection())
-            using (var channel = connection.CreateModel())
-            {
-                channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
-                channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Direct);
+            using var connection = connectionFactory.CreateConnection();
+            using var channel = connection.CreateModel();
 
-                channel.QueueBind(queueName, exchangeName, null);
-            }
+            channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+            channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Direct);
+
+            channel.QueueBind(queueName, exchangeName, null);
         }
     }
 }

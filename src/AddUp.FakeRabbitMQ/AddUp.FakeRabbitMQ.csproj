@@ -3,37 +3,25 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>7.3</LangVersion>
+    <!-- The root namespace must be kept this way (for compatibiliy purpose) -->
     <RootNamespace>AddUp.RabbitMQ.Fakes</RootNamespace>
-    <AssemblyName>AddUp.RabbitMQ.Fakes</AssemblyName>
+    <AssemblyName>AddUp.FakeRabbitMQ</AssemblyName>
     <Description>RabbitMQ In-memory fake implementation</Description>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>../common/AddUp.RabbitMQ.Fakes.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>../common/AddUp.FakeRabbitMQ.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
     <AutoGenerateBindingRedirects>True</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>True</GenerateBindingRedirectsOutputType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <SonarQubeExclude>false</SonarQubeExclude>
     <SonarQubeTestProject>false</SonarQubeTestProject>
+    <CodeAnalysisRuleSet>..\.sonarlint\addupsolutions_addup.rabbitmq.fakescsharp.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <CodeAnalysisRuleSet>AddUp.RabbitMQ.Fakes.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <CodeAnalysisRuleSet>AddUp.RabbitMQ.Fakes.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="..\.sonarlint\addupsolutions_addup.rabbitmq.fakes\CSharp\SonarLint.xml" Link="SonarLint.xml" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="GitVersionTask" Version="5.3.7">
@@ -50,13 +38,4 @@
   <ItemGroup>
     <None Include="images/logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
-
-  <!-- Until https://github.com/SonarSource/sonar-scanner-msbuild/issues/844 is fixed, let's override the exclusion/test detection logic -->
-  <Target Name="SonarQubeCategoriseProject" Condition=" $(SonarQubeTempPath) != '' ">
-    <PropertyGroup>
-      <SonarQubeExclude>false</SonarQubeExclude>
-      <SonarQubeTestProject>false</SonarQubeTestProject>
-    </PropertyGroup>
-  </Target>
-
 </Project>
