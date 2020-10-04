@@ -32,7 +32,7 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 ## History
 
-### [Version 1.2.3 - 2020/06/02](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.2.3)
+### [Version 1.2.3 - 2020/10/04](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.2.3)
 
 * Renamed from **AddUp.RabbitMQ.Fakes** to **AddUp.FakeRabbitMQ**.
 
