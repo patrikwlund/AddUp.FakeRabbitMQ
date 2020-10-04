@@ -54,11 +54,16 @@ jobs:
       run: dotnet sonarscanner end /d:sonar.login="${{secrets.SONAR_TOKEN}}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Collect Nuget Packages
+    - name: Collect Nuget Packages (nupkg)
       uses: actions/upload-artifact@v2
       with:
         name: nuget-packages
         path: ./src/AddUp.FakeRabbitMQ/bin/${{ env.BUILD_CONFIGURATION }}/*.nupkg
+    - name: Collect Nuget Packages (snupkg)
+      uses: actions/upload-artifact@v2
+      with:
+        name: nuget-packages
+        path: ./src/AddUp.FakeRabbitMQ/bin/${{ env.BUILD_CONFIGURATION }}/*.snupkg
     ###########################################
     # Release creation / publication 
     - name: Create Release
