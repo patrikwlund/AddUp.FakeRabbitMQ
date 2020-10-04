@@ -1,10 +1,10 @@
 # AddUp.FakeRabbitMQ
 
 ![Build](https://github.com/addupsolutions/AddUp.RabbitMQ.Fakes/workflows/Build/badge.svg)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.RabbitMQ.Fakes&metric=alert_status)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.RabbitMQ.Fakes)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.RabbitMQ.Fakes&metric=coverage)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.RabbitMQ.Fakes)
-[![NuGet](https://img.shields.io/nuget/v/AddUp.RabbitMQ.Fakes.svg)](https://www.nuget.org/packages/AddUp.RabbitMQ.Fakes/)
-[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=addupsolutions/AddUp.RabbitMQ.Fakes)](https://dependabot.com)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.FakeRabbitMQ&metric=alert_status)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.FakeRabbitMQ)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.FakeRabbitMQ&metric=coverage)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.FakeRabbitMQ)
+[![NuGet](https://img.shields.io/nuget/v/AddUp.FakeRabbitMQ.svg)](https://www.nuget.org/packages/AddUp.FakeRabbitMQ/)
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=addupsolutions/AddUp.FakeRabbitMQ)](https://dependabot.com)
 
 ## Important Notice
 
