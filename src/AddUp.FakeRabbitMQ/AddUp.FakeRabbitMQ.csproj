@@ -40,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
     <None Include="images/logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

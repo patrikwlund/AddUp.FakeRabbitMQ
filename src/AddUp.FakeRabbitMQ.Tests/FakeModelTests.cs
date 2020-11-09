@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using RabbitMQ.Client;
@@ -609,20 +609,23 @@ namespace AddUp.RabbitMQ.Fakes
                 model.QueueDeclarePassive("my_queue");
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
-                var message = "hello world!";
-                var encodedMessage = Encoding.ASCII.GetBytes(message);
+                var messages = new[] { "hello world!", "Thank you, @inbarbarkai" };
+                var encodedMessages = messages.Select(m => Encoding.ASCII.GetBytes(m)).ToArray();
 
                 // Act
                 var batch = model.CreateBasicPublishBatch();
-                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessage);
-                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessage);
+                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessages[0]);
+                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessages[1]);
                 batch.Publish();
 
                 // Assert
                 Assert.Equal(2, node.Queues["my_queue"].Messages.Count);
+
+                var index = 0;
                 foreach (var item in node.Queues["my_queue"].Messages)
                 {
-                    Assert.Equal(encodedMessage, item.Body);
+                    Assert.Equal(encodedMessages[index], item.Body);
+                    index++;
                 }
             }
         }
