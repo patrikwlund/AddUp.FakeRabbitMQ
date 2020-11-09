@@ -599,6 +599,35 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
+        public void BasicPublishBatch_PublishesMessage()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclarePassive("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                var message = "hello world!";
+                var encodedMessage = Encoding.ASCII.GetBytes(message);
+
+                // Act
+                var batch = model.CreateBasicPublishBatch();
+                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessage);
+                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessage);
+                batch.Publish();
+
+                // Assert
+                Assert.Equal(2, node.Queues["my_queue"].Messages.Count);
+                foreach (var item in node.Queues["my_queue"].Messages)
+                {
+                    Assert.Equal(encodedMessage, item.Body);
+                }
+            }
+        }
+
+        [Fact]
         public void BasicAck()
         {
             var node = new RabbitServer();
