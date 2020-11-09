@@ -32,6 +32,14 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 ## History
 
+### [Version 1.3.0 - 2020/11/09](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.0)
+
+Most of the work in this release was contributed by @inbarbarkai. Thanks to him!
+
+* As suggested by @inbarbarkai: Basic support for `IModel.ConfirmSelect` and the `IModel.WaitForConfirms*` family.
+* Support for `IModel.CreateBasicPublishBatch` was added thanks to PR #21 by @inbarbarkai.
+* Consumers that implement both `IBasicConsumer` **and** `IAsyncBasicConsumer` are correctly handled by `IModel.BasicConsume` and `IModel.BasicCancel` thanks to PR #23 by @inbarbarkai.
+
 ### [Version 1.2.3 - 2020/10/04](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.2.3)
 
 * Renamed from **AddUp.RabbitMQ.Fakes** to **AddUp.FakeRabbitMQ**.
