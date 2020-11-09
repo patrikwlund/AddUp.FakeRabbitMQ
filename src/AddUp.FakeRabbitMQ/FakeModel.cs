@@ -66,7 +66,7 @@ namespace AddUp.RabbitMQ.Fakes
         
         public IBasicProperties CreateBasicProperties() => new BasicProperties();
         public void ChannelFlow(bool active) => IsChannelFlowActive = active;
-        public IBasicPublishBatch CreateBasicPublishBatch() => throw new NotImplementedException();
+        public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
 
         public void ExchangeDeclarePassive(string exchange) => ExchangeDeclare(exchange, null, false, false, null);
         public void ExchangeDeclare(string exchange, string type) => ExchangeDeclare(exchange, type, false, false, null);
