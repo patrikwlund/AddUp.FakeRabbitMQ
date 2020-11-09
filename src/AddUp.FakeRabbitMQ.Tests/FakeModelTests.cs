@@ -655,6 +655,29 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
+        public void BasicCancel()
+        {
+            // Assert
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                model.QueueDeclarePassive("my_queue");
+                var expectedConsumerTag = "foo";
+                var actualConsumerTag = "";
+
+                // Act
+                var consumer = new EventingBasicConsumer(model) { ConsumerTag = expectedConsumerTag };
+                consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTag;
+
+                model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
+                model.BasicCancel(expectedConsumerTag);
+
+                // Assert
+                Assert.Equal(expectedConsumerTag, actualConsumerTag);
+            }
+        }
+
+        [Fact]
         public void BasicGet_MessageOnQueue_GetsMessage()
         {
             // Arrange
@@ -812,6 +835,53 @@ namespace AddUp.RabbitMQ.Fakes
 
             // assert
             Assert.True(true);
+        }
+
+        [Fact]
+        public void BasicConsume_works_for_asynchronous_consumers()
+        {
+            // Assert
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclarePassive("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                var message = "hello world!";
+                var encodedMessage = Encoding.ASCII.GetBytes(message);
+                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+
+                // Act
+                var consumer = new FakeAsyncDefaultBasicConsumer(model);
+                model.BasicConsume("my_queue", false, consumer);
+
+                var deliveredPayload = consumer.LastDelivery.body;
+
+                // Assert
+                Assert.Equal(encodedMessage, deliveredPayload);
+            }
+        }
+
+        [Fact]
+        public void BasicCancel_works_for_asynchronous_consumers()
+        {
+            // Assert
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                model.QueueDeclarePassive("my_queue");
+                var expectedConsumerTag = "foo";
+
+                // Act
+                var consumer = new FakeAsyncDefaultBasicConsumer(model);
+
+                model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
+                model.BasicCancel(expectedConsumerTag);
+
+                // Assert
+                Assert.Equal(expectedConsumerTag, consumer.LastCancelOkConsumerTag);
+            }
         }
     }
 }

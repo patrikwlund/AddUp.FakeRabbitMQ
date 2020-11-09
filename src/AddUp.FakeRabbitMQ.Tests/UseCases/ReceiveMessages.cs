@@ -67,8 +67,6 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             using (var connection = connectionFactory.CreateConnection())
             using (var channel = connection.CreateModel())
             {
-
-
                 // First message
                 var message = channel.BasicGet("my_queue", autoAck: false);
 
@@ -83,7 +81,6 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
 
                 channel.BasicAck(message.DeliveryTag, multiple: false);
             }
-
         }
 
         [Fact]

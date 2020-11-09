@@ -26,7 +26,6 @@ namespace AddUp.RabbitMQ.Fakes
         public TimeSpan ContinuationTimeout { get; set; }
         
         internal FakeConnection UnderlyingConnection => (FakeConnection)Connection;
-        internal List<IModel> UnderlyingModel => UnderlyingConnection?.Models ?? new List<IModel>();
 
         public FakeConnectionFactory WithConnection(IConnection connection)
         {
@@ -36,14 +35,14 @@ namespace AddUp.RabbitMQ.Fakes
 
         public FakeConnectionFactory WithRabbitServer(RabbitServer server)
         {
-            Server = server;
+            Server = server ?? throw new ArgumentNullException(nameof(server));
             return this;
         }
 
         public AuthMechanismFactory AuthMechanismFactory(IList<string> mechanismNames) => new PlainMechanismFactory();
 
         public IConnection CreateConnection() => CreateConnection("");
-        public IConnection CreateConnection(IList<string> hostnames) => CreateConnection("");
+        public IConnection CreateConnection(IList<string> hostnames) => CreateConnection(hostnames, "");
         public IConnection CreateConnection(IList<string> hostnames, string clientProvidedName) => CreateConnection(clientProvidedName);
         public IConnection CreateConnection(IList<AmqpTcpEndpoint> endpoints) => CreateConnection("");
         public IConnection CreateConnection(string clientProvidedName)
