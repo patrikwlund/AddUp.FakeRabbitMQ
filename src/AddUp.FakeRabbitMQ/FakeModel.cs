@@ -221,14 +221,30 @@ namespace AddUp.RabbitMQ.Fakes
             RabbitMessage updateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
             _ = WorkingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
 
+            if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
+            {
+                asyncBasicConsumer.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body).GetAwaiter().GetResult();
+            }
+            else
+            {
             consumer.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
+        }
         }
 
         public void BasicCancel(string consumerTag)
         {
             _ = consumers.TryRemove(consumerTag, out var consumer);
             if (consumer != null)
+            {
+                if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
+                {
+                    asyncBasicConsumer.HandleBasicCancelOk(consumerTag).GetAwaiter().GetResult();
+                }
+                else
+                {
                 consumer.HandleBasicCancelOk(consumerTag);
+        }
+            }
         }
 
         public BasicGetResult BasicGet(string queue, bool autoAck)
