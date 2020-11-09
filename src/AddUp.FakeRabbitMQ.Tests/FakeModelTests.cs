@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using RabbitMQ.Client;
@@ -760,6 +760,58 @@ namespace AddUp.RabbitMQ.Fakes
                 Assert.Equal(expectedMessageCount, node.Queues["my_queue"].Messages.Count);
                 Assert.Equal(expectedMessageCount, model.WorkingMessages.Count);
             }
+        }
+
+        [Fact]
+        public void WaitForConfirms_should_throw_if_ConfirmSelect_was_not_called()
+        {
+            // arrange
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+                // act & assert
+                Assert.Throws<InvalidOperationException>(() => model.WaitForConfirms());
+        }
+
+        [Fact]
+        public void WaitForConfirmsOrDie_returns_true_if_ConfirmSelect_was_called()
+        {
+            // arrange
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                // act
+                model.ConfirmSelect();
+                var result = model.WaitForConfirms();
+
+                // assert
+                Assert.True(result);
+            }
+        }
+
+        [Fact]
+        public void WaitForConfirmsOrDie_should_throw_if_ConfirmSelect_was_not_called()
+        {
+            // arrange
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+                // act & assert
+                Assert.Throws<InvalidOperationException>(() => model.WaitForConfirmsOrDie());
+        }
+
+        [Fact]
+        public void WaitForConfirmsOrDie_does_not_throw_if_ConfirmSelect_was_called()
+        {
+            // arrange
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                // act
+                model.ConfirmSelect();
+                model.WaitForConfirmsOrDie();
+            }
+
+            // assert
+            Assert.True(true);
         }
     }
 }

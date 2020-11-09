@@ -15,6 +15,7 @@ namespace AddUp.RabbitMQ.Fakes
         private readonly ConcurrentDictionary<string, IBasicConsumer> consumers = new ConcurrentDictionary<string, IBasicConsumer>();
         private readonly RabbitServer server;
         private long lastDeliveryTag;
+        private bool confirmModeSelected;
 
         public FakeModel(RabbitServer rabbitServer) => server = rabbitServer;
 
@@ -173,12 +174,21 @@ namespace AddUp.RabbitMQ.Fakes
             return instance != null ? 1u : 0u;
         }
 
-        public void ConfirmSelect() => throw new NotImplementedException();
-        public bool WaitForConfirms() => throw new NotImplementedException();
-        public bool WaitForConfirms(TimeSpan timeout) => throw new NotImplementedException();
-        public bool WaitForConfirms(TimeSpan timeout, out bool timedOut) => throw new NotImplementedException();
-        public void WaitForConfirmsOrDie() => throw new NotImplementedException();
-        public void WaitForConfirmsOrDie(TimeSpan timeout) => throw new NotImplementedException();
+        public void ConfirmSelect() => confirmModeSelected = true;
+
+        public void WaitForConfirmsOrDie() => WaitForConfirmsOrDie(TimeSpan.Zero);
+        public void WaitForConfirmsOrDie(TimeSpan timeout) => _ = WaitForConfirms(timeout);
+
+        public bool WaitForConfirms() => WaitForConfirms(TimeSpan.Zero);
+        public bool WaitForConfirms(TimeSpan timeout) => WaitForConfirms(timeout, out _);
+        public bool WaitForConfirms(TimeSpan timeout, out bool timedOut)
+        {
+            if (!confirmModeSelected)
+                throw new InvalidOperationException("Confirms not selected");
+
+            timedOut = false;
+            return true;
+        }
 
         public string BasicConsume(string queue, bool autoAck, IBasicConsumer consumer) => BasicConsume(queue, autoAck, Guid.NewGuid().ToString(), true, false, null, consumer);
         public string BasicConsume(string queue, bool autoAck, string consumerTag, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, null, consumer);
