@@ -29,7 +29,7 @@ namespace AddUp.RabbitMQ.Fakes
 #pragma warning restore 67
 
         public readonly ConcurrentDictionary<ulong, RabbitMessage> WorkingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
-        
+
         public int ChannelNumber { get; }
         public bool ApplyPrefetchToAllChannels { get; private set; }
         public ushort PrefetchCount { get; private set; }
@@ -63,7 +63,7 @@ namespace AddUp.RabbitMQ.Fakes
                 new List<RabbitMessage>() :
                 (IEnumerable<RabbitMessage>)queueInstance.Messages;
         }
-        
+
         public IBasicProperties CreateBasicProperties() => new BasicProperties();
         public void ChannelFlow(bool active) => IsChannelFlowActive = active;
         public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
@@ -221,30 +221,33 @@ namespace AddUp.RabbitMQ.Fakes
             RabbitMessage updateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
             _ = WorkingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
 
+            // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
+            // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
+            // For why .GetAwaiter().GetResult()
             if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
-            {
-                asyncBasicConsumer.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body).GetAwaiter().GetResult();
-            }
-            else
-            {
-            consumer.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
-        }
+                asyncBasicConsumer
+                    .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body)
+                    .GetAwaiter()
+                    .GetResult();
+            else consumer
+                    .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
         }
 
         public void BasicCancel(string consumerTag)
         {
             _ = consumers.TryRemove(consumerTag, out var consumer);
-            if (consumer != null)
-            {
-                if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
-                {
-                    asyncBasicConsumer.HandleBasicCancelOk(consumerTag).GetAwaiter().GetResult();
-                }
-                else
-                {
-                consumer.HandleBasicCancelOk(consumerTag);
-        }
-            }
+            if (consumer == null) return;
+
+            // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
+            // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
+            // For why .GetAwaiter().GetResult()
+            if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
+                asyncBasicConsumer
+                    .HandleBasicCancelOk(consumerTag)
+                    .GetAwaiter()
+                    .GetResult();
+            else consumer
+                    .HandleBasicCancelOk(consumerTag);
         }
 
         public BasicGetResult BasicGet(string queue, bool autoAck)
@@ -384,7 +387,7 @@ namespace AddUp.RabbitMQ.Fakes
 
         public void Close() => Close(200, "Goodbye");
         public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
-        
+
         private void Close(ushort replyCode, string replyText, bool abort) =>
             Close(new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText), abort);
 
