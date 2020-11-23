@@ -45,7 +45,7 @@ namespace AddUp.RabbitMQ.Fakes
 
         public void Dispose()
         {
-            if (IsOpen) Abort(); // Abort rather than Close because we do not want Dispose to throw
+            if (IsOpen) Abort();
         }
 
         public IEnumerable<RabbitMessage> GetMessagesPublishedToExchange(string exchange)
@@ -410,7 +410,6 @@ namespace AddUp.RabbitMQ.Fakes
         {
             try
             {
-                if (IsClosed) throw new AlreadyClosedException(reason);
                 CloseReason = reason;
                 ModelShutdown?.Invoke(this, reason);
             }

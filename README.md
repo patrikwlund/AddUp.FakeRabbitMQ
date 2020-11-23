@@ -32,6 +32,10 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 ## History
 
+### [Version 1.3.1 - 2020/11/23](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.1)
+
+* BUGFIX: #25. Now it is possible to close a `Channel` after its connection was closed without the `Channel.Close` method throwing (this is consistent with how **RabbitMQ.Client** behaves).
+
 ### [Version 1.3.0 - 2020/11/09](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.0)
 
 Most of the work in this release was contributed by @inbarbarkai. Thanks to him!
