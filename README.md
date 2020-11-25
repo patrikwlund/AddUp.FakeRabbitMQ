@@ -32,6 +32,10 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 ## History
 
+### [Version 1.3.2 - 2020/11/23](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.2)
+
+* BUGFIX: #27. It was impossible to create a connection after having created and closed a previous connection.
+
 ### [Version 1.3.1 - 2020/11/23](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.1)
 
 * BUGFIX: #25. Now it is possible to close a `Channel` after its connection was closed without the `Channel.Close` method throwing (this is consistent with how **RabbitMQ.Client** behaves).

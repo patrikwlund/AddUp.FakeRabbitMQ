@@ -90,6 +90,10 @@ namespace AddUp.RabbitMQ.Fakes
         public void Close(ushort reasonCode, string reasonText, int timeout) =>
             Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: false);
 
+        // Not part of the original implementation. Required by FakeConnectionFactory
+        // NB: does not recreate the models
+        internal void ForceOpen() => CloseReason = null;
+
         private void Close(ShutdownEventArgs reason, bool abort)
         {
             try

@@ -23,7 +23,6 @@ namespace AddUp.RabbitMQ.Fakes
 
             Assert.NotNull(result);
             Assert.IsType<FakeConnection>(result);
-            Assert.Same(factory.UnderlyingConnection, result);
         }
 
         [Fact]
@@ -34,7 +33,6 @@ namespace AddUp.RabbitMQ.Fakes
 
             Assert.NotNull(result);
             Assert.IsType<FakeConnection>(result);
-            Assert.Same(factory.UnderlyingConnection, result);
         }
 
         [Fact]
@@ -45,7 +43,6 @@ namespace AddUp.RabbitMQ.Fakes
 
             Assert.NotNull(result);
             Assert.IsType<FakeConnection>(result);
-            Assert.Same(factory.UnderlyingConnection, result);
         }
 
         [Fact]
@@ -58,66 +55,11 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
-        public void WithConnection_sets_the_underlying_connection()
-        {
-            var connection = new FakeConnection(new RabbitServer());
-            var factory = new FakeConnectionFactory().WithConnection(connection);
-
-            Assert.Same(connection, factory.Connection);
-        }
-
-        [Fact]
-        public void UnderlyingConnection_is_null_when_no_connection_was_provided()
+        public void Connection_is_null_when_no_connection_was_provided()
         {
             var factory = new FakeConnectionFactory();
-            var result = factory.UnderlyingConnection;
-            Assert.Null(result);
+            Assert.Null(factory.Connection);
         }
-
-        [Fact]
-        public void UnderlyingConnection_is_the_connection_if_it_was_provided()
-        {
-            var connection = new FakeConnection(new RabbitServer());
-            var factory = new FakeConnectionFactory().WithConnection(connection);
-
-            var result = factory.UnderlyingConnection;
-            Assert.Same(connection, result);
-        }
-
-        [Fact]
-        public void WithRabbitServer_throws_when_supplied_a_null_server() =>
-            Assert.Throws<ArgumentNullException>(() => new FakeConnectionFactory().WithRabbitServer(null));
-
-        [Fact]
-        public void WithRabbitServer_sets_the_server()
-        {
-            var otherServer = new RabbitServer();
-            var factory = new FakeConnectionFactory().WithRabbitServer(otherServer);
-
-            var result = factory.Server;
-            Assert.Same(otherServer, result);
-        }
-
-        // Factory properties tests (for coverage only)
-
-        ////[Fact]
-        ////public void Properties_have_default_values()
-        ////{
-        ////    var factory = new FakeConnectionFactory();
-
-        ////    Assert.Null(factory.ClientProperties);
-        ////    Assert.Null(factory.Password);
-        ////    Assert.Equal((ushort)0, factory.RequestedChannelMax);
-        ////    Assert.Equal(0u, factory.RequestedFrameMax);
-        ////    Assert.Equal((ushort)0, factory.RequestedHeartbeat);
-        ////    Assert.False(factory.UseBackgroundThreadsForIO);
-        ////    Assert.Null(factory.UserName);
-        ////    Assert.Null(factory.VirtualHost);
-        ////    Assert.Null(factory.Uri);
-        ////    Assert.Null(factory.TaskScheduler);
-        ////    Assert.Equal(TimeSpan.Zero, factory.HandshakeContinuationTimeout);
-        ////    Assert.Equal(TimeSpan.Zero, factory.ContinuationTimeout);
-        ////}
 
         [Fact]
         public void Properties_retain_their_values_when_set()
