@@ -675,6 +675,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
                 Assert.True(consumer.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
+                Assert.False(consumer.IsRunning);
 
                 // Assert
                 Assert.Equal(expectedConsumerTag, actualConsumerTag);
@@ -887,6 +888,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
                 Assert.True(consumer.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
+                Assert.False(consumer.IsRunning);
 
                 // Assert
                 Assert.Equal(expectedConsumerTag, consumer.LastCancelOkConsumerTag);
