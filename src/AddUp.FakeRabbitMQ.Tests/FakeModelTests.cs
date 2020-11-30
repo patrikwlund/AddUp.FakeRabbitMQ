@@ -643,7 +643,10 @@ namespace AddUp.RabbitMQ.Fakes
                 var message = "hello world!";
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
                 model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
-                model.BasicConsume("my_queue", false, new EventingBasicConsumer(model));
+
+                var consumer = new EventingBasicConsumer(model);
+                model.BasicConsume("my_queue", false, consumer);
+                Assert.True(consumer.IsRunning);
 
                 // Act
                 var deliveryTag = model.WorkingMessages.First().Key;
@@ -670,6 +673,7 @@ namespace AddUp.RabbitMQ.Fakes
                 consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTag;
 
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
+                Assert.True(consumer.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
 
                 // Assert
@@ -748,7 +752,10 @@ namespace AddUp.RabbitMQ.Fakes
 
                 var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
                 model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
-                model.BasicConsume("my_queue", false, new EventingBasicConsumer(model));
+
+                var consumer = new EventingBasicConsumer(model);
+                model.BasicConsume("my_queue", false, consumer);
+                Assert.True(consumer.IsRunning);
 
                 // act
                 var deliveryTag = model.WorkingMessages.First().Key;
@@ -855,6 +862,7 @@ namespace AddUp.RabbitMQ.Fakes
                 // Act
                 var consumer = new FakeAsyncDefaultBasicConsumer(model);
                 model.BasicConsume("my_queue", false, consumer);
+                Assert.True(consumer.IsRunning);
 
                 var deliveredPayload = consumer.LastDelivery.body;
 
@@ -877,6 +885,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var consumer = new FakeAsyncDefaultBasicConsumer(model);
 
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
+                Assert.True(consumer.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
 
                 // Assert
