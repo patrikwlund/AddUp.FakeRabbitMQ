@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using RabbitMQ.Client.Framing;
 using Xunit;
 
@@ -113,7 +114,24 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
-        public void ExchangeDeclarePassive_WithName_CreatesExchange()
+        public void ExchangeDeclarePassive_ExistingExchange_NoException()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                const string exchangeName = "someExchange";
+
+                // Create the exchange.
+                model.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Direct);
+
+                // Act
+                model.ExchangeDeclarePassive(exchange: exchangeName);
+            }
+        }
+
+        [Fact]
+        public void ExchangeDeclarePassive_NoExchange_ThrowsException()
         {
             // Arrange
             var node = new RabbitServer();
@@ -122,13 +140,7 @@ namespace AddUp.RabbitMQ.Fakes
                 const string exchangeName = "someExchange";
 
                 // Act
-                model.ExchangeDeclarePassive(exchange: exchangeName);
-
-                // Assert
-                Assert.Single(node.Exchanges);
-
-                var exchange = node.Exchanges.First();
-                AssertExchangeDetails(exchange, exchangeName, false, null, false, null);
+                Assert.Throws<OperationInterruptedException>(() => model.ExchangeDeclarePassive(exchange: exchangeName));
             }
         }
 
