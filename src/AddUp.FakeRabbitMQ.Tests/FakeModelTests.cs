@@ -267,7 +267,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var arguments = new Dictionary<string, object>();
 
                 model.ExchangeDeclare(exchangeName, "direct");
-                model.QueueDeclarePassive(queueName);
+                model.QueueDeclare(queueName);
 
                 // Act
                 model.ExchangeBind(queueName, exchangeName, routingKey, arguments);
@@ -290,7 +290,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var arguments = new Dictionary<string, object>();
 
                 model.ExchangeDeclare(exchangeName, "direct");
-                model.QueueDeclarePassive(queueName);
+                model.QueueDeclare(queueName);
 
                 // Act
                 model.QueueBind(queueName, exchangeName, routingKey, arguments);
@@ -320,7 +320,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var arguments = new Dictionary<string, object>();
 
                 model.ExchangeDeclare(exchangeName, "direct");
-                model.QueueDeclarePassive(queueName);
+                model.QueueDeclare(queueName);
                 model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
 
                 // Act
@@ -345,7 +345,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var arguments = new Dictionary<string, object>();
 
                 model.ExchangeDeclare(exchangeName, "direct");
-                model.QueueDeclarePassive(queueName);
+                model.QueueDeclare(queueName);
                 model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
 
                 // Act
@@ -500,11 +500,11 @@ namespace AddUp.RabbitMQ.Fakes
             var node = new RabbitServer();
             using (var model = new FakeModel(node))
             {
-                model.QueueDeclarePassive("my_other_queue");
+                model.QueueDeclare("my_other_queue");
                 node.Queues["my_other_queue"].Messages.Enqueue(new RabbitMessage());
                 node.Queues["my_other_queue"].Messages.Enqueue(new RabbitMessage());
 
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
                 node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
                 node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
@@ -595,7 +595,7 @@ namespace AddUp.RabbitMQ.Fakes
             using (var model = new FakeModel(node))
             {
                 model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
                 var message = "hello world!";
@@ -618,7 +618,7 @@ namespace AddUp.RabbitMQ.Fakes
             using (var model = new FakeModel(node))
             {
                 model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
                 var messages = new[] { "hello world!", "Thank you, @inbarbarkai" };
@@ -649,7 +649,7 @@ namespace AddUp.RabbitMQ.Fakes
             using (var model = new FakeModel(node))
             {
                 model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
                 var message = "hello world!";
@@ -673,7 +673,7 @@ namespace AddUp.RabbitMQ.Fakes
             var node = new RabbitServer();
             using (var model = new FakeModel(node))
             {
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 var expectedConsumerTag = "foo";
                 var actualConsumerTag = "";
 
@@ -697,7 +697,7 @@ namespace AddUp.RabbitMQ.Fakes
             using (var model = new FakeModel(node))
             {
                 model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
                 var message = "hello world!";
@@ -720,7 +720,7 @@ namespace AddUp.RabbitMQ.Fakes
             var node = new RabbitServer();
             using (var model = new FakeModel(node))
             {
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
 
                 // Act
                 var response = model.BasicGet("my_queue", false);
@@ -857,7 +857,7 @@ namespace AddUp.RabbitMQ.Fakes
             using (var model = new FakeModel(node))
             {
                 model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
                 var message = "hello world!";
@@ -882,7 +882,7 @@ namespace AddUp.RabbitMQ.Fakes
             var node = new RabbitServer();
             using (var model = new FakeModel(node))
             {
-                model.QueueDeclarePassive("my_queue");
+                model.QueueDeclare("my_queue");
                 var expectedConsumerTag = "foo";
 
                 // Act
