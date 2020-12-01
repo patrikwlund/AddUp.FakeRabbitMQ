@@ -138,7 +138,20 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         public QueueDeclareOk QueueDeclare() => QueueDeclare(Guid.NewGuid().ToString(), false, false, false, null);
-        public QueueDeclareOk QueueDeclarePassive(string queue) => QueueDeclare(queue, false, false, false, null);
+        public QueueDeclareOk QueueDeclarePassive(string queue)
+        {
+            if (server.Queues.TryGetValue(queue, out var rabbitQueue))
+            {
+                return new QueueDeclareOk(queue, (uint)unchecked(rabbitQueue.Messages.Count), 0);
+            }
+            var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
+                    replyText: $"NOT_FOUND - no queue '{queue}' in vhost '/'",
+                    replyCode: 404,
+                    classId: 50,
+                    methodId: 10);
+            throw new OperationInterruptedException(shutdownArgs);
+        }
+
         public void QueueDeclareNoWait(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments) =>
             QueueDeclare(queue, durable, exclusive, autoDelete, arguments);
         public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
