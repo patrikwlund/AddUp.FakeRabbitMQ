@@ -45,10 +45,11 @@ namespace AddUp.RabbitMQ.Fakes
                 binding.Queue.PublishMessage(message);
 
             if (!matchingBindings.Any()
+                && Arguments != null
                 && Arguments.TryGetValue("alternate-exchange", out var alternateExchangeName)
-                && server.Exchanges.TryGetValue(alternateExchangeName.ToString(), out var exchange))
+                && server.Exchanges.TryGetValue(alternateExchangeName.ToString(), out var alternateExchange))
             {
-                exchange.PublishMessage(message);
+                alternateExchange.PublishMessage(message);
             }
         }
     }
