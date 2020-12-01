@@ -68,7 +68,19 @@ namespace AddUp.RabbitMQ.Fakes
         public void ChannelFlow(bool active) => IsChannelFlowActive = active;
         public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
 
-        public void ExchangeDeclarePassive(string exchange) => ExchangeDeclare(exchange, null, false, false, null);
+        public void ExchangeDeclarePassive(string exchange)
+        {
+            if (!server.Exchanges.ContainsKey(exchange))
+            {
+                var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
+                    replyText: $"NOT_FOUND - no exchange '{exchange}' in vhost '/'",
+                    replyCode: 404,
+                    classId: 40,
+                    methodId: 10);
+                throw new OperationInterruptedException(shutdownArgs);
+            }
+        }
+
         public void ExchangeDeclare(string exchange, string type) => ExchangeDeclare(exchange, type, false, false, null);
         public void ExchangeDeclare(string exchange, string type, bool durable) => ExchangeDeclare(exchange, type, durable, false, null);
         public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments) =>
