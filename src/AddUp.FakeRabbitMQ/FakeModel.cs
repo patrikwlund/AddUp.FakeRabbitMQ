@@ -142,7 +142,7 @@ namespace AddUp.RabbitMQ.Fakes
         {
             if (server.Queues.TryGetValue(queue, out var rabbitQueue))
             {
-                return new QueueDeclareOk(queue, (uint)unchecked(rabbitQueue.Messages.Count), 0);
+                return new QueueDeclareOk(queue, (uint)unchecked(rabbitQueue.Messages.Count), (uint)unchecked(rabbitQueue.ConsumerCount));
             }
             var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
                     replyText: $"NOT_FOUND - no queue '{queue}' in vhost '/'",
