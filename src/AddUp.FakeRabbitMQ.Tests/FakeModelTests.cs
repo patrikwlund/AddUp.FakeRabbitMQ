@@ -373,7 +373,23 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
-        public void QueueDeclarePassive_WithName_CreatesQueue()
+        public void QueueDeclarePassive_ExistingExchange_NoException()
+        {
+            // Arrange
+            var node = new RabbitServer();
+            var model = new FakeModel(node);
+
+            const string queueName = "myQueue";
+
+            // Create the exchange.
+            model.QueueDeclare(queueName);
+
+            // Act
+            model.QueueDeclarePassive(queueName);
+        }
+
+        [Fact]
+        public void QueueDeclarePassive_NoExchange_ThrowsException()
         {
             // Arrange
             var node = new RabbitServer();
@@ -382,12 +398,7 @@ namespace AddUp.RabbitMQ.Fakes
             const string queueName = "myQueue";
 
             // Act
-            model.QueueDeclarePassive(queueName);
-
-            // Assert
-            Assert.Single(node.Queues);
-            Assert.Equal(queueName, node.Queues.First().Key);
-            Assert.Equal(queueName, node.Queues.First().Value.Name);
+            Assert.Throws<OperationInterruptedException>(() => model.QueueDeclarePassive(queueName));
         }
 
         [Fact]
