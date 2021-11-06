@@ -9,10 +9,10 @@ namespace AddUp.RabbitMQ.Fakes
         private readonly IBindingMatcher matcher;
         private readonly RabbitServer server;
 
-        public RabbitExchange(string type, RabbitServer server)
+        public RabbitExchange(string type, RabbitServer rabbitServer)
         {
             Type = type;
-            this.server = server;
+            server = rabbitServer;
             matcher = BindingMatcherFactory.Create(type);
 
             Messages = new ConcurrentQueue<RabbitMessage>();
@@ -32,25 +32,28 @@ namespace AddUp.RabbitMQ.Fakes
         {
             Messages.Enqueue(message);
 
-            IEnumerable<RabbitExchangeQueueBinding> matchingBindings;
-            if (string.IsNullOrWhiteSpace(message.RoutingKey))
-            {
-                matchingBindings = this.Bindings.Values;
-            }
-            else
-            {
-                matchingBindings = Bindings.Values.Where(b => matcher.Matches(message.RoutingKey, b.RoutingKey));
-            }
-            foreach (var binding in matchingBindings)
-                binding.Queue.PublishMessage(message);
+            var matchingBindings = string.IsNullOrWhiteSpace(message.RoutingKey) ?
+                Bindings.Values :
+                Bindings.Values.Where(b => matcher.Matches(message.RoutingKey, b.RoutingKey));
 
-            if (!matchingBindings.Any()
-                && Arguments != null
-                && Arguments.TryGetValue("alternate-exchange", out var alternateExchangeName)
-                && server.Exchanges.TryGetValue(alternateExchangeName.ToString(), out var alternateExchange))
+            if (matchingBindings.Any())
             {
-                alternateExchange.PublishMessage(message);
+                foreach (var binding in matchingBindings)
+                    binding.Queue.PublishMessage(message);
+                return;
             }
+
+            // Alternate Exchange support
+            if (Arguments == null) 
+                return;
+
+            if (!Arguments.TryGetValue("alternate-exchange", out var alternateExchangeName) || alternateExchangeName == null)
+                return;
+
+            if (!server.Exchanges.TryGetValue(alternateExchangeName.ToString(), out var alternateExchange))
+                return;
+            
+            alternateExchange.PublishMessage(message);
         }
     }
 }

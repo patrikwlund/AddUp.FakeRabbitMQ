@@ -16,8 +16,8 @@ namespace AddUp.RabbitMQ.Fakes
         private readonly HashSet<EventHandler<RabbitMessage>> messagePublished = new HashSet<EventHandler<RabbitMessage>>();
         public event EventHandler<RabbitMessage> MessagePublished
         {
-            add { messagePublished.Add(value); }
-            remove { messagePublished.Remove(value); }
+            add => messagePublished.Add(value);
+            remove => messagePublished.Remove(value);
         }
 
         public ConcurrentQueue<RabbitMessage> Messages { get; }
@@ -36,9 +36,7 @@ namespace AddUp.RabbitMQ.Fakes
             queueMessage.Queue = Name;
             Messages.Enqueue(queueMessage);
             foreach (var handler in messagePublished)
-            {
                 handler(this, queueMessage);
-            }
         }
 
         public void ClearMessages()

@@ -70,15 +70,15 @@ namespace AddUp.RabbitMQ.Fakes
 
         public void ExchangeDeclarePassive(string exchange)
         {
-            if (!server.Exchanges.ContainsKey(exchange))
-            {
-                var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
-                    replyText: $"NOT_FOUND - no exchange '{exchange}' in vhost '/'",
-                    replyCode: 404,
-                    classId: 40,
-                    methodId: 10);
-                throw new OperationInterruptedException(shutdownArgs);
-            }
+            if (server.Exchanges.ContainsKey(exchange)) return;
+
+            var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
+                replyText: $"NOT_FOUND - no exchange '{exchange}' in vhost '/'",
+                replyCode: 404,
+                classId: 40,
+                methodId: 10);
+
+            throw new OperationInterruptedException(shutdownArgs);
         }
 
         public void ExchangeDeclare(string exchange, string type) => ExchangeDeclare(exchange, type, false, false, null);
@@ -141,14 +141,14 @@ namespace AddUp.RabbitMQ.Fakes
         public QueueDeclareOk QueueDeclarePassive(string queue)
         {
             if (server.Queues.TryGetValue(queue, out var rabbitQueue))
-            {
                 return new QueueDeclareOk(queue, (uint)unchecked(rabbitQueue.Messages.Count), (uint)unchecked(rabbitQueue.ConsumerCount));
-            }
+            
             var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
                     replyText: $"NOT_FOUND - no queue '{queue}' in vhost '/'",
                     replyCode: 404,
                     classId: 50,
                     methodId: 10);
+            
             throw new OperationInterruptedException(shutdownArgs);
         }
 
@@ -233,13 +233,9 @@ namespace AddUp.RabbitMQ.Fakes
                 NotifyConsumerWhenMessagesAreReceived(consumerTag, consumer, queueInstance);
 
                 if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
-                {
                     asyncBasicConsumer.HandleBasicConsumeOk(consumerTag).GetAwaiter().GetResult();
-                }
                 else
-                {
                     consumer.HandleBasicConsumeOk(consumerTag);
-                }
             }
 
             return consumerTag;
