@@ -32,7 +32,7 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 ## History
 
-### [Version 1.4.0 - 2021/11/06](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.3)
+### [Version 1.4.0 - 2021/11/06](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.4.0)
 
 > This release merges the PR by @inbarbarkai. They are one year-old, and I'm ashamed it took me this long to merge them. Because I'm now _watching_ the repository, I should need less time to react in the future...
 > Once again thanks for his contribution.
