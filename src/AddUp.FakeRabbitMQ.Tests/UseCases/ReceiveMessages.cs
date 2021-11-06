@@ -148,7 +148,7 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             channel.BasicPublish(exchange: exchange, routingKey: null, mandatory: false, basicProperties: basicProperties, body: messageBody);
         }
 
-        private void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)
+        private static void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)
         {
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
             using var connection = connectionFactory.CreateConnection();

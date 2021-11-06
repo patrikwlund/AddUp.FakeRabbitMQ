@@ -128,6 +128,8 @@ namespace AddUp.RabbitMQ.Fakes
                 // Act
                 model.ExchangeDeclarePassive(exchange: exchangeName);
             }
+
+            Assert.True(true); // The test is successful if it does not throw
         }
 
         [Fact]
@@ -386,6 +388,8 @@ namespace AddUp.RabbitMQ.Fakes
 
             // Act
             model.QueueDeclarePassive(queueName);
+
+            Assert.True(true); // The test is successful if it does not throw
         }
 
         [Fact]

@@ -101,7 +101,7 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             Assert.Single(rabbitServer.Queues["main_queue"].Messages);
         }
 
-        private void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)
+        private static void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)
         {
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
             using (var connection = connectionFactory.CreateConnection())
