@@ -398,10 +398,10 @@ namespace AddUp.RabbitMQ.Fakes
             _ = WorkingMessages.TryRemove(deliveryTag, out var message);
             if (message == null) return;
 
-            foreach (var workingMessage in WorkingMessages)
+            foreach (var workingMessage in WorkingMessages.Select(m => m.Value))
             {
-                _ = server.Queues.TryGetValue(workingMessage.Value.Queue, out var queueInstance);
-                queueInstance?.PublishMessage(workingMessage.Value);
+                _ = server.Queues.TryGetValue(workingMessage.Queue, out var queueInstance);
+                queueInstance?.PublishMessage(workingMessage);
             }
         }
 
@@ -410,11 +410,11 @@ namespace AddUp.RabbitMQ.Fakes
         {
             if (requeue)
             {
-                foreach (var message in WorkingMessages)
+                foreach (var message in WorkingMessages.Select(m => m.Value))
                 {
-                    _ = server.Queues.TryGetValue(message.Value.Queue, out var queueInstance);
+                    _ = server.Queues.TryGetValue(message.Queue, out var queueInstance);
                     if (queueInstance != null)
-                        queueInstance.PublishMessage(message.Value);
+                        queueInstance.PublishMessage(message);
                 }
             }
 

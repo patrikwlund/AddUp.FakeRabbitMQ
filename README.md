@@ -31,6 +31,15 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 ## History
 
+### [Version 1.4.0 - 2021/11/06](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.3)
+
+> This release merges the PR by @inbarbarkai. They are one year-old, and I'm ashamed it took me this long to merge them. Because I'm now _watching_ the repository, I should need less time to react in the future...
+> Once again thanks for his contribution.
+
+* BUGFIX: #30. `QueueDeclarePassive` now throws if the queue does not exist. Similarly, `ExchangeDeclarePassive` throws if the exchange does not exist.
+* FEATURE: #29. Support for the [Alternate Exchange Feature](https://www.rabbitmq.com/ae.html).
+* BUGFIX: #28. `DefaultBasicConsumer.IsRunning` property is now correctly returning true/false.
+
 ### [Version 1.3.2 - 2020/11/23](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.3.2)
 
 * BUGFIX: #27. It was impossible to create a connection after having created and closed a previous connection.
