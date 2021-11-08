@@ -617,7 +617,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
 
                 // Act
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 // Assert
                 Assert.Single(node.Queues["my_queue"].Messages);
@@ -641,8 +641,8 @@ namespace AddUp.RabbitMQ.Fakes
 
                 // Act
                 var batch = model.CreateBasicPublishBatch();
-                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessages[0]);
-                batch.Add("my_exchange", null, true, new BasicProperties(), encodedMessages[1]);
+                batch.Add("my_exchange", null, true, model.CreateBasicProperties(), encodedMessages[0]);
+                batch.Add("my_exchange", null, true, model.CreateBasicProperties(), encodedMessages[1]);
                 batch.Publish();
 
                 // Assert
@@ -669,7 +669,7 @@ namespace AddUp.RabbitMQ.Fakes
 
                 var message = "hello world!";
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
                 model.BasicConsume("my_queue", false, consumer);
@@ -696,8 +696,8 @@ namespace AddUp.RabbitMQ.Fakes
                 var actualConsumerTag = "";
 
                 // Act
-                var consumer = new EventingBasicConsumer(model) { ConsumerTag = expectedConsumerTag };
-                consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTag;
+                var consumer = new EventingBasicConsumer(model);
+                consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags.FirstOrDefault();
 
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
                 Assert.True(consumer.IsRunning);
@@ -722,13 +722,13 @@ namespace AddUp.RabbitMQ.Fakes
 
                 var message = "hello world!";
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 // Act
                 var response = model.BasicGet("my_queue", false);
 
                 // Assert
-                Assert.Equal(encodedMessage, response.Body);
+                Assert.Equal(encodedMessage, response.Body.ToArray());
                 Assert.True(response.DeliveryTag > 0ul);
             }
         }
@@ -779,7 +779,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
                 var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
                 model.BasicConsume("my_queue", false, consumer);
@@ -809,7 +809,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.ExchangeBind("my_queue", "my_exchange", null);
 
                 var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 // act
                 _ = model.BasicGet("my_queue", autoAck);
@@ -885,7 +885,7 @@ namespace AddUp.RabbitMQ.Fakes
 
                 var message = "hello world!";
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 // Act
                 var consumer = new FakeAsyncDefaultBasicConsumer(model);

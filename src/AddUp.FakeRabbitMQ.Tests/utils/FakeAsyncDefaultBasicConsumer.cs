@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using RabbitMQ.Client;
 
@@ -13,9 +14,9 @@ namespace AddUp.RabbitMQ.Fakes
 
         public string LastCancelOkConsumerTag { get; private set; }
 
-        public override Task HandleBasicDeliver(string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, byte[] body)
+        public override Task HandleBasicDeliver(string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, ReadOnlyMemory<byte> body)
         {
-            LastDelivery = (consumerTag, deliveryTag, redelivered, exchange, routingKey, properties, body);
+            LastDelivery = (consumerTag, deliveryTag, redelivered, exchange, routingKey, properties, body.ToArray());
             return base.HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, properties, body);
         }
 

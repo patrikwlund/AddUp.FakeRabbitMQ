@@ -6,7 +6,6 @@ using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
-using RabbitMQ.Client.Framing;
 
 namespace AddUp.RabbitMQ.Fakes
 {
@@ -64,7 +63,7 @@ namespace AddUp.RabbitMQ.Fakes
                 (IEnumerable<RabbitMessage>)queueInstance.Messages;
         }
 
-        public IBasicProperties CreateBasicProperties() => new BasicProperties();
+        public IBasicProperties CreateBasicProperties() => new FakeBasicProperties();
         public void ChannelFlow(bool active) => IsChannelFlowActive = active;
         public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
 
@@ -81,8 +80,8 @@ namespace AddUp.RabbitMQ.Fakes
             throw new OperationInterruptedException(shutdownArgs);
         }
 
-        public void ExchangeDeclare(string exchange, string type) => ExchangeDeclare(exchange, type, false, false, null);
-        public void ExchangeDeclare(string exchange, string type, bool durable) => ExchangeDeclare(exchange, type, durable, false, null);
+        ////public void ExchangeDeclare(string exchange, string type) => ExchangeDeclare(exchange, type, false, false, null);
+        ////public void ExchangeDeclare(string exchange, string type, bool durable) => ExchangeDeclare(exchange, type, durable, false, null);
         public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments) =>
             ExchangeDeclare(exchange, type, durable, false, arguments);
         public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
@@ -103,12 +102,12 @@ namespace AddUp.RabbitMQ.Fakes
         public void ExchangeDeleteNoWait(string exchange, bool ifUnused) => ExchangeDelete(exchange, false);
         public void ExchangeDelete(string exchange, bool ifUnused) => server.Exchanges.TryRemove(exchange, out _);
 
-        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => throw new NotImplementedException();
-        public void QueueBind(string queue, string exchange, string routingKey) => ExchangeBind(queue, exchange, routingKey);
+        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => QueueBind(queue, exchange, routingKey, arguments);
+        ////public void QueueBind(string queue, string exchange, string routingKey) => ExchangeBind(queue, exchange, routingKey);
         public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => ExchangeBind(queue, exchange, routingKey, arguments);
 
-        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) => throw new NotImplementedException();
-        public void ExchangeBind(string destination, string source, string routingKey) => ExchangeBind(destination, source, routingKey, null);
+        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) => ExchangeBind(destination, source, routingKey, arguments);
+        ////public void ExchangeBind(string destination, string source, string routingKey) => ExchangeBind(destination, source, routingKey, null);
         public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
         {
             _ = server.Exchanges.TryGetValue(source, out var exchange);
@@ -137,7 +136,7 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = queue.Bindings.TryRemove(binding.Key, out _);
         }
 
-        public QueueDeclareOk QueueDeclare() => QueueDeclare(Guid.NewGuid().ToString(), false, false, false, null);
+        ////public QueueDeclareOk QueueDeclare() => QueueDeclare(Guid.NewGuid().ToString(), false, false, false, null);
         public QueueDeclareOk QueueDeclarePassive(string queue)
         {
             if (server.Queues.TryGetValue(queue, out var rabbitQueue))
@@ -190,7 +189,7 @@ namespace AddUp.RabbitMQ.Fakes
             return 1u;
         }
 
-        public uint QueueDelete(string queue) => QueueDelete(queue, ifUnused: false, ifEmpty: false);
+        ////public uint QueueDelete(string queue) => QueueDelete(queue, ifUnused: false, ifEmpty: false);
         public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty) => QueueDelete(queue, false, false);
         public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
         {
@@ -218,9 +217,9 @@ namespace AddUp.RabbitMQ.Fakes
             return true;
         }
 
-        public string BasicConsume(string queue, bool autoAck, IBasicConsumer consumer) => BasicConsume(queue, autoAck, Guid.NewGuid().ToString(), true, false, null, consumer);
-        public string BasicConsume(string queue, bool autoAck, string consumerTag, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, null, consumer);
-        public string BasicConsume(string queue, bool autoAck, string consumerTag, IDictionary<string, object> arguments, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, arguments, consumer);
+        ////public string BasicConsume(string queue, bool autoAck, IBasicConsumer consumer) => BasicConsume(queue, autoAck, Guid.NewGuid().ToString(), true, false, null, consumer);
+        ////public string BasicConsume(string queue, bool autoAck, string consumerTag, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, null, consumer);
+        ////public string BasicConsume(string queue, bool autoAck, string consumerTag, IDictionary<string, object> arguments, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, arguments, consumer);
         public string BasicConsume(string queue, bool autoAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
@@ -293,6 +292,11 @@ namespace AddUp.RabbitMQ.Fakes
                     .HandleBasicCancelOk(consumerTag);
         }
 
+        public void BasicCancelNoWait(string consumerTag)
+        {
+            throw new NotImplementedException(); // TODO!
+        }
+
         public BasicGetResult BasicGet(string queue, bool autoAck)
         {
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
@@ -331,19 +335,19 @@ namespace AddUp.RabbitMQ.Fakes
             ApplyPrefetchToAllChannels = global;
         }
 
-        public void BasicPublish(PublicationAddress addr, IBasicProperties basicProperties, byte[] body) => BasicPublish(addr.ExchangeName, addr.RoutingKey, true, true, basicProperties, body);
-        public void BasicPublish(string exchange, string routingKey, IBasicProperties basicProperties, byte[] body) => BasicPublish(exchange, routingKey, true, true, basicProperties, body);
-        public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, byte[] body) => BasicPublish(exchange, routingKey, mandatory, true, basicProperties, body);
-        public void BasicPublish(string exchange, string routingKey, bool mandatory, bool immediate, IBasicProperties basicProperties, byte[] body)
+        ////public void BasicPublish(PublicationAddress addr, IBasicProperties basicProperties, byte[] body) => BasicPublish(addr.ExchangeName, addr.RoutingKey, true, true, basicProperties, body);
+        ////public void BasicPublish(string exchange, string routingKey, IBasicProperties basicProperties, byte[] body) => BasicPublish(exchange, routingKey, true, true, basicProperties, body);
+        ////public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, byte[] body) => BasicPublish(exchange, routingKey, mandatory, true, basicProperties, body);        
+        public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, ReadOnlyMemory<byte> body)
         {
             var parameters = new RabbitMessage
             {
                 Exchange = exchange,
                 RoutingKey = routingKey,
                 Mandatory = mandatory,
-                Immediate = immediate,
+                ////Immediate = immediate,
                 BasicProperties = basicProperties,
-                Body = body
+                Body = body.ToArray()
             };
 
             RabbitExchange addExchange(string s)

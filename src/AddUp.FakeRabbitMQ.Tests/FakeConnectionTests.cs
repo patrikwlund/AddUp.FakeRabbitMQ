@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using FluentAssertions;
 using Xunit;
@@ -18,8 +19,8 @@ namespace AddUp.RabbitMQ.Fakes
             var result = connection.CreateModel();
 
             // Assert
-            Assert.Single(connection.Models);
-            connection.Models.Should().BeEquivalentTo(new[] { result });
+            Assert.Single(connection.GetModelsForUnitTests());
+            connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { result });
         }
 
         [Fact]
@@ -33,8 +34,8 @@ namespace AddUp.RabbitMQ.Fakes
             var result2 = connection.CreateModel();
 
             // Assert
-            Assert.Equal(2, connection.Models.Count);
-            connection.Models.Should().BeEquivalentTo(new[] { result1, result2 });
+            Assert.Equal(2, connection.GetModelsForUnitTests().Count);
+            connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { result1, result2 });
         }
 
         [Fact]
@@ -58,7 +59,7 @@ namespace AddUp.RabbitMQ.Fakes
             var connection = new FakeConnection(new RabbitServer());
 
             // Act
-            connection.Close(timeout: 2);
+            connection.Close(timeout: TimeSpan.FromSeconds(2));
 
             // Assert
             Assert.False(connection.IsOpen);
@@ -87,7 +88,7 @@ namespace AddUp.RabbitMQ.Fakes
             var connection = new FakeConnection(new RabbitServer());
 
             // Act
-            connection.Close(reasonCode: 3, reasonText: "foo", timeout: 4);
+            connection.Close(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4));
 
             // Assert
             Assert.False(connection.IsOpen);
@@ -106,8 +107,8 @@ namespace AddUp.RabbitMQ.Fakes
             connection.Close();
 
             // Assert
-            Assert.True(connection.Models.All(m => !m.IsOpen));
-            Assert.True(connection.Models.All(m => m.IsClosed));
+            Assert.True(connection.GetModelsForUnitTests().All(m => !m.IsOpen));
+            Assert.True(connection.GetModelsForUnitTests().All(m => m.IsClosed));
         }
 
         [Fact]
@@ -131,7 +132,7 @@ namespace AddUp.RabbitMQ.Fakes
             var connection = new FakeConnection(new RabbitServer());
 
             // Act
-            connection.Abort(timeout: 2);
+            connection.Abort(timeout: TimeSpan.FromSeconds(2));
 
             // Assert
             Assert.False(connection.IsOpen);
@@ -160,7 +161,7 @@ namespace AddUp.RabbitMQ.Fakes
             var connection = new FakeConnection(new RabbitServer());
 
             // Act
-            connection.Abort(reasonCode: 3, reasonText: "foo", timeout: 4);
+            connection.Abort(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4));
 
             // Assert
             Assert.False(connection.IsOpen);
@@ -179,8 +180,8 @@ namespace AddUp.RabbitMQ.Fakes
             connection.Abort();
 
             // Assert
-            Assert.True(connection.Models.All(m => !m.IsOpen));
-            Assert.True(connection.Models.All(m => m.IsClosed));
+            Assert.True(connection.GetModelsForUnitTests().All(m => !m.IsOpen));
+            Assert.True(connection.GetModelsForUnitTests().All(m => m.IsClosed));
         }
     }
 }

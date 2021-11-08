@@ -8,7 +8,7 @@ namespace AddUp.RabbitMQ.Fakes
         public string RoutingKey { get; set; }
         public string Queue { get; set; }
         public bool Mandatory { get; set; }
-        public bool Immediate { get; set; }
+        ////public bool Immediate { get; set; }
         public IBasicProperties BasicProperties { get; set; }
         public byte[] Body { get; set; }
 
@@ -18,7 +18,7 @@ namespace AddUp.RabbitMQ.Fakes
             RoutingKey = RoutingKey,
             Queue = Queue,
             Mandatory = Mandatory,
-            Immediate = Immediate,
+            ////Immediate = Immediate,
             BasicProperties = BasicProperties,
             Body = Body
         };
