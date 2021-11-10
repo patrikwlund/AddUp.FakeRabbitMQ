@@ -1,7 +1,6 @@
 # AddUp.FakeRabbitMQ
 
 [![Build](https://github.com/addupsolutions/AddUp.RabbitMQ.Fakes/workflows/Build/badge.svg)](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/actions?query=workflow%3ABuild)
-[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=addupsolutions/AddUp.FakeRabbitMQ)](https://dependabot.com)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.FakeRabbitMQ&metric=alert_status)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.FakeRabbitMQ)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=addupsolutions_AddUp.FakeRabbitMQ&metric=coverage)](https://sonarcloud.io/dashboard?id=addupsolutions_AddUp.FakeRabbitMQ)
 [![NuGet](https://img.shields.io/nuget/v/AddUp.FakeRabbitMQ.svg)](https://www.nuget.org/packages/AddUp.FakeRabbitMQ/)
@@ -31,6 +30,23 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
   * _NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Fanout type)_
 
 ## History
+
+> Versions 1.x are based on [RabbitMQ .NET client Version 5.x](https://www.nuget.org/packages/RabbitMQ.Client/5.2.0)
+>
+> Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.2)
+
+### _[Version 2.0.0 - WORK IN PROGRESS](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.5.0)_
+
+### [Version 1.5.0 - 2021/11/10](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.5.0)
+
+> Mostly cleanup of the codebase as preparatory work for the v6 client implementation
+
+* Code cleanup:
+  * Removed useless overloads and members in `FakeModel`.
+  * Refactored Unit Tests (split `IModel` tests into several classes, got rid of the _Arrange_, _Act_ and _Assert_ comments, renamed methods) + added a few ones.
+* No-op implementation if `IModel.TxSelect`, `IModel.TxCommit` and `IModel.TxRollback` instead of throwing.
+* Implemented `IModel.MessageCount(queue)` and `IModel.ConsumerCount(queue)` based on `QueueDeclarePassive`.
+* `IModel.QueuePurge` now returns the number of purged messages.
 
 ### [Version 1.4.0 - 2021/11/06](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.4.0)
 
