@@ -12,7 +12,7 @@ namespace AddUp.RabbitMQ.Fakes
     {
         private readonly RabbitServer server;
 
-        public FakeConnection(RabbitServer rabbitServer) : this(rabbitServer, "") { }
+        public FakeConnection(RabbitServer rabbitServer) : this(rabbitServer, null) { }
         public FakeConnection(RabbitServer rabbitServer, string name)
         {
             server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));

@@ -6,7 +6,6 @@ using System.Text;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
-using RabbitMQ.Client.Framing;
 using Xunit;
 
 namespace AddUp.RabbitMQ.Fakes
@@ -29,20 +28,100 @@ namespace AddUp.RabbitMQ.Fakes
             }
         }
 
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public void ChannelFlow_SetsIfTheChannelIsActive(bool value)
+        [Fact]
+        public void MessageCount_is_zero_when_Queue_is_just_created()
         {
-            // Arrange
             var node = new RabbitServer();
             using (var model = new FakeModel(node))
             {
-                // Act
-                model.ChannelFlow(value);
+                const string queueName = "myQueue";
+                model.QueueDeclare(queueName);
+                Assert.Equal(0u, model.MessageCount(queueName));
+            }
+        }
 
-                // Assert
-                Assert.Equal(value, model.IsChannelFlowActive);
+        [Fact]
+        public void MessageCount_returns_the_number_of_messages_in_the_queue()
+        {
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                const string queueName = "myQueue";
+                model.QueueDeclare(queueName);
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.ExchangeBind(queueName, "my_exchange", null);
+
+                var message = "hello world!";
+                var encodedMessage = Encoding.ASCII.GetBytes(message);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+                Assert.Equal(1u, model.MessageCount(queueName));
+            }
+        }
+
+        [Fact]
+        public void MessageCount_returns_the_number_of_non_consumed_messages_in_the_queue()
+        {
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                const string queueName = "myQueue";
+                model.QueueDeclare(queueName);
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.ExchangeBind(queueName, "my_exchange", null);
+
+                for (var i = 0; i < 10; i++)
+                {
+
+                    var message = $"hello world: {i}";
+                    var encodedMessage = Encoding.ASCII.GetBytes(message);
+                    model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+                }
+
+                // Consume 4 messages
+                var consumer = new EventingBasicConsumer(model);
+                var consumptionCount = 0;
+                consumer.Received += (s, e) =>
+                {
+                    if (consumptionCount >= 4) return;
+
+                    model.BasicAck(e.DeliveryTag, false);
+                    consumptionCount++;
+                };
+
+                model.BasicConsume(queueName, true, consumer);
+                Assert.Equal(6u, model.MessageCount(queueName));
+            }
+        }
+
+        [Fact]
+        public void ConsumerCount_is_zero_when_Queue_is_just_created()
+        {
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                const string queueName = "myQueue";
+                model.QueueDeclare(queueName);
+                Assert.Equal(0u, model.ConsumerCount(queueName));
+            }
+        }
+
+        [Fact]
+        public void ConsumerCount_returns_the_number_of_attached_consumers()
+        {
+            var node = new RabbitServer();
+            using (var model = new FakeModel(node))
+            {
+                const string queueName = "myQueue";
+                model.QueueDeclare(queueName);
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.ExchangeBind(queueName, "my_exchange", null);
+
+                // Attach 2 consumers
+                model.BasicConsume(queueName, true, new DefaultBasicConsumer(model));
+                model.BasicConsume(queueName, true, new DefaultBasicConsumer(model));
+
+                Assert.Equal(2u, model.ConsumerCount(queueName));
             }
         }
 

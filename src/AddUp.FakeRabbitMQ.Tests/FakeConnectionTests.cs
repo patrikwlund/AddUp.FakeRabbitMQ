@@ -10,176 +10,132 @@ namespace AddUp.RabbitMQ.Fakes
     public class FakeConnectionTests
     {
         [Fact]
-        public void CreateModel_CreatesANewModel()
+        public void CreateModel_creates_a_new_model()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
+            var model = connection.CreateModel();
 
-            // Act
-            var result = connection.CreateModel();
-
-            // Assert
             Assert.Single(connection.GetModelsForUnitTests());
-            connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { result });
+            connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { model });
         }
 
         [Fact]
-        public void CreateModel_MultipleTimes_CreatesManyModels()
+        public void CreateModel_called_multiple_times_creates_models()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
 
-            // Act
-            var result1 = connection.CreateModel();
-            var result2 = connection.CreateModel();
+            var model1 = connection.CreateModel();
+            var model2 = connection.CreateModel();
 
-            // Assert
             Assert.Equal(2, connection.GetModelsForUnitTests().Count);
-            connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { result1, result2 });
+            connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { model1, model2 });
         }
 
         [Fact]
-        public void Close_NoArguments_ClosesTheConnection()
+        public void Close_without_arguments_closes_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
-
-            // Act
             connection.Close();
 
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.NotNull(connection.CloseReason);
         }
 
         [Fact]
-        public void Close_TimeoutArguments_ClosesTheConnection()
+        public void Close_with_timeout_argument_closes_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
+            connection.Close(timeout: TimeSpan.FromSeconds(2.0));
 
-            // Act
-            connection.Close(timeout: TimeSpan.FromSeconds(2));
-
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.NotNull(connection.CloseReason);
         }
 
         [Fact]
-        public void Close_ReasonArguments_ClosesTheConnection()
+        public void Close_with_reason_argument_closes_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
-
-            // Act
             connection.Close(reasonCode: 3, reasonText: "foo");
 
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.Equal(3, connection.CloseReason.ReplyCode);
             Assert.Equal("foo", connection.CloseReason.ReplyText);
         }
 
         [Fact]
-        public void Close_AllArguments_ClosesTheConnection()
+        public void Close_with_all_arguments_closes_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
+            connection.Close(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
 
-            // Act
-            connection.Close(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4));
-
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.Equal(3, connection.CloseReason.ReplyCode);
             Assert.Equal("foo", connection.CloseReason.ReplyText);
         }
 
         [Fact]
-        public void Close_ClosesAllModels()
+        public void Close_closes_all_models()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
-            connection.CreateModel();
+            _ = connection.CreateModel();
 
-            // Act
             connection.Close();
 
-            // Assert
             Assert.True(connection.GetModelsForUnitTests().All(m => !m.IsOpen));
             Assert.True(connection.GetModelsForUnitTests().All(m => m.IsClosed));
         }
 
         [Fact]
-        public void Abort_NoArguments_AbortsTheConnection()
+        public void Abort_without_arguments_aborts_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
-
-            // Act
             connection.Abort();
 
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.NotNull(connection.CloseReason);
         }
 
         [Fact]
-        public void Abort_TimeoutArguments_AbortsTheConnection()
+        public void Abort_with_timeout_argument_aborts_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
+            connection.Abort(timeout: TimeSpan.FromSeconds(2.0));
 
-            // Act
-            connection.Abort(timeout: TimeSpan.FromSeconds(2));
-
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.NotNull(connection.CloseReason);
         }
 
         [Fact]
-        public void Abort_ReasonArguments_AbortsTheConnection()
+        public void Abort_with_reason_argument_aborts_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
 
-            // Act
             connection.Abort(reasonCode: 3, reasonText: "foo");
 
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.Equal(3, connection.CloseReason.ReplyCode);
             Assert.Equal("foo", connection.CloseReason.ReplyText);
         }
 
         [Fact]
-        public void Abort_AllArguments_AbortsTheConnection()
+        public void Abort_with_all_arguments_aborts_the_connection()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
+            connection.Abort(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
 
-            // Act
-            connection.Abort(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4));
-
-            // Assert
             Assert.False(connection.IsOpen);
             Assert.Equal(3, connection.CloseReason.ReplyCode);
             Assert.Equal("foo", connection.CloseReason.ReplyText);
         }
 
         [Fact]
-        public void Abort_AbortsAllModels()
+        public void Abort_aborts_all_models()
         {
-            // Arrange
             var connection = new FakeConnection(new RabbitServer());
             connection.CreateModel();
 
-            // Act
             connection.Abort();
 
-            // Assert
             Assert.True(connection.GetModelsForUnitTests().All(m => !m.IsOpen));
             Assert.True(connection.GetModelsForUnitTests().All(m => m.IsClosed));
         }

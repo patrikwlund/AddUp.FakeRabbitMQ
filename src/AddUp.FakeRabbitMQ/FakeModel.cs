@@ -30,196 +30,46 @@ namespace AddUp.RabbitMQ.Fakes
         public readonly ConcurrentDictionary<ulong, RabbitMessage> WorkingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
 
         public int ChannelNumber { get; }
-        public bool ApplyPrefetchToAllChannels { get; private set; }
-        public ushort PrefetchCount { get; private set; }
-        public uint PrefetchSize { get; private set; }
-        public bool IsChannelFlowActive { get; private set; }
-        public IBasicConsumer DefaultConsumer { get; set; }
-        public ulong NextPublishSeqNo { get; set; }
-        public TimeSpan ContinuationTimeout { get; set; }
-
         public ShutdownEventArgs CloseReason { get; private set; }
-        public bool IsOpen => CloseReason == null;
+        public IBasicConsumer DefaultConsumer { get; set; }
         public bool IsClosed => !IsOpen;
+        public bool IsOpen => CloseReason == null;
+        public ulong NextPublishSeqNo { get; private set; }
+        public TimeSpan ContinuationTimeout { get; set; }
+        
+        public void Abort() => Abort(200, "Goodbye");
+        public void Abort(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: true);
 
-        public void Dispose()
+        public void BasicAck(ulong deliveryTag, bool multiple)
         {
-            if (IsOpen) Abort();
-        }
-
-        public IEnumerable<RabbitMessage> GetMessagesPublishedToExchange(string exchange)
-        {
-            _ = server.Exchanges.TryGetValue(exchange, out var exchangeInstance);
-            return exchangeInstance == null ?
-                new List<RabbitMessage>() :
-                (IEnumerable<RabbitMessage>)exchangeInstance.Messages;
-        }
-
-        public IEnumerable<RabbitMessage> GetMessagesOnQueue(string queueName)
-        {
-            _ = server.Queues.TryGetValue(queueName, out var queueInstance);
-            return queueInstance == null ?
-                new List<RabbitMessage>() :
-                (IEnumerable<RabbitMessage>)queueInstance.Messages;
-        }
-
-        public IBasicProperties CreateBasicProperties() => new FakeBasicProperties();
-        public void ChannelFlow(bool active) => IsChannelFlowActive = active;
-        public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
-
-        public void ExchangeDeclarePassive(string exchange)
-        {
-            if (server.Exchanges.ContainsKey(exchange)) return;
-
-            var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
-                replyText: $"NOT_FOUND - no exchange '{exchange}' in vhost '/'",
-                replyCode: 404,
-                classId: 40,
-                methodId: 10);
-
-            throw new OperationInterruptedException(shutdownArgs);
-        }
-
-        ////public void ExchangeDeclare(string exchange, string type) => ExchangeDeclare(exchange, type, false, false, null);
-        ////public void ExchangeDeclare(string exchange, string type, bool durable) => ExchangeDeclare(exchange, type, durable, false, null);
-        public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments) =>
-            ExchangeDeclare(exchange, type, durable, false, arguments);
-        public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
-        {
-            var exchangeInstance = new RabbitExchange(type, server)
+            _ = WorkingMessages.TryRemove(deliveryTag, out var message);
+            if (message != null)
             {
-                Name = exchange,
-                IsDurable = durable,
-                AutoDelete = autoDelete,
-                Arguments = arguments
-            };
-
-            RabbitExchange updateFunction(string name, RabbitExchange existing) => existing;
-            _ = server.Exchanges.AddOrUpdate(exchange, exchangeInstance, updateFunction);
+                _ = server.Queues.TryGetValue(message.Queue, out var queue);
+                if (queue != null)
+                    _ = queue.Messages.TryDequeue(out _);
+            }
         }
 
-        public void ExchangeDelete(string exchange) => ExchangeDelete(exchange, false);
-        public void ExchangeDeleteNoWait(string exchange, bool ifUnused) => ExchangeDelete(exchange, false);
-        public void ExchangeDelete(string exchange, bool ifUnused) => server.Exchanges.TryRemove(exchange, out _);
-
-        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => QueueBind(queue, exchange, routingKey, arguments);
-        ////public void QueueBind(string queue, string exchange, string routingKey) => ExchangeBind(queue, exchange, routingKey);
-        public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => ExchangeBind(queue, exchange, routingKey, arguments);
-
-        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) => ExchangeBind(destination, source, routingKey, arguments);
-        ////public void ExchangeBind(string destination, string source, string routingKey) => ExchangeBind(destination, source, routingKey, null);
-        public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
+        public void BasicCancel(string consumerTag)
         {
-            _ = server.Exchanges.TryGetValue(source, out var exchange);
-            _ = server.Queues.TryGetValue(destination, out var queue);
+            _ = consumers.TryRemove(consumerTag, out var consumer);
+            if (consumer == null) return;
 
-            var binding = new RabbitExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
-            if (exchange != null)
-                _ = exchange.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
-            if (queue != null)
-                _ = queue.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
+            // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
+            // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
+            // For why .GetAwaiter().GetResult()
+            if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
+                asyncBasicConsumer
+                    .HandleBasicCancelOk(consumerTag)
+                    .GetAwaiter()
+                    .GetResult();
+            else consumer
+                    .HandleBasicCancelOk(consumerTag);
         }
 
-        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => ExchangeUnbind(queue, exchange, routingKey);
+        public void BasicCancelNoWait(string consumerTag) => BasicCancel(consumerTag);
 
-        public void ExchangeUnbindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) => throw new NotImplementedException();
-        public void ExchangeUnbind(string destination, string source, string routingKey) => ExchangeUnbind(destination, source, routingKey, null);
-        public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
-        {
-            _ = server.Exchanges.TryGetValue(source, out var exchange);
-            _ = server.Queues.TryGetValue(destination, out var queue);
-
-            var binding = new RabbitExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
-            if (exchange != null)
-                _ = exchange.Bindings.TryRemove(binding.Key, out _);
-            if (queue != null)
-                _ = queue.Bindings.TryRemove(binding.Key, out _);
-        }
-
-        ////public QueueDeclareOk QueueDeclare() => QueueDeclare(Guid.NewGuid().ToString(), false, false, false, null);
-        public QueueDeclareOk QueueDeclarePassive(string queue)
-        {
-            if (server.Queues.TryGetValue(queue, out var rabbitQueue))
-                return new QueueDeclareOk(queue, (uint)unchecked(rabbitQueue.Messages.Count), (uint)unchecked(rabbitQueue.ConsumerCount));
-            
-            var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
-                    replyText: $"NOT_FOUND - no queue '{queue}' in vhost '/'",
-                    replyCode: 404,
-                    classId: 50,
-                    methodId: 10);
-            
-            throw new OperationInterruptedException(shutdownArgs);
-        }
-
-        public void QueueDeclareNoWait(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments) =>
-            QueueDeclare(queue, durable, exclusive, autoDelete, arguments);
-        public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
-        {
-            // This handles 'default' queues creations with constructs such as:
-            // var queueName = Channel.QueueDeclare(); // temporary anonymous queue
-            var q = string.IsNullOrEmpty(queue) ? Guid.NewGuid().ToString() : queue;
-
-            var queueInstance = new RabbitQueue
-            {
-                Name = q,
-                IsDurable = durable,
-                IsExclusive = exclusive,
-                IsAutoDelete = autoDelete,
-                Arguments = arguments
-            };
-
-            RabbitQueue updateFunction(string name, RabbitQueue existing) => existing;
-            _ = server.Queues.AddOrUpdate(q, queueInstance, updateFunction);
-
-            return new QueueDeclareOk(q, 0, 0);
-        }
-
-        public uint MessageCount(string queue) => throw new NotImplementedException();
-        public uint ConsumerCount(string queue) => throw new NotImplementedException();
-
-        public uint QueuePurge(string queue)
-        {
-            _ = server.Queues.TryGetValue(queue, out var instance);
-            if (instance == null)
-                return 0u;
-
-            while (!instance.Messages.IsEmpty)
-                _ = instance.Messages.TryDequeue(out _);
-
-            return 1u;
-        }
-
-        ////public uint QueueDelete(string queue) => QueueDelete(queue, ifUnused: false, ifEmpty: false);
-        public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty) => QueueDelete(queue, false, false);
-        public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
-        {
-            _ = server.Queues.TryRemove(queue, out var instance);
-            return instance != null ? 1u : 0u;
-        }
-
-        public void ConfirmSelect()
-        {
-            if (NextPublishSeqNo == 0ul)
-                NextPublishSeqNo = 1ul;
-        }
-
-        public void WaitForConfirmsOrDie() => WaitForConfirmsOrDie(TimeSpan.Zero);
-        public void WaitForConfirmsOrDie(TimeSpan timeout) => _ = WaitForConfirms(timeout);
-
-        public bool WaitForConfirms() => WaitForConfirms(TimeSpan.Zero);
-        public bool WaitForConfirms(TimeSpan timeout) => WaitForConfirms(timeout, out _);
-        public bool WaitForConfirms(TimeSpan timeout, out bool timedOut)
-        {
-            if (NextPublishSeqNo == 0ul)
-                throw new InvalidOperationException("Confirms not selected");
-
-            timedOut = false;
-            return true;
-        }
-
-        ////public string BasicConsume(string queue, bool autoAck, IBasicConsumer consumer) => BasicConsume(queue, autoAck, Guid.NewGuid().ToString(), true, false, null, consumer);
-        ////public string BasicConsume(string queue, bool autoAck, string consumerTag, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, null, consumer);
-        ////public string BasicConsume(string queue, bool autoAck, string consumerTag, IDictionary<string, object> arguments, IBasicConsumer consumer) => BasicConsume(queue, autoAck, consumerTag, true, false, arguments, consumer);
         public string BasicConsume(string queue, bool autoAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
@@ -275,28 +125,6 @@ namespace AddUp.RabbitMQ.Fakes
                     .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
         }
 
-        public void BasicCancel(string consumerTag)
-        {
-            _ = consumers.TryRemove(consumerTag, out var consumer);
-            if (consumer == null) return;
-
-            // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
-            // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
-            // For why .GetAwaiter().GetResult()
-            if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
-                asyncBasicConsumer
-                    .HandleBasicCancelOk(consumerTag)
-                    .GetAwaiter()
-                    .GetResult();
-            else consumer
-                    .HandleBasicCancelOk(consumerTag);
-        }
-
-        public void BasicCancelNoWait(string consumerTag)
-        {
-            throw new NotImplementedException(); // TODO!
-        }
-
         public BasicGetResult BasicGet(string queue, bool autoAck)
         {
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
@@ -328,16 +156,27 @@ namespace AddUp.RabbitMQ.Fakes
             return new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body);
         }
 
-        public void BasicQos(uint prefetchSize, ushort prefetchCount, bool global)
+        public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
         {
-            PrefetchSize = prefetchSize;
-            PrefetchCount = prefetchCount;
-            ApplyPrefetchToAllChannels = global;
+            if (requeue) return;
+
+            foreach (var queue in WorkingMessages.Select(m => m.Value.Queue))
+            {
+                _ = server.Queues.TryGetValue(queue, out var queueInstance);
+                if (queueInstance != null)
+                    queueInstance.ClearMessages();
+            }
+
+            _ = WorkingMessages.TryRemove(deliveryTag, out var message);
+            if (message == null) return;
+
+            foreach (var workingMessage in WorkingMessages.Select(m => m.Value))
+            {
+                _ = server.Queues.TryGetValue(workingMessage.Queue, out var queueInstance);
+                queueInstance?.PublishMessage(workingMessage);
+            }
         }
 
-        ////public void BasicPublish(PublicationAddress addr, IBasicProperties basicProperties, byte[] body) => BasicPublish(addr.ExchangeName, addr.RoutingKey, true, true, basicProperties, body);
-        ////public void BasicPublish(string exchange, string routingKey, IBasicProperties basicProperties, byte[] body) => BasicPublish(exchange, routingKey, true, true, basicProperties, body);
-        ////public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, byte[] body) => BasicPublish(exchange, routingKey, mandatory, true, basicProperties, body);        
         public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, ReadOnlyMemory<byte> body)
         {
             var parameters = new RabbitMessage
@@ -345,7 +184,6 @@ namespace AddUp.RabbitMQ.Fakes
                 Exchange = exchange,
                 RoutingKey = routingKey,
                 Mandatory = mandatory,
-                ////Immediate = immediate,
                 BasicProperties = basicProperties,
                 Body = body.ToArray()
             };
@@ -376,40 +214,11 @@ namespace AddUp.RabbitMQ.Fakes
                 NextPublishSeqNo++;
         }
 
-        public void BasicAck(ulong deliveryTag, bool multiple)
+        public void BasicQos(uint prefetchSize, ushort prefetchCount, bool global)
         {
-            _ = WorkingMessages.TryRemove(deliveryTag, out var message);
-            if (message != null)
-            {
-                _ = server.Queues.TryGetValue(message.Queue, out var queue);
-                if (queue != null)
-                    _ = queue.Messages.TryDequeue(out _);
-            }
+            // Fake implementation. Nothing to do here.
         }
 
-        public void BasicReject(ulong deliveryTag, bool requeue) => BasicNack(deliveryTag, false, requeue);
-        public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
-        {
-            if (requeue) return;
-
-            foreach (var queue in WorkingMessages.Select(m => m.Value.Queue))
-            {
-                _ = server.Queues.TryGetValue(queue, out var queueInstance);
-                if (queueInstance != null)
-                    queueInstance.ClearMessages();
-            }
-
-            _ = WorkingMessages.TryRemove(deliveryTag, out var message);
-            if (message == null) return;
-
-            foreach (var workingMessage in WorkingMessages.Select(m => m.Value))
-            {
-                _ = server.Queues.TryGetValue(workingMessage.Queue, out var queueInstance);
-                queueInstance?.PublishMessage(workingMessage);
-            }
-        }
-
-        public void BasicRecoverAsync(bool requeue) => BasicRecover(requeue);
         public void BasicRecover(bool requeue)
         {
             if (requeue)
@@ -425,23 +234,16 @@ namespace AddUp.RabbitMQ.Fakes
             WorkingMessages.Clear();
         }
 
-        public void TxSelect() => throw new NotImplementedException();
-        public void TxCommit() => throw new NotImplementedException();
-        public void TxRollback() => throw new NotImplementedException();
+        public void BasicRecoverAsync(bool requeue) => BasicRecover(requeue);
 
-        // Close and Abort (implementation inspired by RabbitMQ.Client)
-
-        public void Abort() => Abort(200, "Goodbye");
-        public void Abort(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: true);
+        public void BasicReject(ulong deliveryTag, bool requeue) => BasicNack(deliveryTag, false, requeue);
 
         public void Close() => Close(200, "Goodbye");
         public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
 
-        private void Close(ushort replyCode, string replyText, bool abort) =>
-            Close(new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText), abort);
-
-        private void Close(ShutdownEventArgs reason, bool abort)
+        private void Close(ushort replyCode, string replyText, bool abort)
         {
+            var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText);
             try
             {
                 CloseReason = reason;
@@ -452,5 +254,185 @@ namespace AddUp.RabbitMQ.Fakes
                 if (!abort) throw;
             }
         }
+
+        public void ConfirmSelect()
+        {
+            if (NextPublishSeqNo == 0ul)
+                NextPublishSeqNo = 1ul;
+        }
+
+        public uint ConsumerCount(string queue) => QueueDeclarePassive(queue).ConsumerCount;
+
+        public IBasicProperties CreateBasicProperties() => new FakeBasicProperties();
+
+        public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
+
+        public void Dispose()
+        {
+            if (IsOpen) Abort();
+        }
+
+        public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
+        {
+            _ = server.Exchanges.TryGetValue(source, out var exchange);
+            _ = server.Queues.TryGetValue(destination, out var queue);
+
+            var binding = new RabbitExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
+            if (exchange != null)
+                _ = exchange.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
+            if (queue != null)
+                _ = queue.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
+        }
+
+        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) => 
+            ExchangeBind(destination, source, routingKey, arguments);
+
+        public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
+        {
+            var exchangeInstance = new RabbitExchange(type, server)
+            {
+                Name = exchange,
+                IsDurable = durable,
+                AutoDelete = autoDelete,
+                Arguments = arguments
+            };
+
+            RabbitExchange updateFunction(string name, RabbitExchange existing) => existing;
+            _ = server.Exchanges.AddOrUpdate(exchange, exchangeInstance, updateFunction);
+        }
+
+        public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments) =>
+            ExchangeDeclare(exchange, type, durable, false, arguments);
+
+        public void ExchangeDeclarePassive(string exchange)
+        {
+            if (server.Exchanges.ContainsKey(exchange)) return;
+
+            var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
+                replyText: $"NOT_FOUND - no exchange '{exchange}' in vhost '/'",
+                replyCode: 404,
+                classId: 40,
+                methodId: 10);
+
+            throw new OperationInterruptedException(shutdownArgs);
+        }
+
+        public void ExchangeDelete(string exchange, bool ifUnused) => server.Exchanges.TryRemove(exchange, out _);
+
+        public void ExchangeDeleteNoWait(string exchange, bool ifUnused) => ExchangeDelete(exchange, false);
+
+        public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
+        {
+            _ = server.Exchanges.TryGetValue(source, out var exchange);
+            _ = server.Queues.TryGetValue(destination, out var queue);
+
+            var binding = new RabbitExchangeQueueBinding { Exchange = exchange, Queue = queue, RoutingKey = routingKey };
+            if (exchange != null)
+                _ = exchange.Bindings.TryRemove(binding.Key, out _);
+            if (queue != null)
+                _ = queue.Bindings.TryRemove(binding.Key, out _);
+        }
+
+        public void ExchangeUnbindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) =>
+            ExchangeUnbind(destination, source, routingKey, arguments);
+
+        public uint MessageCount(string queue) => QueueDeclarePassive(queue).MessageCount;
+
+        public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => 
+            ExchangeBind(queue, exchange, routingKey, arguments);
+
+        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => 
+            QueueBind(queue, exchange, routingKey, arguments);
+
+        public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
+        {
+            // This handles 'default' queues creations with constructs such as:
+            // var queueName = Channel.QueueDeclare(); // temporary anonymous queue
+            var q = string.IsNullOrEmpty(queue) ? Guid.NewGuid().ToString() : queue;
+
+            var queueInstance = new RabbitQueue
+            {
+                Name = q,
+                IsDurable = durable,
+                IsExclusive = exclusive,
+                IsAutoDelete = autoDelete,
+                Arguments = arguments
+            };
+
+            RabbitQueue updateFunction(string name, RabbitQueue existing) => existing;
+            _ = server.Queues.AddOrUpdate(q, queueInstance, updateFunction);
+
+            return new QueueDeclareOk(q, 0, 0);
+        }
+
+        public void QueueDeclareNoWait(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments) =>
+            QueueDeclare(queue, durable, exclusive, autoDelete, arguments);
+
+        public QueueDeclareOk QueueDeclarePassive(string queue)
+        {
+            if (server.Queues.TryGetValue(queue, out var rabbitQueue))
+                return new QueueDeclareOk(queue, (uint)unchecked(rabbitQueue.Messages.Count), (uint)unchecked(rabbitQueue.ConsumerCount));
+
+            var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
+                    replyText: $"NOT_FOUND - no queue '{queue}' in vhost '/'",
+                    replyCode: 404,
+                    classId: 50,
+                    methodId: 10);
+
+            throw new OperationInterruptedException(shutdownArgs);
+        }
+
+        public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
+        {
+            _ = server.Queues.TryRemove(queue, out var instance);
+            return instance != null ? 1u : 0u;
+        }
+
+        public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty) =>
+            QueueDelete(queue, false, false);
+
+        public uint QueuePurge(string queue)
+        {
+            _ = server.Queues.TryGetValue(queue, out var instance);
+            if (instance == null)
+                return 0u;
+
+            while (!instance.Messages.IsEmpty)
+                _ = instance.Messages.TryDequeue(out _);
+
+            return 1u;
+        }
+
+        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => 
+            ExchangeUnbind(queue, exchange, routingKey, arguments);
+
+        public void TxCommit()
+        {
+            // Fake implementation. Nothing to do here.
+        }
+
+        public void TxRollback()
+        {
+            // Fake implementation. Nothing to do here.
+        }
+
+        public void TxSelect()
+        {
+            // Fake implementation. Nothing to do here.
+        }
+
+        public bool WaitForConfirms() => WaitForConfirms(Timeout.InfiniteTimeSpan);
+        public bool WaitForConfirms(TimeSpan timeout) => WaitForConfirms(timeout, out _);
+        public bool WaitForConfirms(TimeSpan timeout, out bool timedOut)
+        {
+            if (NextPublishSeqNo == 0ul)
+                throw new InvalidOperationException("Confirms not selected");
+
+            timedOut = false;
+            return true;
+        }
+
+        public void WaitForConfirmsOrDie() => WaitForConfirmsOrDie(Timeout.InfiniteTimeSpan);
+        public void WaitForConfirmsOrDie(TimeSpan timeout) => _ = WaitForConfirms(timeout);
     }
 }
