@@ -58,7 +58,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void Connection_is_null_when_no_connection_was_provided()
         {
             var factory = new FakeConnectionFactory();
-            Assert.Null(factory.Connection);
+            Assert.Null(factory.GetCurrentConnectionForUnitTests());
         }
 
         [Fact]

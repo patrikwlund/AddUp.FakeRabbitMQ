@@ -6,18 +6,20 @@ namespace AddUp.RabbitMQ.Fakes
 {
     internal sealed class RabbitQueue
     {
+        private readonly HashSet<EventHandler<RabbitMessage>> messagePublishedEventHandlers;
+
         public RabbitQueue()
         {
+            messagePublishedEventHandlers = new HashSet<EventHandler<RabbitMessage>>();
             Messages = new ConcurrentQueue<RabbitMessage>();
             Bindings = new ConcurrentDictionary<string, RabbitExchangeQueueBinding>();
             Arguments = new Dictionary<string, object>();
         }
 
-        private readonly HashSet<EventHandler<RabbitMessage>> messagePublished = new HashSet<EventHandler<RabbitMessage>>();
         public event EventHandler<RabbitMessage> MessagePublished
         {
-            add => messagePublished.Add(value);
-            remove => messagePublished.Remove(value);
+            add => messagePublishedEventHandlers.Add(value);
+            remove => messagePublishedEventHandlers.Remove(value);
         }
 
         public ConcurrentQueue<RabbitMessage> Messages { get; }
@@ -28,14 +30,14 @@ namespace AddUp.RabbitMQ.Fakes
         public bool IsExclusive { get; set; }
         public bool IsAutoDelete { get; set; }
 
-        public int ConsumerCount => messagePublished.Count;
+        public int ConsumerCount => messagePublishedEventHandlers.Count;
 
         public void PublishMessage(RabbitMessage message)
         {
             var queueMessage = message.Copy();
             queueMessage.Queue = Name;
             Messages.Enqueue(queueMessage);
-            foreach (var handler in messagePublished)
+            foreach (var handler in messagePublishedEventHandlers)
                 handler(this, queueMessage);
         }
 

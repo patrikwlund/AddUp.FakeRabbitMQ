@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
@@ -12,7 +13,7 @@ namespace AddUp.RabbitMQ.Fakes
     {
         private readonly RabbitServer server;
 
-        public FakeConnection(RabbitServer rabbitServer) : this(rabbitServer, "") { }
+        public FakeConnection(RabbitServer rabbitServer) : this(rabbitServer, null) { }
         public FakeConnection(RabbitServer rabbitServer, string name)
         {
             server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
@@ -30,27 +31,27 @@ namespace AddUp.RabbitMQ.Fakes
 #pragma warning restore 67
 
         public string ClientProvidedName { get; }
-        public List<IModel> Models { get; private set; }
-        public EndPoint LocalEndPoint { get; set; }
-        public EndPoint RemoteEndPoint { get; set; }
-        public int LocalPort { get; set; }
-        public int RemotePort { get; set; }
-        public AmqpTcpEndpoint Endpoint { get; set; }
-        public IProtocol Protocol { get; set; }
+        public EndPoint LocalEndPoint { get; }
+        public EndPoint RemoteEndPoint { get; }
+        public int LocalPort { get; }
+        public int RemotePort { get; }
+        public AmqpTcpEndpoint Endpoint { get; }
+        public IProtocol Protocol { get; }
         public ConsumerWorkService ConsumerWorkService { get; }
-        public ushort ChannelMax { get; set; }
-        public uint FrameMax { get; set; }
-        public ushort Heartbeat { get; set; }
-                
-        public AmqpTcpEndpoint[] KnownHosts { get; set; }
-        
+        public ushort ChannelMax { get; }
+        public uint FrameMax { get; }
+        public ushort Heartbeat { get; }
+        public AmqpTcpEndpoint[] KnownHosts { get; }        
         public ShutdownEventArgs CloseReason { get; private set; }
         public bool IsOpen => CloseReason == null;
         public bool AutoClose { get; set; }
-
         public IDictionary<string, object> ServerProperties { get; } = new Dictionary<string, object>();
-        public IList<ShutdownReportEntry> ShutdownReport { get; set; } = new List<ShutdownReportEntry>();
+        public IList<ShutdownReportEntry> ShutdownReport { get; } = new List<ShutdownReportEntry>();
         public IDictionary<string, object> ClientProperties { get; } = new Dictionary<string, object>();
+
+        private List<IModel> Models { get; }
+
+        internal List<IModel> GetModelsForUnitTests() => Models;
 
         public void Dispose()
         {
@@ -78,15 +79,15 @@ namespace AddUp.RabbitMQ.Fakes
 
         // Close and Abort (implementation inspired by RabbitMQ.Client)
 
-        public void Abort() => Abort(-1);
+        public void Abort() => Abort(Timeout.Infinite);
         public void Abort(int timeout) => Abort(200, "Connection close forced", timeout);
-        public void Abort(ushort reasonCode, string reasonText) => Abort(reasonCode, reasonText, -1);
+        public void Abort(ushort reasonCode, string reasonText) => Abort(reasonCode, reasonText, Timeout.Infinite);
         public void Abort(ushort reasonCode, string reasonText, int timeout) =>
             Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: true);
 
-        public void Close() => Close(200, "Goodbye", -1);
+        public void Close() => Close(200, "Goodbye", Timeout.Infinite);
         public void Close(int timeout) => Close(200, "Goodbye", timeout);
-        public void Close(ushort reasonCode, string reasonText) => Close(reasonCode, reasonText, -1);
+        public void Close(ushort reasonCode, string reasonText) => Close(reasonCode, reasonText, Timeout.Infinite);
         public void Close(ushort reasonCode, string reasonText, int timeout) =>
             Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: false);
 
