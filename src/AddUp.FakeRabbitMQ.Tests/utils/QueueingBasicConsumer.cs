@@ -137,11 +137,11 @@ namespace AddUp.RabbitMQ.Fakes
             }
         }
 
-        public SharedQueue<BasicDeliverEventArgs> Queue { get; protected set; }
-
         public QueueingBasicConsumer() : this(null) { }
         public QueueingBasicConsumer(IModel model) : this(model, new SharedQueue<BasicDeliverEventArgs>()) { }
         public QueueingBasicConsumer(IModel model, SharedQueue<BasicDeliverEventArgs> queue) : base(model) { Queue = queue; }
+
+        public SharedQueue<BasicDeliverEventArgs> Queue { get; }
 
         public override void HandleBasicDeliver(
             string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, ReadOnlyMemory<byte> body) =>

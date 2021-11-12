@@ -11,6 +11,7 @@ namespace AddUp.RabbitMQ.Fakes
 {
     internal sealed class FakeModel : IModel
     {
+        private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
         private readonly ConcurrentDictionary<string, IBasicConsumer> consumers = new ConcurrentDictionary<string, IBasicConsumer>();
         private readonly RabbitServer server;
         private long lastDeliveryTag;
@@ -27,22 +28,21 @@ namespace AddUp.RabbitMQ.Fakes
         public event EventHandler<ShutdownEventArgs> ModelShutdown;
 #pragma warning restore 67
 
-        public readonly ConcurrentDictionary<ulong, RabbitMessage> WorkingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
-
         public int ChannelNumber { get; }
-        public ShutdownEventArgs CloseReason { get; private set; }
         public IBasicConsumer DefaultConsumer { get; set; }
-        public bool IsClosed => !IsOpen;
-        public bool IsOpen => CloseReason == null;
-        public ulong NextPublishSeqNo { get; private set; }
+        public ulong NextPublishSeqNo { get; set; }
         public TimeSpan ContinuationTimeout { get; set; }
-        
+        public ShutdownEventArgs CloseReason { get; private set; }
+        public bool IsOpen => CloseReason == null;
+        public bool IsClosed => !IsOpen;
+        internal ConcurrentDictionary<ulong, RabbitMessage> WorkingMessagesForUnitTests => workingMessages;
+
         public void Abort() => Abort(200, "Goodbye");
         public void Abort(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: true);
 
         public void BasicAck(ulong deliveryTag, bool multiple)
         {
-            _ = WorkingMessages.TryRemove(deliveryTag, out var message);
+            _ = workingMessages.TryRemove(deliveryTag, out var message);
             if (message != null)
             {
                 _ = server.Queues.TryGetValue(message.Queue, out var queue);
@@ -72,14 +72,42 @@ namespace AddUp.RabbitMQ.Fakes
 
         public string BasicConsume(string queue, bool autoAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
+            void notifyConsumerOfMessage(RabbitMessage message)
+            {
+                _ = Interlocked.Increment(ref lastDeliveryTag);
+
+                var deliveryTag = Convert.ToUInt64(lastDeliveryTag);
+                const bool redelivered = false;
+                var exchange = message.Exchange;
+                var routingKey = message.RoutingKey;
+                var basicProperties = message.BasicProperties ?? CreateBasicProperties();
+                var body = message.Body;
+
+                RabbitMessage updateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
+                _ = workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
+
+                // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
+                // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
+                // For why .GetAwaiter().GetResult()
+                if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
+                    asyncBasicConsumer
+                        .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body)
+                        .GetAwaiter()
+                        .GetResult();
+                else consumer
+                        .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
+            }
+
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance != null)
             {
                 IBasicConsumer updateFunction(string s, IBasicConsumer basicConsumer) => basicConsumer;
                 _ = consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
 
-                NotifyConsumerOfExistingMessages(consumerTag, consumer, queueInstance);
-                NotifyConsumerWhenMessagesAreReceived(consumerTag, consumer, queueInstance);
+                foreach (var message in queueInstance.Messages)
+                    notifyConsumerOfMessage(message);
+                queueInstance.MessagePublished += (sender, message) => 
+                    notifyConsumerOfMessage(message);
 
                 if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
                     asyncBasicConsumer.HandleBasicConsumeOk(consumerTag).GetAwaiter().GetResult();
@@ -88,41 +116,6 @@ namespace AddUp.RabbitMQ.Fakes
             }
 
             return consumerTag;
-        }
-
-        private void NotifyConsumerWhenMessagesAreReceived(string consumerTag, IBasicConsumer consumer, RabbitQueue queueInstance) =>
-            queueInstance.MessagePublished += (sender, message) => NotifyConsumerOfMessage(consumerTag, consumer, message);
-
-        private void NotifyConsumerOfExistingMessages(string consumerTag, IBasicConsumer consumer, RabbitQueue queueInstance)
-        {
-            foreach (var message in queueInstance.Messages)
-                NotifyConsumerOfMessage(consumerTag, consumer, message);
-        }
-
-        private void NotifyConsumerOfMessage(string consumerTag, IBasicConsumer consumer, RabbitMessage message)
-        {
-            _ = Interlocked.Increment(ref lastDeliveryTag);
-
-            var deliveryTag = Convert.ToUInt64(lastDeliveryTag);
-            const bool redelivered = false;
-            var exchange = message.Exchange;
-            var routingKey = message.RoutingKey;
-            var basicProperties = message.BasicProperties ?? CreateBasicProperties();
-            var body = message.Body;
-
-            RabbitMessage updateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
-            _ = WorkingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
-
-            // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
-            // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
-            // For why .GetAwaiter().GetResult()
-            if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
-                asyncBasicConsumer
-                    .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body)
-                    .GetAwaiter()
-                    .GetResult();
-            else consumer
-                    .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
         }
 
         public BasicGetResult BasicGet(string queue, bool autoAck)
@@ -146,11 +139,11 @@ namespace AddUp.RabbitMQ.Fakes
             var body = message.Body;
 
             if (autoAck)
-                _ = WorkingMessages.TryRemove(deliveryTag, out _);
+                _ = workingMessages.TryRemove(deliveryTag, out _);
             else
             {
                 RabbitMessage updateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
-                _ = WorkingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
+                _ = workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
             }
 
             return new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body);
@@ -160,17 +153,17 @@ namespace AddUp.RabbitMQ.Fakes
         {
             if (requeue) return;
 
-            foreach (var queue in WorkingMessages.Select(m => m.Value.Queue))
+            foreach (var queue in workingMessages.Select(m => m.Value.Queue))
             {
                 _ = server.Queues.TryGetValue(queue, out var queueInstance);
                 if (queueInstance != null)
                     queueInstance.ClearMessages();
             }
 
-            _ = WorkingMessages.TryRemove(deliveryTag, out var message);
+            _ = workingMessages.TryRemove(deliveryTag, out var message);
             if (message == null) return;
 
-            foreach (var workingMessage in WorkingMessages.Select(m => m.Value))
+            foreach (var workingMessage in workingMessages.Select(m => m.Value))
             {
                 _ = server.Queues.TryGetValue(workingMessage.Queue, out var queueInstance);
                 queueInstance?.PublishMessage(workingMessage);
@@ -223,7 +216,7 @@ namespace AddUp.RabbitMQ.Fakes
         {
             if (requeue)
             {
-                foreach (var message in WorkingMessages.Select(m => m.Value))
+                foreach (var message in workingMessages.Select(m => m.Value))
                 {
                     _ = server.Queues.TryGetValue(message.Queue, out var queueInstance);
                     if (queueInstance != null)
@@ -231,16 +224,16 @@ namespace AddUp.RabbitMQ.Fakes
                 }
             }
 
-            WorkingMessages.Clear();
+            workingMessages.Clear();
         }
 
         public void BasicRecoverAsync(bool requeue) => BasicRecover(requeue);
 
-        public void BasicReject(ulong deliveryTag, bool requeue) => BasicNack(deliveryTag, false, requeue);
+        public void BasicReject(ulong deliveryTag, bool requeue) =>
+            BasicNack(deliveryTag, false, requeue);
 
         public void Close() => Close(200, "Goodbye");
         public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
-
         private void Close(ushort replyCode, string replyText, bool abort)
         {
             var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText);
@@ -284,7 +277,7 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = queue.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
         }
 
-        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) => 
+        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) =>
             ExchangeBind(destination, source, routingKey, arguments);
 
         public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
@@ -317,9 +310,11 @@ namespace AddUp.RabbitMQ.Fakes
             throw new OperationInterruptedException(shutdownArgs);
         }
 
-        public void ExchangeDelete(string exchange, bool ifUnused) => server.Exchanges.TryRemove(exchange, out _);
+        public void ExchangeDelete(string exchange, bool ifUnused) =>
+            server.Exchanges.TryRemove(exchange, out _);
 
-        public void ExchangeDeleteNoWait(string exchange, bool ifUnused) => ExchangeDelete(exchange, false);
+        public void ExchangeDeleteNoWait(string exchange, bool ifUnused) =>
+            ExchangeDelete(exchange, false);
 
         public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
         {
@@ -338,10 +333,10 @@ namespace AddUp.RabbitMQ.Fakes
 
         public uint MessageCount(string queue) => QueueDeclarePassive(queue).MessageCount;
 
-        public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => 
+        public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) =>
             ExchangeBind(queue, exchange, routingKey, arguments);
 
-        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => 
+        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) =>
             QueueBind(queue, exchange, routingKey, arguments);
 
         public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
@@ -388,8 +383,7 @@ namespace AddUp.RabbitMQ.Fakes
             return instance != null ? 1u : 0u;
         }
 
-        public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty) =>
-            QueueDelete(queue, false, false);
+        public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty) => QueueDelete(queue, false, false);
 
         public uint QueuePurge(string queue)
         {
@@ -397,13 +391,17 @@ namespace AddUp.RabbitMQ.Fakes
             if (instance == null)
                 return 0u;
 
+            var count = 0u;
             while (!instance.Messages.IsEmpty)
+            {
                 _ = instance.Messages.TryDequeue(out _);
+                count++;
+            }
 
-            return 1u;
+            return count;
         }
 
-        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) => 
+        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) =>
             ExchangeUnbind(queue, exchange, routingKey, arguments);
 
         public void TxCommit()

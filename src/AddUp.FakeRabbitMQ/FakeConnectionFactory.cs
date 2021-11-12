@@ -16,14 +16,12 @@ namespace AddUp.RabbitMQ.Fakes
         public string Password { get; set; }
         public ushort RequestedChannelMax { get; set; }
         public uint RequestedFrameMax { get; set; }
-        public TimeSpan RequestedHeartbeat { get; set; } // NEW
-        //public ushort RequestedHeartbeat { get; set; }  // OLD
+        public TimeSpan RequestedHeartbeat { get; set; }
         public bool UseBackgroundThreadsForIO { get; set; }
         public string UserName { get; set; }
         public string VirtualHost { get; set; }
         public Uri Uri { get; set; }
-        //public TaskScheduler TaskScheduler { get; set; } // REMOVED
-        public string ClientProvidedName { get; set; } // NEW
+        public string ClientProvidedName { get; set; }
         public TimeSpan HandshakeContinuationTimeout { get; set; }
         public TimeSpan ContinuationTimeout { get; set; }
 

@@ -45,6 +45,16 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
+        public void CreateConnection_uses_ClientProvidedName_Property()
+        {
+            const string connectionName = "MyConnection";
+            var factory = new FakeConnectionFactory { ClientProvidedName = connectionName };
+            var connection = factory.CreateConnection();
+
+            Assert.Equal(connectionName, connection.ClientProvidedName);
+        }
+
+        [Fact]
         public void AuthMechanismFactory_returns_an_intance_of_AuthMechanismFactory()
         {
             var factory = new FakeConnectionFactory();

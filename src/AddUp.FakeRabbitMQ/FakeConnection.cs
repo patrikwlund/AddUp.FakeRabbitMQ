@@ -22,33 +22,25 @@ namespace AddUp.RabbitMQ.Fakes
 
 #pragma warning disable 67
         public event EventHandler<CallbackExceptionEventArgs> CallbackException;
-        //public event EventHandler<EventArgs> RecoverySucceeded; // REMOVED
-        //public event EventHandler<ConnectionRecoveryErrorEventArgs> ConnectionRecoveryError; // REMOVED
         public event EventHandler<ConnectionBlockedEventArgs> ConnectionBlocked;
         public event EventHandler<ShutdownEventArgs> ConnectionShutdown;
         public event EventHandler<EventArgs> ConnectionUnblocked;
 #pragma warning restore 67
 
-        public string ClientProvidedName { get; } // OK
-        //public List<IModel> Models { get; private set; } // REMOVED
-        //public EndPoint LocalEndPoint { get; set; } // REMOVED
-        //public EndPoint RemoteEndPoint { get; set; } // REMOVED
-        public int LocalPort { get; /*set;*/ } // OK
-        public int RemotePort { get; /*set;*/ } // OK
-        public AmqpTcpEndpoint Endpoint { get; /*set;*/ } // OK
-        public IProtocol Protocol { get; /*set;*/ } // OK
-        //public ConsumerWorkService ConsumerWorkService { get; } // REMOVED
-        public ushort ChannelMax { get; /*set;*/ } // OK
-        public uint FrameMax { get; /*set;*/ } // OK
-        //public ushort Heartbeat { get; set; } // OLD
-        public TimeSpan Heartbeat { get; /*set;*/ } // NEW                
-        public AmqpTcpEndpoint[] KnownHosts { get; /*set;*/ } // OK        
-        public ShutdownEventArgs CloseReason { get; private set; } // OK
-        public bool IsOpen => CloseReason == null; // OK
-        //public bool AutoClose { get; set; } // REMOVED
-        public IDictionary<string, object> ServerProperties { get; } = new Dictionary<string, object>(); // OK
-        public IList<ShutdownReportEntry> ShutdownReport { get; /*set;*/ } = new List<ShutdownReportEntry>(); // OK
-        public IDictionary<string, object> ClientProperties { get; } = new Dictionary<string, object>(); // OK
+        public string ClientProvidedName { get; }
+        public int LocalPort { get; }
+        public int RemotePort { get; }
+        public AmqpTcpEndpoint Endpoint { get; }
+        public IProtocol Protocol { get; }
+        public ushort ChannelMax { get; }
+        public uint FrameMax { get; }
+        public TimeSpan Heartbeat { get; }
+        public AmqpTcpEndpoint[] KnownHosts { get; }
+        public ShutdownEventArgs CloseReason { get; private set; }
+        public bool IsOpen => CloseReason == null;
+        public IDictionary<string, object> ServerProperties { get; } = new Dictionary<string, object>();
+        public IList<ShutdownReportEntry> ShutdownReport { get; } = new List<ShutdownReportEntry>();
+        public IDictionary<string, object> ClientProperties { get; } = new Dictionary<string, object>();
 
         private List<IModel> Models { get; }
 
