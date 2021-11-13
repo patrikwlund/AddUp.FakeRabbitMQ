@@ -8,7 +8,7 @@ using RabbitMQ.Client.Exceptions;
 
 namespace AddUp.RabbitMQ.Fakes
 {
-    internal sealed class FakeConnection : IConnection
+    internal sealed class FakeConnection : IAutorecoveringConnection
     {
         private readonly RabbitServer server;
 
@@ -25,6 +25,9 @@ namespace AddUp.RabbitMQ.Fakes
         public event EventHandler<ConnectionBlockedEventArgs> ConnectionBlocked;
         public event EventHandler<ShutdownEventArgs> ConnectionShutdown;
         public event EventHandler<EventArgs> ConnectionUnblocked;
+        // The two events below come from IAutorecoveringConnection; everything else is from IConnection
+        public event EventHandler<EventArgs> RecoverySucceeded;
+        public event EventHandler<ConnectionRecoveryErrorEventArgs> ConnectionRecoveryError;
 #pragma warning restore 67
 
         public string ClientProvidedName { get; }
