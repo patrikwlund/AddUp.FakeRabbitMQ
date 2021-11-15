@@ -35,7 +35,9 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.2)
 
-### _[Version 2.0.0 - WORK IN PROGRESS](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.5.0)_
+### _[Version 2.0.0 - WORK IN PROGRESS](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.0.0)_
+
+> Current beta: <https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.0.0-beta.1>
 
 ### [Version 1.5.0 - 2021/11/10](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.5.0)
 
@@ -44,7 +46,7 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 * Code cleanup:
   * Removed useless overloads and members in `FakeModel`.
   * Refactored Unit Tests (split `IModel` tests into several classes, got rid of the _Arrange_, _Act_ and _Assert_ comments, renamed methods) + added a few ones.
-* No-op implementation if `IModel.TxSelect`, `IModel.TxCommit` and `IModel.TxRollback` instead of throwing.
+* No-op implementation in `IModel.TxSelect`, `IModel.TxCommit` and `IModel.TxRollback` instead of throwing.
 * Implemented `IModel.MessageCount(queue)` and `IModel.ConsumerCount(queue)` based on `QueueDeclarePassive`.
 * `IModel.QueuePurge` now returns the number of purged messages.
 

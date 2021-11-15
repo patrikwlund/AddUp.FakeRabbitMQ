@@ -10,6 +10,7 @@ on:
 env:
   SOLUTION: src/AddUp.FakeRabbitMQ.sln
   BUILD_CONFIGURATION: Release
+  DOTNET_ROLL_FORWARD: Major
 
 jobs:
   build:
@@ -33,10 +34,6 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
-    - name: Setup .NET 5
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 5.0.x
     - name: Cache SonarCloud packages
       uses: actions/cache@v1
       with:
@@ -65,8 +62,11 @@ jobs:
       uses: gittools/actions/gitversion/execute@v0.9.5
     - name: Restore
       run: dotnet restore "${{ env.SOLUTION }}" --configfile ./nuget.config
-    - name: Begin Sonar Analysis
-      run: .\.sonar\scanner\dotnet-sonarscanner begin /key:"addupsolutions_AddUp.FakeRabbitMQ" /name:"AddUp.FakeRabbitMQ" /version:"${{ steps.gitversion.outputs.majorMinorPatch }}" /organization:"addupsolutions-oss" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/*.opencover.xml" /d:sonar.coverage.exclusions="**Tests.cs" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.verbose=true /d:sonar.host.url=https://sonarcloud.io
+    - name: Begin Sonar Analysis      
+      run: .\.sonar\scanner\dotnet-sonarscanner begin /key:"addupsolutions_AddUp.FakeRabbitMQ" /name:"AddUp.FakeRabbitMQ" /version:"${{ steps.gitversion.outputs.majorMinorPatch }}" /organization:"addupsolutions-oss" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/*.opencover.xml" /d:sonar.coverage.exclusions="**Tests.cs" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.verbose=true /d:sonar.host.url=https://sonarcloud.io      
+      env:
+        # Required until sonar scanner supports .NET 6; see https://github.com/SonarSource/sonar-scanner-msbuild/issues/1095
+        DOTNET_ROLL_FORWARD: Major
     - name: Build
       run: dotnet build "${{ env.SOLUTION }}" --configuration "${{ env.BUILD_CONFIGURATION }}" --no-restore
     - name: Test
@@ -75,6 +75,8 @@ jobs:
       run: .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{secrets.SONAR_TOKEN}}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Required until sonar scanner supports .NET 6; see https://github.com/SonarSource/sonar-scanner-msbuild/issues/1095
+        DOTNET_ROLL_FORWARD: Major
     - name: Collect Nuget Packages (nupkg)
       uses: actions/upload-artifact@v2
       with:
