@@ -32,7 +32,12 @@ jobs:
     - name: Setup .NET 6
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x    
+        dotnet-version: 6.0.x
+    # .NET 5 is still required for sonar scanner...
+    - name: Setup .NET 5
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
     - name: Cache SonarCloud packages
       uses: actions/cache@v1
       with:
