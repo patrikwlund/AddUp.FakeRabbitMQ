@@ -54,12 +54,12 @@ jobs:
         New-Item -Path .\.sonar\scanner -ItemType Directory
         dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v0.9.5
+      uses: gittools/actions/gitversion/setup@v0.9.11
       with:
           versionSpec: '5.x'
     - name: Use GitVersion
       id: gitversion # step id used as reference for output values
-      uses: gittools/actions/gitversion/execute@v0.9.5
+      uses: gittools/actions/gitversion/execute@v0.9.11
     - name: Restore
       run: dotnet restore "${{ env.SOLUTION }}" --configfile ./nuget.config
     - name: Begin Sonar Analysis      
