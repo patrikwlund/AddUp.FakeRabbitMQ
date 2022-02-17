@@ -25,9 +25,11 @@ namespace AddUp.RabbitMQ.Fakes
         public event EventHandler<ConnectionBlockedEventArgs> ConnectionBlocked;
         public event EventHandler<ShutdownEventArgs> ConnectionShutdown;
         public event EventHandler<EventArgs> ConnectionUnblocked;
-        // The two events below come from IAutorecoveringConnection; everything else is from IConnection
+        // The 4 events below come from IAutorecoveringConnection; everything else is from IConnection
         public event EventHandler<EventArgs> RecoverySucceeded;
         public event EventHandler<ConnectionRecoveryErrorEventArgs> ConnectionRecoveryError;
+        public event EventHandler<ConsumerTagChangedAfterRecoveryEventArgs> ConsumerTagChangeAfterRecovery;
+        public event EventHandler<QueueNameChangedAfterRecoveryEventArgs> QueueNameChangeAfterRecovery;
 #pragma warning restore 67
 
         public string ClientProvidedName { get; }
