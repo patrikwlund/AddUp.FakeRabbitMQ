@@ -33,11 +33,15 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 > Versions 1.x are based on [RabbitMQ .NET client Version 5.x](https://www.nuget.org/packages/RabbitMQ.Client/5.2.0)
 >
-> Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.2)
+> Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
 
 ### _[Version 2.0.0 - WORK IN PROGRESS](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.0.0)_
 
 > Current beta: <https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.0.0-beta.1>
+
+### [Version 1.5.1 - 2022/03/12](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.5.1)
+
+* Updated dependencies (obviously except for **RabbitMQ.Client** that is still version 5.2.0)
 
 ### [Version 1.5.0 - 2021/11/10](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v1.5.0)
 
