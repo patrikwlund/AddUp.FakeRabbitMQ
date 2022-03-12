@@ -34,8 +34,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var consumer = new EventingBasicConsumer(consumerChannel);
                 consumer.Received += (s, e) =>
                 {
-                    var message = Encoding.ASCII.GetString(e.Body);
-                    var routingKey = e.RoutingKey;
+                    var message = Encoding.ASCII.GetString(e.Body.ToArray());
                     var exchange = e.Exchange;
 
                     Assert.Equal("hello world!", message);

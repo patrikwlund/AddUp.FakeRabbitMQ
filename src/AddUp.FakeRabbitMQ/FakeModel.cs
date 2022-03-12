@@ -6,7 +6,6 @@ using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
-using RabbitMQ.Client.Framing;
 
 namespace AddUp.RabbitMQ.Fakes
 {
@@ -68,6 +67,8 @@ namespace AddUp.RabbitMQ.Fakes
             else consumer
                     .HandleBasicCancelOk(consumerTag);
         }
+
+        public void BasicCancelNoWait(string consumerTag) => BasicCancel(consumerTag);
 
         public string BasicConsume(string queue, bool autoAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IBasicConsumer consumer)
         {
@@ -169,7 +170,7 @@ namespace AddUp.RabbitMQ.Fakes
             }
         }
 
-        public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, byte[] body)
+        public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, ReadOnlyMemory<byte> body)
         {
             var parameters = new RabbitMessage
             {
@@ -177,7 +178,7 @@ namespace AddUp.RabbitMQ.Fakes
                 RoutingKey = routingKey,
                 Mandatory = mandatory,
                 BasicProperties = basicProperties,
-                Body = body
+                Body = body.ToArray()
             };
 
             RabbitExchange addExchange(string s)
@@ -255,7 +256,7 @@ namespace AddUp.RabbitMQ.Fakes
 
         public uint ConsumerCount(string queue) => QueueDeclarePassive(queue).ConsumerCount;
 
-        public IBasicProperties CreateBasicProperties() => new BasicProperties();
+        public IBasicProperties CreateBasicProperties() => new FakeBasicProperties();
 
         public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
 

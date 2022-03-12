@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using RabbitMQ.Client;
 
 namespace AddUp.RabbitMQ.Fakes
@@ -10,29 +9,33 @@ namespace AddUp.RabbitMQ.Fakes
         private readonly RabbitServer server;
 
         public FakeConnectionFactory() : this(new RabbitServer()) { }
-        public FakeConnectionFactory(RabbitServer rabbitServer) => server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
-
+        public FakeConnectionFactory(RabbitServer rabbitServer) =>
+            server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
+                
         public IDictionary<string, object> ClientProperties { get; set; }
         public string Password { get; set; }
         public ushort RequestedChannelMax { get; set; }
         public uint RequestedFrameMax { get; set; }
-        public ushort RequestedHeartbeat { get; set; }
+        public TimeSpan RequestedHeartbeat { get; set; }
         public bool UseBackgroundThreadsForIO { get; set; }
         public string UserName { get; set; }
         public string VirtualHost { get; set; }
         public Uri Uri { get; set; }
-        public TaskScheduler TaskScheduler { get; set; }
+        public string ClientProvidedName { get; set; }
         public TimeSpan HandshakeContinuationTimeout { get; set; }
         public TimeSpan ContinuationTimeout { get; set; }
-        
+
         private FakeConnection UnderlyingConnection { get; set; }
 
-        public AuthMechanismFactory AuthMechanismFactory(IList<string> mechanismNames) => new PlainMechanismFactory();
+        public IAuthMechanismFactory AuthMechanismFactory(IList<string> mechanismNames) =>
+            new PlainMechanismFactory();
 
-        public IConnection CreateConnection() => CreateConnection((string)null);
-        public IConnection CreateConnection(IList<string> hostnames) => CreateConnection(hostnames, null);
+        public IConnection CreateConnection() => CreateConnection(ClientProvidedName);
+        public IConnection CreateConnection(IList<string> hostnames) => CreateConnection(hostnames, ClientProvidedName);
         public IConnection CreateConnection(IList<string> hostnames, string clientProvidedName) => CreateConnection(clientProvidedName);
-        public IConnection CreateConnection(IList<AmqpTcpEndpoint> endpoints) => CreateConnection((string)null);
+        public IConnection CreateConnection(IList<AmqpTcpEndpoint> endpoints) => CreateConnection(endpoints, ClientProvidedName);
+        public IConnection CreateConnection(IList<AmqpTcpEndpoint> endpoints, string clientProvidedName) => CreateConnection(clientProvidedName);
+
         public IConnection CreateConnection(string clientProvidedName)
         {
             if (UnderlyingConnection == null)

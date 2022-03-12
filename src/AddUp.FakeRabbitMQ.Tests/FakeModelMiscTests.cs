@@ -1,9 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Framing;
 using Xunit;
 
 namespace AddUp.RabbitMQ.Fakes
@@ -47,7 +45,7 @@ namespace AddUp.RabbitMQ.Fakes
 
                 var message = "hello world!";
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 Assert.Equal(1u, model.MessageCount(queueName));
             }
@@ -69,7 +67,7 @@ namespace AddUp.RabbitMQ.Fakes
 
                     var message = $"hello world: {i}";
                     var encodedMessage = Encoding.ASCII.GetBytes(message);
-                    model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
+                    model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
                 }
 
                 // Consume 4 messages
@@ -116,33 +114,6 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicConsume(queueName, true, new DefaultBasicConsumer(model));
 
                 Assert.Equal(2u, model.ConsumerCount(queueName));
-            }
-        }
-
-        [Theory]
-        [InlineData(true, 1)] // If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit
-        [InlineData(false, 0)] // If requeue param to BasicNack is false, the message that is nacked should be removed from Rabbit
-        public void Nacking_message_does_not_reenqueue_a_brand_new_message(bool requeue, int expectedMessageCount)
-        {
-            var server = new RabbitServer();
-            using (var model = new FakeModel(server))
-            {
-                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-                model.QueueDeclare("my_queue");
-                model.ExchangeBind("my_queue", "my_exchange", null);
-
-                var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
-                model.BasicPublish("my_exchange", null, new BasicProperties(), encodedMessage);
-
-                var consumer = new EventingBasicConsumer(model);
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
-
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicNack(deliveryTag, false, requeue);
-
-                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
-                Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
             }
         }
     }

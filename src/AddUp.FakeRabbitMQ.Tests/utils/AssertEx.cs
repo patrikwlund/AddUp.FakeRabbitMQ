@@ -24,14 +24,13 @@ namespace AddUp.RabbitMQ.Fakes
             Assert.Equal(exchangeType, exchange.Value.Type);
         }
 
-        public static void AssertBinding(RabbitServer server, string exchangeName, string routingKey, string queueName)
-        {
-            Assert.Single(server.Exchanges[exchangeName].Bindings);
-            Assert.Equal(routingKey, server.Exchanges[exchangeName].Bindings.First().Value.RoutingKey);
-            Assert.Equal(queueName, server.Exchanges[exchangeName].Bindings.First().Value.Queue.Name);
-        }
-
-        public static void AssertQueueDetails(KeyValuePair<string, RabbitQueue> queue, string exchangeName, bool isAutoDelete, Dictionary<string, object> arguments, bool isDurable, bool isExclusive)
+        public static void AssertQueueDetails(
+            KeyValuePair<string, RabbitQueue> queue,
+            string exchangeName,
+            bool isAutoDelete,
+            Dictionary<string, object> arguments,
+            bool isDurable,
+            bool isExclusive)
         {
             Assert.Equal(exchangeName, queue.Key);
             Assert.Equal(isAutoDelete, queue.Value.IsAutoDelete);
@@ -39,6 +38,13 @@ namespace AddUp.RabbitMQ.Fakes
             Assert.Equal(isDurable, queue.Value.IsDurable);
             Assert.Equal(exchangeName, queue.Value.Name);
             Assert.Equal(isExclusive, queue.Value.IsExclusive);
+        }
+
+        public static void AssertBinding(RabbitServer server, string exchangeName, string routingKey, string queueName)
+        {
+            Assert.Single(server.Exchanges[exchangeName].Bindings);
+            Assert.Equal(routingKey, server.Exchanges[exchangeName].Bindings.First().Value.RoutingKey);
+            Assert.Equal(queueName, server.Exchanges[exchangeName].Bindings.First().Value.Queue.Name);
         }
     }
 }

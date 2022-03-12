@@ -8,7 +8,7 @@ namespace AddUp.RabbitMQ.Fakes
     // It is reproduced here so as to more easily unit test behaviors
     // of FakeConnection and friends.
 
-    public interface IBus : IDisposable
+    internal interface IBus : IDisposable
     {
         bool IsConnected { get; }
 
@@ -18,7 +18,7 @@ namespace AddUp.RabbitMQ.Fakes
     }
 
     [ExcludeFromCodeCoverage]
-    public static class BusExtensions
+    internal static class BusExtensions
     {
         public static IBus Connect(this IBus bus) => bus.Connect(false);
     }

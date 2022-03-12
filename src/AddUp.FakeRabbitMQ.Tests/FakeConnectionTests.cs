@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using FluentAssertions;
 using Xunit;
@@ -13,7 +14,7 @@ namespace AddUp.RabbitMQ.Fakes
         {
             var connection = new FakeConnection(new RabbitServer());
             var model = connection.CreateModel();
-            
+
             Assert.Single(connection.GetModelsForUnitTests());
             connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { model });
         }
@@ -44,7 +45,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void Close_with_timeout_argument_closes_the_connection()
         {
             var connection = new FakeConnection(new RabbitServer());
-            connection.Close(timeout: 2);
+            connection.Close(timeout: TimeSpan.FromSeconds(2.0));
 
             Assert.False(connection.IsOpen);
             Assert.NotNull(connection.CloseReason);
@@ -65,7 +66,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void Close_with_all_arguments_closes_the_connection()
         {
             var connection = new FakeConnection(new RabbitServer());
-            connection.Close(reasonCode: 3, reasonText: "foo", timeout: 4);
+            connection.Close(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
 
             Assert.False(connection.IsOpen);
             Assert.Equal(3, connection.CloseReason.ReplyCode);
@@ -98,7 +99,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void Abort_with_timeout_argument_aborts_the_connection()
         {
             var connection = new FakeConnection(new RabbitServer());
-            connection.Abort(timeout: 2);
+            connection.Abort(timeout: TimeSpan.FromSeconds(2.0));
 
             Assert.False(connection.IsOpen);
             Assert.NotNull(connection.CloseReason);
@@ -120,7 +121,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void Abort_with_all_arguments_aborts_the_connection()
         {
             var connection = new FakeConnection(new RabbitServer());
-            connection.Abort(reasonCode: 3, reasonText: "foo", timeout: 4);
+            connection.Abort(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
 
             Assert.False(connection.IsOpen);
             Assert.Equal(3, connection.CloseReason.ReplyCode);

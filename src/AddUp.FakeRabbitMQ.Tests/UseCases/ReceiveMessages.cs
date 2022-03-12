@@ -4,8 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FluentAssertions;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using RabbitMQ.Client.Framing;
 using Xunit;
 
 namespace AddUp.RabbitMQ.Fakes.UseCases
@@ -29,7 +27,7 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
                 var message = channel.BasicGet("my_queue", autoAck: false);
                 
                 Assert.NotNull(message);
-                var messageBody = Encoding.ASCII.GetString(message.Body);
+                var messageBody = Encoding.ASCII.GetString(message.Body.ToArray());
 
                 Assert.Equal("hello_world", messageBody);
 
@@ -43,9 +41,9 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             var rabbitServer = new RabbitServer();
 
             ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
-            var basicProperties = new BasicProperties
+            var basicProperties = new FakeBasicProperties
             {
-                Headers = new Dictionary<string, object>() {{"TestKey", "TestValue"}},
+                Headers = new Dictionary<string, object>() { { "TestKey", "TestValue" } },
                 CorrelationId = Guid.NewGuid().ToString(),
                 ReplyTo = "TestQueue",
                 Timestamp = new AmqpTimestamp(123456),
@@ -63,6 +61,7 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             };
 
             SendMessage(rabbitServer, "my_exchange", "hello_world", basicProperties);
+
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
             using (var connection = connectionFactory.CreateConnection())
             using (var channel = connection.CreateModel())
@@ -71,12 +70,11 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
                 var message = channel.BasicGet("my_queue", autoAck: false);
 
                 Assert.NotNull(message);
-                var messageBody = Encoding.ASCII.GetString(message.Body);
+                var messageBody = Encoding.ASCII.GetString(message.Body.ToArray());
 
                 Assert.Equal("hello_world", messageBody);
 
                 var actualBasicProperties = message.BasicProperties;
-
                 actualBasicProperties.Should().BeEquivalentTo(basicProperties);
 
                 channel.BasicAck(message.DeliveryTag, multiple: false);
@@ -95,14 +93,12 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             using var connection = connectionFactory.CreateConnection();
             using var channel = connection.CreateModel();
 
-#pragma warning disable CS0618 // Type or member is obsolete
             var consumer = new QueueingBasicConsumer(channel);
-#pragma warning restore CS0618 // Type or member is obsolete
             channel.BasicConsume("my_queue", false, consumer);
 
             if (consumer.Queue.Dequeue(5000, out var messageOut))
             {
-                var messageBody = Encoding.ASCII.GetString(messageOut.Body);
+                var messageBody = Encoding.ASCII.GetString(messageOut.Body.ToArray());
                 Assert.Equal("hello_world", messageBody);
                 channel.BasicAck(messageOut.DeliveryTag, multiple: false);
             }
@@ -120,16 +116,14 @@ namespace AddUp.RabbitMQ.Fakes.UseCases
             var connectionFactory = new FakeConnectionFactory(rabbitServer);
             using var connection = connectionFactory.CreateConnection();
             using var channel = connection.CreateModel();
-#pragma warning disable CS0618 // Type or member is obsolete
             var consumer = new QueueingBasicConsumer(channel);
-#pragma warning restore CS0618 // Type or member is obsolete
             channel.BasicConsume("my_queue", false, consumer);
 
             SendMessage(rabbitServer, "my_exchange", "hello_world");
 
             if (consumer.Queue.Dequeue(5000, out var messageOut))
             {
-                var messageBody = Encoding.ASCII.GetString(messageOut.Body);
+                var messageBody = Encoding.ASCII.GetString(messageOut.Body.ToArray());
                 Assert.Equal("hello_world", messageBody);
                 channel.BasicAck(messageOut.DeliveryTag, multiple: false);
             }

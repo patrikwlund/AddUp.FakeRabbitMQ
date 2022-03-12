@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Threading.Tasks;
 using RabbitMQ.Client;
 using Xunit;
 
@@ -46,6 +45,16 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
+        public void CreateConnection_uses_ClientProvidedName_Property()
+        {
+            const string connectionName = "MyConnection";
+            var factory = new FakeConnectionFactory { ClientProvidedName = connectionName };
+            var connection = factory.CreateConnection();
+
+            Assert.Equal(connectionName, connection.ClientProvidedName);
+        }
+
+        [Fact]
         public void AuthMechanismFactory_returns_an_intance_of_AuthMechanismFactory()
         {
             var factory = new FakeConnectionFactory();
@@ -70,12 +79,11 @@ namespace AddUp.RabbitMQ.Fakes
                 Password = "p@ssw0rd",
                 RequestedChannelMax = 1,
                 RequestedFrameMax = 1u,
-                RequestedHeartbeat = 1,
+                RequestedHeartbeat = TimeSpan.FromSeconds(1.0),
                 UseBackgroundThreadsForIO = true,
                 UserName = "johndoe",
                 VirtualHost = "host",
                 Uri = new Uri("http://foo.bar.baz/"),
-                TaskScheduler = TaskScheduler.Default,
                 HandshakeContinuationTimeout = TimeSpan.FromSeconds(1.0),
                 ContinuationTimeout = TimeSpan.FromSeconds(1.0)
             };
@@ -84,12 +92,11 @@ namespace AddUp.RabbitMQ.Fakes
             Assert.Equal("p@ssw0rd", factory.Password);
             Assert.Equal((ushort)1, factory.RequestedChannelMax);
             Assert.Equal(1u, factory.RequestedFrameMax);
-            Assert.Equal((ushort)1, factory.RequestedHeartbeat);
+            Assert.Equal(1.0, factory.RequestedHeartbeat.TotalSeconds);
             Assert.True(factory.UseBackgroundThreadsForIO);
             Assert.Equal("johndoe", factory.UserName);
             Assert.Equal("host", factory.VirtualHost);
             Assert.Equal("http://foo.bar.baz/", factory.Uri.ToString());
-            Assert.NotNull(factory.TaskScheduler);
             Assert.Equal(1, factory.HandshakeContinuationTimeout.TotalSeconds);
             Assert.Equal(1, factory.ContinuationTimeout.TotalSeconds);
         }
