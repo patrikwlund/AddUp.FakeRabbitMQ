@@ -33,7 +33,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="RabbitMQ.Client" Version="6.2.4" />
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.38.0.46746">
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.39.0.47922">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
