@@ -33,7 +33,7 @@
     -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.0" />
     <PackageReference Include="Microsoft.CodeCoverage" Version="17.3.0" />
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.43.0.51858">
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.44.0.52574">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
