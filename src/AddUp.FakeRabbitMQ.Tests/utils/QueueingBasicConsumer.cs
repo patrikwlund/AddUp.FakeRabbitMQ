@@ -15,7 +15,7 @@ namespace AddUp.RabbitMQ.Fakes
     {
         public sealed class SharedQueue<T> : IEnumerable<T>
         {
-            private struct SharedQueueEnumerator<U> : IEnumerator<U>, IEnumerator, IDisposable
+            private struct SharedQueueEnumerator<U> : IEnumerator<U>
             {
                 private readonly SharedQueue<U> q;
                 private U current;
