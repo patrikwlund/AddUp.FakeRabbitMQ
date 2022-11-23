@@ -1,6 +1,6 @@
 ﻿namespace AddUp.RabbitMQ.Fakes
 {
-    internal sealed class RabbitExchangeQueueBinding
+    public sealed class RabbitExchangeQueueBinding
     {
         public string RoutingKey { get; set; }
         public RabbitExchange Exchange { get; set; }
