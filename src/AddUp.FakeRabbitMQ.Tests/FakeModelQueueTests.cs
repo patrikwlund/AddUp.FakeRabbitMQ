@@ -65,7 +65,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.QueueUnbind(queueName, exchangeName, routingKey, arguments);
                 
                 Assert.True(server.Exchanges[exchangeName].Bindings.IsEmpty);
-                Assert.True(server.Queues[queueName].Bindings.IsEmpty);
+                Assert.Single(server.Queues[queueName].Bindings);
             }
         }
 

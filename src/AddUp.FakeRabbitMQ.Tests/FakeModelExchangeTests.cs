@@ -23,9 +23,10 @@ namespace AddUp.RabbitMQ.Fakes
                 var arguments = new Dictionary<string, object>();
 
                 model.ExchangeDeclare(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
-                Assert.Single(server.Exchanges);
+                Assert.Equal(2, server.Exchanges.Count);
+                Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
-                var exchange = server.Exchanges.First();
+                var exchange = server.Exchanges.Single(x => x.Key == exchangeName);
                 AssertEx.AssertExchangeDetails(exchange, exchangeName, isAutoDelete, arguments, isDurable, exchangeType);
             }
         }
@@ -41,9 +42,10 @@ namespace AddUp.RabbitMQ.Fakes
                 const bool isDurable = true;
 
                 model.ExchangeDeclare(exchange: exchangeName, type: exchangeType, durable: isDurable);
-                Assert.Single(server.Exchanges);
+                Assert.Equal(2, server.Exchanges.Count);
+                Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
-                var exchange = server.Exchanges.First();
+                var exchange = server.Exchanges.Single(x => x.Key == exchangeName);
                 AssertEx.AssertExchangeDetails(exchange, exchangeName, false, null, isDurable, exchangeType);
             }
         }
@@ -58,9 +60,10 @@ namespace AddUp.RabbitMQ.Fakes
                 const string exchangeType = "someType";
 
                 model.ExchangeDeclare(exchange: exchangeName, type: exchangeType);
-                Assert.Single(server.Exchanges);
+                Assert.Equal(2, server.Exchanges.Count);
+                Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
-                var exchange = server.Exchanges.First();
+                var exchange = server.Exchanges.Single(x => x.Key == exchangeName);
                 AssertEx.AssertExchangeDetails(exchange, exchangeName, false, null, false, exchangeType);
             }
         }
@@ -103,9 +106,10 @@ namespace AddUp.RabbitMQ.Fakes
                 var arguments = new Dictionary<string, object>();
 
                 model.ExchangeDeclareNoWait(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
-                Assert.Single(server.Exchanges);
+                Assert.Equal(2, server.Exchanges.Count);
+                Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
-                var exchange = server.Exchanges.First();
+                var exchange = server.Exchanges.Single(x => x.Key == exchangeName);
                 AssertEx.AssertExchangeDetails(exchange, exchangeName, isAutoDelete, arguments, isDurable, exchangeType);
             }
         }
@@ -119,7 +123,7 @@ namespace AddUp.RabbitMQ.Fakes
                 const string exchangeName = "someExchange";
                 model.ExchangeDeclare(exchangeName, "someType");
                 model.ExchangeDelete(exchange: exchangeName);
-                Assert.Empty(server.Exchanges);
+                Assert.Single(server.Exchanges);
             }
         }
 
@@ -134,7 +138,7 @@ namespace AddUp.RabbitMQ.Fakes
                 const string exchangeName = "someExchange";
                 model.ExchangeDeclare(exchangeName, "someType");
                 model.ExchangeDelete(exchange: exchangeName, ifUnused: ifUnused);
-                Assert.Empty(server.Exchanges);
+                Assert.Single(server.Exchanges);
             }
         }
 
@@ -149,7 +153,7 @@ namespace AddUp.RabbitMQ.Fakes
                 const string exchangeName = "someExchange";
                 model.ExchangeDeclare(exchangeName, "someType");
                 model.ExchangeDeleteNoWait(exchange: exchangeName, ifUnused: ifUnused);
-                Assert.Empty(server.Exchanges);
+                Assert.Single(server.Exchanges);
             }
         }
 
@@ -162,7 +166,8 @@ namespace AddUp.RabbitMQ.Fakes
                 const string exchangeName = "someExchange";
                 model.ExchangeDeclare(exchangeName, "someType");
                 model.ExchangeDelete(exchange: "someOtherExchange");
-                Assert.Single(server.Exchanges);
+                Assert.Equal(2, server.Exchanges.Count);
+                Assert.Single(server.Exchanges.Where(s => s.Key == exchangeName));
             }
         }
 
@@ -219,7 +224,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.ExchangeUnbind(queueName, exchangeName, routingKey, arguments);
 
                 Assert.True(server.Exchanges[exchangeName].Bindings.IsEmpty);
-                Assert.True(server.Queues[queueName].Bindings.IsEmpty);
+                Assert.Single(server.Queues[queueName].Bindings);
             }
         }
 
@@ -240,7 +245,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.ExchangeUnbindNoWait(queueName, exchangeName, routingKey, arguments);
 
                 Assert.True(server.Exchanges[exchangeName].Bindings.IsEmpty);
-                Assert.True(server.Queues[queueName].Bindings.IsEmpty);
+                Assert.Single(server.Queues[queueName].Bindings);
             }
         }
     }
