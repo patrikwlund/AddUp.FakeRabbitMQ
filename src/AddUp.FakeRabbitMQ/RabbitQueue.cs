@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace AddUp.RabbitMQ.Fakes
 {
-    internal sealed class RabbitQueue
+    public sealed class RabbitQueue
     {
         private readonly HashSet<EventHandler<RabbitMessage>> messagePublishedEventHandlers;
 

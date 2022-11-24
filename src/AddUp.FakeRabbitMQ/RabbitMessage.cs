@@ -2,7 +2,7 @@
 
 namespace AddUp.RabbitMQ.Fakes
 {
-    internal sealed class RabbitMessage
+    public sealed class RabbitMessage
     {
         public string Exchange { get; set; }
         public string RoutingKey { get; set; }

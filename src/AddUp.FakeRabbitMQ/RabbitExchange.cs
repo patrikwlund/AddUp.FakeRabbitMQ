@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace AddUp.RabbitMQ.Fakes
 {
-    internal sealed class RabbitExchange
+    public sealed class RabbitExchange
     {
         private readonly IBindingMatcher matcher;
         private readonly RabbitServer server;
