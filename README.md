@@ -29,11 +29,25 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 * Supports Default, Direct, Topic and Fanout exchange types.
   * _NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Fanout type)_
 
+## Hall of fames
+
+<!-- https://github.com/search?q=repo%3Aaddupsolutions%2FAddUp.FakeRabbitMQ%20is%3Apr%20-author%3Aapp%2Fdependabot%20-author%3Aapp%2Fdependabot-preview&type=pullrequests -->
+
+Thanks to all the contributors:
+
+* @inbarbarkai
+* @Quogu
+
 ## History
 
 > Versions 1.x are based on [RabbitMQ .NET client Version 5.x](https://www.nuget.org/packages/RabbitMQ.Client/5.2.0)
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
+
+### [Version 2.2.0 - 2022/11/24](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.2.0)
+
+* A few types in the implementation of the fake server are now `public`. This may prove useful in order to examine the inners of the server for tests purpose. See PR #115 for details.
+* Better compliance: newly declared queues are now bound to RabbitMQ's default exchange. See PR #116 for details.
 
 ### [Version 2.1.0 - 2022/10/11](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.1.0)
 
