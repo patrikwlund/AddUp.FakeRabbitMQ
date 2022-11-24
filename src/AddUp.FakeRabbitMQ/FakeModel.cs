@@ -357,6 +357,10 @@ namespace AddUp.RabbitMQ.Fakes
             RabbitQueue updateFunction(string name, RabbitQueue existing) => existing;
             _ = server.Queues.AddOrUpdate(q, queueInstance, updateFunction);
 
+            // RabbitMQ automatically binds queues to the default exchange.
+            // https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchange-default
+            QueueBind(q, "", q, null);
+
             return new QueueDeclareOk(q, 0, 0);
         }
 
