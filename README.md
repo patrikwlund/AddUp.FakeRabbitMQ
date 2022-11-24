@@ -29,7 +29,7 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 * Supports Default, Direct, Topic and Fanout exchange types.
   * _NB: Headers exchange type is not supported; however, it won't throw (it is implemented the same way as the Fanout type)_
 
-## Hall of fames
+## Hall of fame
 
 <!-- https://github.com/search?q=repo%3Aaddupsolutions%2FAddUp.FakeRabbitMQ%20is%3Apr%20-author%3Aapp%2Fdependabot%20-author%3Aapp%2Fdependabot-preview&type=pullrequests -->
 
