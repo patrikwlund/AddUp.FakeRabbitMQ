@@ -46,8 +46,8 @@ Thanks to all the contributors:
 
 ### [Version 2.2.0 - 2022/11/24](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.2.0)
 
-* A few types in the implementation of the fake server are now `public`. This may prove useful in order to examine the inners of the server for tests purpose. See PR #115 for details.
-* Better compliance: newly declared queues are now bound to RabbitMQ's default exchange. See PR #116 for details.
+* A few types in the implementation of the fake server are now `public`. This may prove useful in order to examine the inners of the server for tests purpose. See [PR #115](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/115) for details.
+* Better compliance: newly declared queues are now bound to RabbitMQ's default exchange. See [PR #116](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/116) for details.
 
 ### [Version 2.1.0 - 2022/10/11](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.1.0)
 
