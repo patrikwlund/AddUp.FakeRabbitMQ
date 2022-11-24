@@ -35,8 +35,8 @@ I deemed this renaming necessary as the `Fakes` suffix collides with [Microsoft 
 
 Thanks to all the contributors:
 
-* @inbarbarkai
-* @Quogu
+* [@inbarbarkai](https://github.com/inbarbarkai)
+* [@Quogu](https://github.com/Quogu)
 
 ## History
 
