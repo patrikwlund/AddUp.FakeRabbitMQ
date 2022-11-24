@@ -22,7 +22,7 @@
   <ItemGroup>
     <AdditionalFiles Include="..\.sonarlint\addupsolutions_addup.rabbitmq.fakes\CSharp\SonarLint.xml" Link="SonarLint.xml" />
   </ItemGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="GitVersion.MsBuild" Version="5.11.1">
       <PrivateAssets>all</PrivateAssets>
@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
+    <None Include="..\..\README.md" Link="README.md" Pack="true" PackagePath="\" />
     <None Include="images/logo.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
