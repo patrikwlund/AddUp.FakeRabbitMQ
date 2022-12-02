@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -32,32 +33,41 @@ namespace AddUp.RabbitMQ.Fakes
                 consumerChannel.QueueBind(queueName, exchangeName, "whatever", null);
 
                 var consumer = new EventingBasicConsumer(consumerChannel);
-                consumer.Received += (s, e) =>
+                using (var messageProcessed = new ManualResetEventSlim(!shouldBeOK))
                 {
-                    var message = Encoding.ASCII.GetString(e.Body.ToArray());
-                    var routingKey = e.RoutingKey;
-                    var exchange = e.Exchange;
+                    consumer.Received += (s, e) =>
+                    {
+                        var message = Encoding.ASCII.GetString(e.Body.ToArray());
+                        var routingKey = e.RoutingKey;
+                        var exchange = e.Exchange;
 
-                    Assert.Equal("hello world!", message);
-                    Assert.Equal("", routingKey);
-                    Assert.Equal(exchangeName, exchange);
+                        Assert.Equal("hello world!", message);
+                        Assert.Equal("", routingKey);
+                        Assert.Equal(exchangeName, exchange);
 
-                    ok = true;
-                };
+                        ok = true;
+                        messageProcessed.Set();
+                    };
 
-                consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
+                    consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
 
-                // Publisher
-                using (var publisherConnection = connectionFactory.CreateConnection())
-                using (var publisherChannel = publisherConnection.CreateModel())
-                {
-                    const string message = "hello world!";
-                    var messageBody = Encoding.ASCII.GetBytes(message);
-                    publisherChannel.BasicPublish(exchangeName, routingKey, false, null, messageBody);
+                    // Publisher
+                    using (var publisherConnection = connectionFactory.CreateConnection())
+                    using (var publisherChannel = publisherConnection.CreateModel())
+                    {
+                        const string message = "hello world!";
+                        var messageBody = Encoding.ASCII.GetBytes(message);
+                        publisherChannel.BasicPublish(exchangeName, routingKey, false, null, messageBody);
+                    }
+                    messageProcessed.Wait();
                 }
             }
 
             Assert.Equal(ok, shouldBeOK);
+
+            var exchange = rabbitServer.Exchanges[exchangeName];
+            var expectedDroppedMessages = shouldBeOK ? 0 : 1;
+            Assert.Equal(expectedDroppedMessages, exchange.DroppedMessages.Count);
         }
     }
 }

@@ -27,13 +27,19 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
 
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicAck(deliveryTag, false);
+                using (var messageProcessed = new ManualResetEventSlim())
+                {
+                    consumer.Received += (_, _) => messageProcessed.Set();
+                    model.BasicConsume("my_queue", false, consumer);
+                    Assert.True(consumer.IsRunning);
 
-                Assert.Empty(server.Queues["my_queue"].Messages);
+                    messageProcessed.Wait();
+                    var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
+                    model.BasicAck(deliveryTag, false);
+
+                    Assert.Empty(server.Queues["my_queue"].Messages);
+                }
             }
         }
 
@@ -95,9 +101,10 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
                 Assert.True(consumer.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
+                consumer.LastCancelOkConsumerTag.Task.Wait();
                 Assert.False(consumer.IsRunning);
 
-                Assert.Equal(expectedConsumerTag, consumer.LastCancelOkConsumerTag);
+                Assert.Equal(expectedConsumerTag, consumer.LastCancelOkConsumerTag.Task.Result);
             }
         }
 
@@ -118,8 +125,9 @@ namespace AddUp.RabbitMQ.Fakes
                 var consumer = new FakeAsyncDefaultBasicConsumer(model);
                 model.BasicConsume("my_queue", false, consumer);
                 Assert.True(consumer.IsRunning);
+                consumer.LastDelivery.Task.Wait();
 
-                Assert.Equal(encodedMessage, consumer.LastDelivery.body);
+                Assert.Equal(encodedMessage, consumer.LastDelivery.Task.Result.body);
             }
         }
 
@@ -205,14 +213,19 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
+                using (var messageProcessed = new ManualResetEventSlim())
+                {
+                    consumer.Received += (_, _) => messageProcessed.Set();
+                    model.BasicConsume("my_queue", false, consumer);
+                    Assert.True(consumer.IsRunning);
 
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicNack(deliveryTag, false, requeue);
+                    messageProcessed.Wait();
+                    var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
+                    model.BasicNack(deliveryTag, false, requeue);
 
-                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
-                Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                    Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
+                    Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                }
             }
         }
 
@@ -232,14 +245,19 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
+                using (var messageProcessed = new ManualResetEventSlim())
+                {
+                    consumer.Received += (_, _) => messageProcessed.Set();
+                    model.BasicConsume("my_queue", false, consumer);
+                    Assert.True(consumer.IsRunning);
 
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicReject(deliveryTag, requeue);
+                    messageProcessed.Wait();
+                    var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
+                    model.BasicReject(deliveryTag, requeue);
 
-                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
-                Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                    Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
+                    Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                }
             }
         }
 
