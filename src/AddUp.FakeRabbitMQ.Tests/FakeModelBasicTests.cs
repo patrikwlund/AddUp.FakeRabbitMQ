@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -277,6 +278,74 @@ namespace AddUp.RabbitMQ.Fakes
 
                 Assert.Single(server.Queues["my_queue"].Messages);
                 Assert.Equal(encodedMessage, server.Queues["my_queue"].Messages.First().Body);
+            }
+        }
+
+        [Fact]
+        public void BasicPublish_before_BasicConsume_does_not_deadlock()
+        {
+            var server = new RabbitServer();
+            using (var model = new FakeModel(server))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclare("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+                using (var deadlockDetector = new ManualResetEventSlim())
+                using (var allowedThrough = new ManualResetEventSlim())
+                {
+                    var consumer = new EventingBasicConsumer(model);
+                    consumer.Received += (_, _) =>
+                    {
+                        if (deadlockDetector.Wait(10000))
+                        {
+                            allowedThrough.Set();
+                        }
+                    };
+
+                    model.BasicConsume("my_queue", false, consumer);
+
+                    deadlockDetector.Set();
+                    var wasAllowedThrough = allowedThrough.Wait(10000);
+                    Assert.True(wasAllowedThrough);
+                }
+            }
+        }
+
+        [Fact]
+        public void BasicPublish_after_BasicConsume_does_not_deadlock()
+        {
+            var server = new RabbitServer();
+            using (var model = new FakeModel(server))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclare("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                using (var deadlockDetector = new ManualResetEventSlim())
+                using (var allowedThrough = new ManualResetEventSlim())
+                {
+                    var consumer = new EventingBasicConsumer(model);
+                    consumer.Received += (_, _) =>
+                    {
+                        if (deadlockDetector.Wait(10000))
+                        {
+                            allowedThrough.Set();
+                        }
+                    };
+
+                    model.BasicConsume("my_queue", false, consumer);
+
+                    var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+                    model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+                    deadlockDetector.Set();
+                    var wasAllowedThrough = allowedThrough.Wait(10000);
+                    Assert.True(wasAllowedThrough);
+                }
             }
         }
 
