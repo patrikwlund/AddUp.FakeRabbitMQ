@@ -123,6 +123,24 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
+        public void BasicConsume_generates_consumer_tag_if_none_specified()
+        {
+            var server = new RabbitServer();
+            using (var model = new FakeModel(server))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclare("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                var consumer = new FakeAsyncDefaultBasicConsumer(model);
+                var consumerTag = model.BasicConsume("my_queue", false, "", false, false, null, consumer);
+
+                Assert.NotNull(consumerTag);
+                Assert.NotEmpty(consumerTag);
+            }
+        }
+
+        [Fact]
         public void BasicGet_retrieves_message_from_the_queue()
         {
             var server = new RabbitServer();

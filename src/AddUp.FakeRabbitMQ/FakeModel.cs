@@ -98,6 +98,16 @@ namespace AddUp.RabbitMQ.Fakes
                         .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
             }
 
+            // Deliberately check for empty string here, latest RabbitMQ client accepts ""
+            // but will throw on null and kill the channel.
+            if (consumerTag == "")
+            {
+                var guidString = Guid.NewGuid();
+                // https://www.rabbitmq.com/amqp-0-9-1-reference.html#basic.consume.consumer-tag
+                // If this field is empty the server will generate a unique tag.
+                consumerTag = $"amq.{guidString:N}";
+            }
+
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance != null)
             {
