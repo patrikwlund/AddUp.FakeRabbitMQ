@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
@@ -14,9 +15,15 @@ namespace AddUp.RabbitMQ.Fakes
         private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
         private readonly ConcurrentDictionary<string, IBasicConsumer> consumers = new ConcurrentDictionary<string, IBasicConsumer>();
         private readonly RabbitServer server;
+        private readonly BlockingCollection<Action> Deliveries = new BlockingCollection<Action>();
+        private readonly Task DeliveriesTask;
         private long lastDeliveryTag;
 
-        public FakeModel(RabbitServer rabbitServer) => server = rabbitServer;
+        public FakeModel(RabbitServer rabbitServer)
+        {
+            server = rabbitServer;
+            DeliveriesTask = Task.Run(HandleDeliveries);
+        }
 
 #pragma warning disable 67
         public event EventHandler<BasicAckEventArgs> BasicAcks;
@@ -115,9 +122,9 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
 
                 foreach (var message in queueInstance.Messages)
-                    notifyConsumerOfMessage(message);
-                queueInstance.MessagePublished += (sender, message) => 
-                    notifyConsumerOfMessage(message);
+                    Deliveries.Add(() => notifyConsumerOfMessage(message));
+                queueInstance.MessagePublished += (sender, message) =>
+                    Deliveries.Add(() => notifyConsumerOfMessage(message));
 
                 if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
                     asyncBasicConsumer.HandleBasicConsumeOk(consumerTag).GetAwaiter().GetResult();
@@ -250,6 +257,8 @@ namespace AddUp.RabbitMQ.Fakes
             try
             {
                 CloseReason = reason;
+                Deliveries.CompleteAdding();
+                DeliveriesTask.Wait();
                 ModelShutdown?.Invoke(this, reason);
             }
             catch
@@ -273,6 +282,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void Dispose()
         {
             if (IsOpen) Abort();
+            Deliveries.Dispose();
         }
 
         public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
@@ -446,5 +456,42 @@ namespace AddUp.RabbitMQ.Fakes
 
         public void WaitForConfirmsOrDie() => WaitForConfirmsOrDie(Timeout.InfiniteTimeSpan);
         public void WaitForConfirmsOrDie(TimeSpan timeout) => _ = WaitForConfirms(timeout);
+
+        /// <summary>
+        /// Rabbit docs state that each connection is backed by a single background thread:
+        /// 
+        /// https://www.rabbitmq.com/dotnet-api-guide.html#concurrency-thread-usage
+        /// 
+        /// However, this is not actually true, it's backed by a Task:
+        /// 
+        /// https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/65dd5f92dda130ec35b4ad6fe7bc54dbcb1637fd/projects/RabbitMQ.Client/client/impl/ConsumerWorkService.cs#L81
+        /// 
+        /// FakeModels aren't aware of their connection, so in order to emulate this, just
+        /// run a task that handles deliveries per task. It's necessary to match RabbitMQ
+        /// semantics as running delivery callbacks synchronously can cause deadlocks in
+        /// code under test.
+        /// </summary>
+        private void HandleDeliveries()
+        {
+            try
+            {
+                foreach (var delivery in Deliveries.GetConsumingEnumerable())
+                {
+                    try
+                    {
+                        delivery();
+                    }
+                    catch (Exception ex)
+                    {
+                        var callbackArgs = CallbackExceptionEventArgs.Build(ex, "");
+                        CallbackException(this, callbackArgs);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Swallow exceptions so Close() doesn't have to deal with it.
+            }
+        }
     }
 }

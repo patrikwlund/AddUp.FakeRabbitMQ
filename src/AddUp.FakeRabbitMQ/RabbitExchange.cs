@@ -16,12 +16,14 @@ namespace AddUp.RabbitMQ.Fakes
             matcher = BindingMatcherFactory.Create(type);
 
             Messages = new ConcurrentQueue<RabbitMessage>();
+            DroppedMessages = new ConcurrentQueue<RabbitMessage>();
             Bindings = new ConcurrentDictionary<string, RabbitExchangeQueueBinding>();
             Arguments = new Dictionary<string, object>();
         }
 
         public string Type { get; set; }
         public ConcurrentQueue<RabbitMessage> Messages { get; }
+        public ConcurrentQueue<RabbitMessage> DroppedMessages { get; }
         public ConcurrentDictionary<string, RabbitExchangeQueueBinding> Bindings { get; }
         public IDictionary<string, object> Arguments { get; set; }
         public string Name { get; set; }
@@ -44,15 +46,24 @@ namespace AddUp.RabbitMQ.Fakes
             }
 
             // Alternate Exchange support
-            if (Arguments == null) 
+            if (Arguments == null)
+            {
+                DroppedMessages.Enqueue(message);
                 return;
+            }
 
             if (!Arguments.TryGetValue("alternate-exchange", out var alternateExchangeName) || alternateExchangeName == null)
+            {
+                DroppedMessages.Enqueue(message);
                 return;
+            }
 
             if (!server.Exchanges.TryGetValue(alternateExchangeName.ToString(), out var alternateExchange))
+            {
+                DroppedMessages.Enqueue(message);
                 return;
-            
+            }
+
             alternateExchange.PublishMessage(message);
         }
     }

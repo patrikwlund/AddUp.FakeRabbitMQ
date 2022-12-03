@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -73,16 +74,24 @@ namespace AddUp.RabbitMQ.Fakes
                 // Consume 4 messages
                 var consumer = new EventingBasicConsumer(model);
                 var consumptionCount = 0;
-                consumer.Received += (s, e) =>
+                using (var messagesProcessed = new ManualResetEventSlim())
                 {
-                    if (consumptionCount >= 4) return;
+                    consumer.Received += (s, e) =>
+                    {
+                        if (consumptionCount >= 4)
+                        {
+                            messagesProcessed.Set();
+                            return;
+                        }
 
-                    model.BasicAck(e.DeliveryTag, false);
-                    consumptionCount++;
-                };
+                        model.BasicAck(e.DeliveryTag, false);
+                        consumptionCount++;
+                    };
 
-                model.BasicConsume(queueName, true, consumer);
-                Assert.Equal(6u, model.MessageCount(queueName));
+                    model.BasicConsume(queueName, true, consumer);
+                    messagesProcessed.Wait();
+                    Assert.Equal(6u, model.MessageCount(queueName));
+                }
             }
         }
 

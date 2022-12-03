@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -26,13 +27,19 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
 
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicAck(deliveryTag, false);
+                using (var messageProcessed = new ManualResetEventSlim())
+                {
+                    consumer.Received += (_, _) => messageProcessed.Set();
+                    model.BasicConsume("my_queue", false, consumer);
+                    Assert.True(consumer.IsRunning);
 
-                Assert.Empty(server.Queues["my_queue"].Messages);
+                    messageProcessed.Wait();
+                    var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
+                    model.BasicAck(deliveryTag, false);
+
+                    Assert.Empty(server.Queues["my_queue"].Messages);
+                }
             }
         }
 
@@ -94,9 +101,10 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
                 Assert.True(consumer.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
+                consumer.LastCancelOkConsumerTag.Task.Wait();
                 Assert.False(consumer.IsRunning);
 
-                Assert.Equal(expectedConsumerTag, consumer.LastCancelOkConsumerTag);
+                Assert.Equal(expectedConsumerTag, consumer.LastCancelOkConsumerTag.Task.Result);
             }
         }
 
@@ -117,8 +125,9 @@ namespace AddUp.RabbitMQ.Fakes
                 var consumer = new FakeAsyncDefaultBasicConsumer(model);
                 model.BasicConsume("my_queue", false, consumer);
                 Assert.True(consumer.IsRunning);
+                consumer.LastDelivery.Task.Wait();
 
-                Assert.Equal(encodedMessage, consumer.LastDelivery.body);
+                Assert.Equal(encodedMessage, consumer.LastDelivery.Task.Result.body);
             }
         }
 
@@ -222,14 +231,19 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
+                using (var messageProcessed = new ManualResetEventSlim())
+                {
+                    consumer.Received += (_, _) => messageProcessed.Set();
+                    model.BasicConsume("my_queue", false, consumer);
+                    Assert.True(consumer.IsRunning);
 
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicNack(deliveryTag, false, requeue);
+                    messageProcessed.Wait();
+                    var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
+                    model.BasicNack(deliveryTag, false, requeue);
 
-                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
-                Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                    Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
+                    Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                }
             }
         }
 
@@ -249,14 +263,19 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
                 var consumer = new EventingBasicConsumer(model);
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
+                using (var messageProcessed = new ManualResetEventSlim())
+                {
+                    consumer.Received += (_, _) => messageProcessed.Set();
+                    model.BasicConsume("my_queue", false, consumer);
+                    Assert.True(consumer.IsRunning);
 
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicReject(deliveryTag, requeue);
+                    messageProcessed.Wait();
+                    var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
+                    model.BasicReject(deliveryTag, requeue);
 
-                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
-                Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                    Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
+                    Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
+                }
             }
         }
 
@@ -295,6 +314,74 @@ namespace AddUp.RabbitMQ.Fakes
 
                 Assert.Single(server.Queues["my_queue"].Messages);
                 Assert.Equal(encodedMessage, server.Queues["my_queue"].Messages.First().Body);
+            }
+        }
+
+        [Fact]
+        public void BasicPublish_before_BasicConsume_does_not_deadlock()
+        {
+            var server = new RabbitServer();
+            using (var model = new FakeModel(server))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclare("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+                using (var deadlockDetector = new ManualResetEventSlim())
+                using (var allowedThrough = new ManualResetEventSlim())
+                {
+                    var consumer = new EventingBasicConsumer(model);
+                    consumer.Received += (_, _) =>
+                    {
+                        if (deadlockDetector.Wait(10000))
+                        {
+                            allowedThrough.Set();
+                        }
+                    };
+
+                    model.BasicConsume("my_queue", false, consumer);
+
+                    deadlockDetector.Set();
+                    var wasAllowedThrough = allowedThrough.Wait(10000);
+                    Assert.True(wasAllowedThrough);
+                }
+            }
+        }
+
+        [Fact]
+        public void BasicPublish_after_BasicConsume_does_not_deadlock()
+        {
+            var server = new RabbitServer();
+            using (var model = new FakeModel(server))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclare("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                using (var deadlockDetector = new ManualResetEventSlim())
+                using (var allowedThrough = new ManualResetEventSlim())
+                {
+                    var consumer = new EventingBasicConsumer(model);
+                    consumer.Received += (_, _) =>
+                    {
+                        if (deadlockDetector.Wait(10000))
+                        {
+                            allowedThrough.Set();
+                        }
+                    };
+
+                    model.BasicConsume("my_queue", false, consumer);
+
+                    var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+                    model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+                    deadlockDetector.Set();
+                    var wasAllowedThrough = allowedThrough.Wait(10000);
+                    Assert.True(wasAllowedThrough);
+                }
             }
         }
 
