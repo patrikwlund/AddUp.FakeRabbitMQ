@@ -14,15 +14,15 @@ namespace AddUp.RabbitMQ.Fakes
     {
         private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
         private readonly ConcurrentDictionary<string, IBasicConsumer> consumers = new ConcurrentDictionary<string, IBasicConsumer>();
+        private readonly BlockingCollection<Action> deliveries = new BlockingCollection<Action>();
         private readonly RabbitServer server;
-        private readonly BlockingCollection<Action> Deliveries = new BlockingCollection<Action>();
-        private readonly Task DeliveriesTask;
+        private readonly Task deliveriesTask;
         private long lastDeliveryTag;
 
         public FakeModel(RabbitServer rabbitServer)
         {
             server = rabbitServer;
-            DeliveriesTask = Task.Run(HandleDeliveries);
+            deliveriesTask = Task.Run(HandleDeliveries);
         }
 
 #pragma warning disable 67
@@ -122,9 +122,9 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
 
                 foreach (var message in queueInstance.Messages)
-                    Deliveries.Add(() => notifyConsumerOfMessage(message));
+                    deliveries.Add(() => notifyConsumerOfMessage(message));
                 queueInstance.MessagePublished += (sender, message) =>
-                    Deliveries.Add(() => notifyConsumerOfMessage(message));
+                    deliveries.Add(() => notifyConsumerOfMessage(message));
 
                 if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
                     asyncBasicConsumer.HandleBasicConsumeOk(consumerTag).GetAwaiter().GetResult();
@@ -257,8 +257,8 @@ namespace AddUp.RabbitMQ.Fakes
             try
             {
                 CloseReason = reason;
-                Deliveries.CompleteAdding();
-                DeliveriesTask.Wait();
+                deliveries.CompleteAdding();
+                deliveriesTask.Wait();
                 ModelShutdown?.Invoke(this, reason);
             }
             catch
@@ -282,7 +282,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void Dispose()
         {
             if (IsOpen) Abort();
-            Deliveries.Dispose();
+            deliveries.Dispose();
         }
 
         public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
@@ -458,7 +458,7 @@ namespace AddUp.RabbitMQ.Fakes
         public void WaitForConfirmsOrDie(TimeSpan timeout) => _ = WaitForConfirms(timeout);
 
         /// <summary>
-        /// Rabbit docs state that each connection is backed by a single background thread:
+        /// Rabbit docs states that each connection is backed by a single background thread:
         /// 
         /// https://www.rabbitmq.com/dotnet-api-guide.html#concurrency-thread-usage
         /// 
@@ -475,8 +475,7 @@ namespace AddUp.RabbitMQ.Fakes
         {
             try
             {
-                foreach (var delivery in Deliveries.GetConsumingEnumerable())
-                {
+                foreach (var delivery in deliveries.GetConsumingEnumerable())
                     try
                     {
                         delivery();
@@ -486,9 +485,8 @@ namespace AddUp.RabbitMQ.Fakes
                         var callbackArgs = CallbackExceptionEventArgs.Build(ex, "");
                         CallbackException(this, callbackArgs);
                     }
-                }
             }
-            catch (Exception)
+            catch
             {
                 // Swallow exceptions so Close() doesn't have to deal with it.
             }

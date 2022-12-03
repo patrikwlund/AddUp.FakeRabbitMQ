@@ -24,7 +24,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.ExchangeDeclare(exchangeName, "direct");
                 model.QueueDeclare(queueName);
                 model.QueueBind(queueName, exchangeName, routingKey, arguments);
-                
+
                 AssertEx.AssertBinding(server, exchangeName, routingKey, queueName);
             }
         }
@@ -63,7 +63,7 @@ namespace AddUp.RabbitMQ.Fakes
                 model.QueueDeclare(queueName);
                 model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
                 model.QueueUnbind(queueName, exchangeName, routingKey, arguments);
-                
+
                 Assert.True(server.Exchanges[exchangeName].Bindings.IsEmpty);
                 Assert.Single(server.Queues[queueName].Bindings);
             }

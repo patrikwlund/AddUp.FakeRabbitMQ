@@ -59,6 +59,7 @@ namespace AddUp.RabbitMQ.Fakes
                         var messageBody = Encoding.ASCII.GetBytes(message);
                         publisherChannel.BasicPublish(exchangeName, "routing-key", false, null, messageBody);
                     }
+
                     messageProcessed.Wait();
                 }
             }

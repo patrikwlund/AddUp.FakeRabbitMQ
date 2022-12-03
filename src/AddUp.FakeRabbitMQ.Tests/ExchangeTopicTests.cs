@@ -70,10 +70,11 @@ namespace AddUp.RabbitMQ.Fakes
                         var messageBody = Encoding.ASCII.GetBytes(message);
                         publisherChannel.BasicPublish(exchangeName, "foo.bar.baz", false, null, messageBody);
                     }
+
                     messageProcessed.Wait();
                 }
             }
-            
+
             Assert.True(ok);
 
             var exchange = rabbitServer.Exchanges[exchangeName];

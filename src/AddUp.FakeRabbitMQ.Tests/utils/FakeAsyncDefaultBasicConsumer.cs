@@ -10,9 +10,9 @@ namespace AddUp.RabbitMQ.Fakes
     {
         public FakeAsyncDefaultBasicConsumer(IModel model) : base(model) { }
 
-        public TaskCompletionSource<(string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, byte[] body)> LastDelivery { get; } = new TaskCompletionSource<(string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, byte[] body)>();
+        public TaskCompletionSource<(string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, byte[] body)> LastDelivery { get; } = new();
 
-        public TaskCompletionSource<string> LastCancelOkConsumerTag { get; } = new TaskCompletionSource<string>();
+        public TaskCompletionSource<string> LastCancelOkConsumerTag { get; } = new();
 
         public override Task HandleBasicDeliver(string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, ReadOnlyMemory<byte> body)
         {

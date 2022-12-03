@@ -44,6 +44,13 @@ Thanks to all the contributors:
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
 
+### [Version 2.3.0 - 2022/11/24](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.2.0)
+
+Another pair of improvements by [@Quogu](https://github.com/Quogu):
+
+* Better compliance: A unique consumer tag is now generated when the calling code does not provide any. See [PR #117](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/117) for details.
+* Better underlying delivery model (using `Task`). Should reduce deadlock issues in Test code. See [PR #118](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/118) for details.
+
 ### [Version 2.2.0 - 2022/11/24](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.2.0)
 
 * A few types in the implementation of the fake server are now `public`. This may prove useful in order to examine the inners of the server for tests purpose. See [PR #115](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/115) for details.
