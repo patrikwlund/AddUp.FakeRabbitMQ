@@ -71,6 +71,19 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
+        public void BasicClose_only_fires_model_shutdown_once()
+        {
+            var server = new RabbitServer();
+            var model = new FakeModel(server);
+            var shutdownCount = 0;
+            model.ModelShutdown += (o, ea) => ++shutdownCount;
+            model.Close();
+            model.Close();
+            model.Close();
+            Assert.Equal(1, shutdownCount);
+        }
+
+        [Fact]
         public void Abort_closes_the_channel()
         {
             var server = new RabbitServer();

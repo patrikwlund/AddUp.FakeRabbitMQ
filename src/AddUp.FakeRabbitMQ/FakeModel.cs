@@ -266,24 +266,28 @@ namespace AddUp.RabbitMQ.Fakes
         public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
         private void Close(ushort replyCode, string replyText, bool abort)
         {
-            var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText);
-            try
+            if (CloseReason == null)
             {
-                CloseReason = reason;
-
-                var consumerTags = consumers.Keys.ToList();
-                foreach (var consumerTag in consumerTags)
+                var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText);
+                try
                 {
-                    BasicCancel(consumerTag);
+                    CloseReason = reason;
+
+                    var consumerTags = consumers.Keys.ToList();
+                    foreach (var consumerTag in consumerTags)
+                    {
+                        BasicCancel(consumerTag);
+                    }
+                    
+                    deliveries.Writer.TryComplete();
+                    ModelShutdown?.Invoke(this, reason);
                 }
-                deliveries.Writer.TryComplete();
-                deliveriesTask.Wait();
-                ModelShutdown?.Invoke(this, reason);
+                catch
+                {
+                    if (!abort) throw;
+                }
             }
-            catch
-            {
-                if (!abort) throw;
-            }
+            deliveriesTask.Wait();
         }
 
         public void ConfirmSelect()
