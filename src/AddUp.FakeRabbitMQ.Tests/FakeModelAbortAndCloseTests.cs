@@ -4,6 +4,7 @@ using RabbitMQ.Client;
 using System.Text;
 using Xunit;
 using System.Linq;
+using System.Threading;
 
 namespace AddUp.RabbitMQ.Fakes
 {
@@ -81,6 +82,36 @@ namespace AddUp.RabbitMQ.Fakes
             model.Close();
             model.Close();
             Assert.Equal(1, shutdownCount);
+        }
+
+        [Fact]
+        public void BasicClose_does_not_deadlock_when_invoked_from_receive()
+        {
+            var server = new RabbitServer();
+            using (var model = new FakeModel(server))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclare("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+                using (var allowedThrough = new ManualResetEventSlim())
+                {
+                    var consumer = new EventingBasicConsumer(model);
+                    consumer.Received += (_, _) =>
+                    {
+                        model.Close();
+                        allowedThrough.Set();
+                    };
+
+                    model.BasicConsume("my_queue", false, consumer);
+
+                    var wasAllowedThrough = allowedThrough.Wait(10000);
+                    Assert.True(wasAllowedThrough);
+                }
+            }
         }
 
         [Fact]
