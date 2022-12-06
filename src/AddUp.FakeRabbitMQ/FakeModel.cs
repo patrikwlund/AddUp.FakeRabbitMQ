@@ -503,6 +503,7 @@ namespace AddUp.RabbitMQ.Fakes
                     {
                         try
                         {
+                            if (!IsOpen) break;
                             delivery();
                         }
                         catch (Exception ex)
