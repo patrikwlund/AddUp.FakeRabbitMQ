@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading;
+using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
@@ -50,19 +52,40 @@ namespace AddUp.RabbitMQ.Fakes
             var server = new RabbitServer();
             using (var model = new FakeModel(server))
             {
-                model.QueueDeclare("my_queue");
+                model.QueueDeclare("my_queue1");
+                model.QueueDeclare("my_queue2");
                 var expectedConsumerTag = "foo";
                 var actualConsumerTag = "";
 
-                var consumer = new EventingBasicConsumer(model);
-                consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags.First();
+                var consumer1 = new EventingBasicConsumer(model);
+                var receivedHasRan = false;
+                consumer1.Received += (s, e) => receivedHasRan = true;
+                consumer1.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags.First();
 
-                model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
-                Assert.True(consumer.IsRunning);
+                model.BasicConsume("my_queue1", false, expectedConsumerTag, consumer1);
+                Assert.True(consumer1.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
-                Assert.False(consumer.IsRunning);
+                Assert.False(consumer1.IsRunning);
+
+                model.BasicPublish("", "my_queue1", model.CreateBasicProperties(), Encoding.ASCII.GetBytes("hello"));
+
+                using (var allowedThrough = new ManualResetEventSlim())
+                {
+                    // We're relying on the fact that we deliver messages sequentially and in order here.
+                    // We can check that the message for consumer1 would have been processed by waiting
+                    // for the message for consumer2 - either message 1 was delivered first (in which case we
+                    // fail the test), or message 1 was not delivered at all, which is what we want.
+                    var consumer2 = new EventingBasicConsumer(model);
+                    consumer2.Received += (s, e) => allowedThrough.Set();
+                    model.BasicPublish("", "my_queue2", model.CreateBasicProperties(), Encoding.ASCII.GetBytes("bonjour"));
+                    model.BasicConsume("my_queue2", true, consumer2);
+
+                    var wasAllowedThrough = allowedThrough.Wait(10000);
+                    Assert.True(wasAllowedThrough);
+                }
 
                 Assert.Equal(expectedConsumerTag, actualConsumerTag);
+                Assert.False(receivedHasRan);
             }
         }
 
