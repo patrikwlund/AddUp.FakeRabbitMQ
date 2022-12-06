@@ -22,6 +22,7 @@ namespace AddUp.RabbitMQ.Fakes
         });
         private readonly RabbitServer server;
         private readonly Task deliveriesTask;
+        private readonly AsyncLocal<bool> isDeliveriesTask = new AsyncLocal<bool>();
         private long lastDeliveryTag;
 
         public FakeModel(RabbitServer rabbitServer)
@@ -287,7 +288,13 @@ namespace AddUp.RabbitMQ.Fakes
                     if (!abort) throw;
                 }
             }
-            deliveriesTask.Wait();
+
+            // It's possible that we can end up calling Close on a model from within the delivery handler.
+            // If this is the case, we must not wait on it to complete as this will deadlock!
+            if (!isDeliveriesTask.Value)
+            {
+                deliveriesTask.Wait();
+            }
         }
 
         public void ConfirmSelect()
@@ -497,6 +504,7 @@ namespace AddUp.RabbitMQ.Fakes
         {
             try
             {
+                isDeliveriesTask.Value = true;
                 while (await deliveries.Reader.WaitToReadAsync().ConfigureAwait(false))
                 {
                     while (deliveries.Reader.TryRead(out var delivery))
