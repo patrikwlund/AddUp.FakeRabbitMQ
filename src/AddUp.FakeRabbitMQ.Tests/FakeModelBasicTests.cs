@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using Xunit;
 
 namespace AddUp.RabbitMQ.Fakes
@@ -146,6 +147,24 @@ namespace AddUp.RabbitMQ.Fakes
 
                 Assert.NotNull(consumerTag);
                 Assert.NotEmpty(consumerTag);
+            }
+        }
+
+        [Fact]
+        public void BasicConsume_with_duplicate_consumer_tag_fails()
+        {
+            var server = new RabbitServer();
+            using (var model = new FakeModel(server))
+            {
+                model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+                model.QueueDeclare("my_queue");
+                model.ExchangeBind("my_queue", "my_exchange", null);
+
+                var consumerTag = "foo";
+                var consumer = new FakeAsyncDefaultBasicConsumer(model);
+                model.BasicConsume("my_queue", false, consumerTag, consumer);
+                Assert.Throws<OperationInterruptedException>(() =>
+                    model.BasicConsume("my_queue", false, consumerTag, consumer));
             }
         }
 

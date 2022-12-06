@@ -123,7 +123,11 @@ namespace AddUp.RabbitMQ.Fakes
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance != null)
             {
-                IBasicConsumer updateFunction(string s, IBasicConsumer basicConsumer) => basicConsumer;
+                // https://www.rabbitmq.com/amqp-0-9-1-reference.html#basic.consume.consumer-tag
+                // The client MUST NOT specify a tag that refers to an existing consumer. Error code: not-allowed
+                IBasicConsumer updateFunction(string s, IBasicConsumer basicConsumer) =>
+                    throw new OperationInterruptedException(
+                        new ShutdownEventArgs(ShutdownInitiator.Peer, 530, $"NOT_ALLOWED - attempt to reuse consumer tag '{consumerTag}'"));
                 _ = consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
 
                 foreach (var message in queueInstance.Messages)
@@ -262,6 +266,7 @@ namespace AddUp.RabbitMQ.Fakes
             try
             {
                 CloseReason = reason;
+
                 deliveries.Writer.TryComplete();
                 deliveriesTask.Wait();
                 ModelShutdown?.Invoke(this, reason);
