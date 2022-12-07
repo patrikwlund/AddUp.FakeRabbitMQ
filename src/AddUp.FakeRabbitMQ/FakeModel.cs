@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -14,7 +15,11 @@ namespace AddUp.RabbitMQ.Fakes
     {
         private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
         private readonly ConcurrentDictionary<string, IBasicConsumer> consumers = new ConcurrentDictionary<string, IBasicConsumer>();
-        private readonly BlockingCollection<Action> deliveries = new BlockingCollection<Action>();
+        private readonly Channel<Action> deliveries = Channel.CreateUnbounded<Action>(new UnboundedChannelOptions
+        {
+            SingleReader = true,
+            SingleWriter = false,
+        });
         private readonly RabbitServer server;
         private readonly Task deliveriesTask;
         private long lastDeliveryTag;
@@ -122,9 +127,9 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
 
                 foreach (var message in queueInstance.Messages)
-                    deliveries.Add(() => notifyConsumerOfMessage(message));
+                    _ = deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
                 queueInstance.MessagePublished += (sender, message) =>
-                    deliveries.Add(() => notifyConsumerOfMessage(message));
+                    _ = deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
 
                 if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
                     asyncBasicConsumer.HandleBasicConsumeOk(consumerTag).GetAwaiter().GetResult();
@@ -257,7 +262,7 @@ namespace AddUp.RabbitMQ.Fakes
             try
             {
                 CloseReason = reason;
-                deliveries.CompleteAdding();
+                deliveries.Writer.TryComplete();
                 deliveriesTask.Wait();
                 ModelShutdown?.Invoke(this, reason);
             }
@@ -282,7 +287,6 @@ namespace AddUp.RabbitMQ.Fakes
         public void Dispose()
         {
             if (IsOpen) Abort();
-            deliveries.Dispose();
         }
 
         public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
@@ -471,20 +475,25 @@ namespace AddUp.RabbitMQ.Fakes
         /// semantics as running delivery callbacks synchronously can cause deadlocks in
         /// code under test.
         /// </summary>
-        private void HandleDeliveries()
+        private async Task HandleDeliveries()
         {
             try
             {
-                foreach (var delivery in deliveries.GetConsumingEnumerable())
-                    try
+                while (await deliveries.Reader.WaitToReadAsync().ConfigureAwait(false))
+                {
+                    while (deliveries.Reader.TryRead(out var delivery))
                     {
-                        delivery();
+                        try
+                        {
+                            delivery();
+                        }
+                        catch (Exception ex)
+                        {
+                            var callbackArgs = CallbackExceptionEventArgs.Build(ex, "");
+                            CallbackException(this, callbackArgs);
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        var callbackArgs = CallbackExceptionEventArgs.Build(ex, "");
-                        CallbackException(this, callbackArgs);
-                    }
+                }
             }
             catch
             {
