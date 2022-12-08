@@ -8,6 +8,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/addupsolutions/AddUp.FakeRabbitMQ</PackageProjectUrl>
     <PackageIcon>logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <!-- Deterministic Builds -->
@@ -15,7 +16,21 @@
   <PropertyGroup>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' != 'true'">
+    <!-- https://cezarypiatek.github.io/post/setting-assembly-and-package-metadata/ -->
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <!-- If a local package with the suffix below was already generated, increment the integer part below -->
+    <VersionSuffix>alpha-local.2</VersionSuffix>
+  </PropertyGroup>
 
+  <ItemGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <PackageReference Include="GitVersion.MsBuild" Version="5.11.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  
   <!-- Required by "deterministic" local builds: see https://github.com/dotnet/roslyn/issues/37379 -->
   <ItemGroup Condition="'$(GITHUB_ACTIONS)' != 'true'">
     <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
@@ -31,5 +46,7 @@
     <!-- Source Link: https://github.com/dotnet/sourcelink/ -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- Store PDBs in the nupkg: easier than trying to get snupkgto work... -->
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
 </Project>

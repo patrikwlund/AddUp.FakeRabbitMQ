@@ -1,0 +1,22 @@
+﻿<Project>
+  <!-- See https://github.com/dotnet/sdk/issues/1458#issuecomment-388510350 -->
+  <!-- See https://github.com/ctaggart/SourceLink/blob/2.8.3/SourceLink.Copy.PdbFiles/SourceLink.Copy.PdbFiles.targets -->
+  <!-- Great summary: https://github.com/dotnet/sdk/issues/1458#issuecomment-695119194 -->
+  <!-- NB: for this to work, the csproj (or Directory.Build.props) needs to include pdb files in AllowedOutputExtensionsInPackageBuildOutputFolder -->
+  <!-- For example, add a line similar to this in a PropertyGroup: 
+       <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+  -->
+  <Target Name="_ResolveCopyLocalNuGetPackagePdbs" AfterTargets="ResolveReferences">
+    <Message Text="**** Updating ReferenceCopyLocalPaths with PDBs" />
+    <ItemGroup>
+      <PdbFiles Include="@(ReferenceCopyLocalPaths->'%(RootDir)%(Directory)%(Filename).pdb')"
+                Condition="'%(ReferenceCopyLocalPaths.NuGetPackageId)' != '' and Exists('%(RootDir)%(Directory)%(Filename).pdb')" />
+    </ItemGroup>
+    <Message Text="**** Found: @(PdbFiles)" />
+    <Message Text="**** ReferenceCopyLocalPaths (Before): @(ReferenceCopyLocalPaths)" />
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Include="@(PdbFiles)" />
+    </ItemGroup>
+    <Message Text="**** ReferenceCopyLocalPaths (After) : @(ReferenceCopyLocalPaths)" />
+  </Target>
+</Project>
