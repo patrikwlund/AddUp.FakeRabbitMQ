@@ -126,9 +126,10 @@ namespace AddUp.RabbitMQ.Fakes
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance != null)
             {
-                EventHandler<RabbitMessage> publishedAction = (sender, message) =>
+                void publishedAction(object sender, RabbitMessage message) =>
                     deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
                 var consumerData = new ConsumerData(consumer, queueInstance, publishedAction);
+
                 // https://www.rabbitmq.com/amqp-0-9-1-reference.html#basic.consume.consumer-tag
                 // The client MUST NOT specify a tag that refers to an existing consumer. Error code: not-allowed
                 ConsumerData updateFunction(string s, ConsumerData _) =>
@@ -276,11 +277,9 @@ namespace AddUp.RabbitMQ.Fakes
 
                     var consumerTags = consumers.Keys.ToList();
                     foreach (var consumerTag in consumerTags)
-                    {
                         BasicCancel(consumerTag);
-                    }
-                    
-                    deliveries.Writer.TryComplete();
+
+                    _ = deliveries.Writer.TryComplete();
                     ModelShutdown?.Invoke(this, reason);
                 }
                 catch
@@ -292,9 +291,7 @@ namespace AddUp.RabbitMQ.Fakes
             // It's possible that we can end up calling Close on a model from within the delivery handler.
             // If this is the case, we must not wait on it to complete as this will deadlock!
             if (!isDeliveriesTask.Value)
-            {
                 deliveriesTask.Wait();
-            }
         }
 
         public void ConfirmSelect()

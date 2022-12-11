@@ -1,10 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using RabbitMQ.Client.Events;
-using RabbitMQ.Client;
-using System.Text;
-using Xunit;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using Xunit;
 
 namespace AddUp.RabbitMQ.Fakes
 {

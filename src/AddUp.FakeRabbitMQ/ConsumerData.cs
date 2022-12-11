@@ -3,7 +3,7 @@ using RabbitMQ.Client;
 
 namespace AddUp.RabbitMQ.Fakes
 {
-    internal class ConsumerData
+    internal sealed class ConsumerData
     {
         public ConsumerData(IBasicConsumer consumer, RabbitQueue queue, EventHandler<RabbitMessage> queueMessagePublished)
         {
