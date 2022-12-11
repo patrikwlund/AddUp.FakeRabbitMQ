@@ -14,7 +14,7 @@ namespace AddUp.RabbitMQ.Fakes
     internal sealed class FakeModel : IModel
     {
         private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
-        private readonly ConcurrentDictionary<string, IBasicConsumer> consumers = new ConcurrentDictionary<string, IBasicConsumer>();
+        private readonly ConcurrentDictionary<string, ConsumerData> consumers = new ConcurrentDictionary<string, ConsumerData>();
         private readonly Channel<Action> deliveries = Channel.CreateUnbounded<Action>(new UnboundedChannelOptions
         {
             SingleReader = true,
@@ -22,6 +22,7 @@ namespace AddUp.RabbitMQ.Fakes
         });
         private readonly RabbitServer server;
         private readonly Task deliveriesTask;
+        private readonly AsyncLocal<bool> isDeliveriesTask = new AsyncLocal<bool>();
         private long lastDeliveryTag;
 
         public FakeModel(RabbitServer rabbitServer)
@@ -65,18 +66,20 @@ namespace AddUp.RabbitMQ.Fakes
 
         public void BasicCancel(string consumerTag)
         {
-            _ = consumers.TryRemove(consumerTag, out var consumer);
-            if (consumer == null) return;
+            _ = consumers.TryRemove(consumerTag, out var consumerData);
+            if (consumerData == null) return;
+
+            consumerData.Queue.MessagePublished -= consumerData.QueueMessagePublished;
 
             // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
             // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
             // For why .GetAwaiter().GetResult()
-            if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
+            if (consumerData.Consumer is IAsyncBasicConsumer asyncBasicConsumer)
                 asyncBasicConsumer
                     .HandleBasicCancelOk(consumerTag)
                     .GetAwaiter()
                     .GetResult();
-            else consumer
+            else consumerData.Consumer
                     .HandleBasicCancelOk(consumerTag);
         }
 
@@ -123,13 +126,19 @@ namespace AddUp.RabbitMQ.Fakes
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance != null)
             {
-                IBasicConsumer updateFunction(string s, IBasicConsumer basicConsumer) => basicConsumer;
-                _ = consumers.AddOrUpdate(consumerTag, consumer, updateFunction);
+                EventHandler<RabbitMessage> publishedAction = (sender, message) =>
+                    deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
+                var consumerData = new ConsumerData(consumer, queueInstance, publishedAction);
+                // https://www.rabbitmq.com/amqp-0-9-1-reference.html#basic.consume.consumer-tag
+                // The client MUST NOT specify a tag that refers to an existing consumer. Error code: not-allowed
+                ConsumerData updateFunction(string s, ConsumerData _) =>
+                    throw new OperationInterruptedException(
+                        new ShutdownEventArgs(ShutdownInitiator.Peer, 530, $"NOT_ALLOWED - attempt to reuse consumer tag '{s}'"));
+                _ = consumers.AddOrUpdate(consumerTag, consumerData, updateFunction);
 
                 foreach (var message in queueInstance.Messages)
                     _ = deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
-                queueInstance.MessagePublished += (sender, message) =>
-                    _ = deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
+                queueInstance.MessagePublished += consumerData.QueueMessagePublished;
 
                 if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
                     asyncBasicConsumer.HandleBasicConsumeOk(consumerTag).GetAwaiter().GetResult();
@@ -258,17 +267,33 @@ namespace AddUp.RabbitMQ.Fakes
         public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
         private void Close(ushort replyCode, string replyText, bool abort)
         {
-            var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText);
-            try
+            if (CloseReason == null)
             {
-                CloseReason = reason;
-                deliveries.Writer.TryComplete();
-                deliveriesTask.Wait();
-                ModelShutdown?.Invoke(this, reason);
+                var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText);
+                try
+                {
+                    CloseReason = reason;
+
+                    var consumerTags = consumers.Keys.ToList();
+                    foreach (var consumerTag in consumerTags)
+                    {
+                        BasicCancel(consumerTag);
+                    }
+                    
+                    deliveries.Writer.TryComplete();
+                    ModelShutdown?.Invoke(this, reason);
+                }
+                catch
+                {
+                    if (!abort) throw;
+                }
             }
-            catch
+
+            // It's possible that we can end up calling Close on a model from within the delivery handler.
+            // If this is the case, we must not wait on it to complete as this will deadlock!
+            if (!isDeliveriesTask.Value)
             {
-                if (!abort) throw;
+                deliveriesTask.Wait();
             }
         }
 
@@ -479,12 +504,14 @@ namespace AddUp.RabbitMQ.Fakes
         {
             try
             {
+                isDeliveriesTask.Value = true;
                 while (await deliveries.Reader.WaitToReadAsync().ConfigureAwait(false))
                 {
                     while (deliveries.Reader.TryRead(out var delivery))
                     {
                         try
                         {
+                            if (!IsOpen) break;
                             delivery();
                         }
                         catch (Exception ex)
