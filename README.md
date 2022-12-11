@@ -50,7 +50,7 @@ Thanks to all the contributors:
 * [@patrikwlund](https://github.com/patrikwlund) improved the performance of [PR #118](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/118). See [PR #121](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/121) for details.
 * Yet another set of improvements by [@Quogu](https://github.com/Quogu). See [PR #120](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/120) for details.
 
-### [Version 2.3.0 - 2022/11/24](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.3.0)
+### [Version 2.3.0 - 2022/12/03](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.3.0)
 
 Another pair of improvements by [@Quogu](https://github.com/Quogu):
 
