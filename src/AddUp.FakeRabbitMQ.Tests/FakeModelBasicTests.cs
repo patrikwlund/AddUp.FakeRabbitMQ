@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using FluentAssertions;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
@@ -423,6 +424,64 @@ namespace AddUp.RabbitMQ.Fakes
                     Assert.True(wasAllowedThrough);
                 }
             }
+        }
+
+        [Fact]
+        public void BasicPublish_after_BasicConsume_with_BlockingDelivery_is_synchronous()
+        {
+            var server = new RabbitServer { BlockingConsumerDelivery = true };
+            using var model = new FakeModel(server);
+
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+            model.QueueDeclare("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var trackedValue = new AsyncLocal<string>
+            {
+                Value = "initial"
+            };
+
+            var consumer = new EventingBasicConsumer(model);
+            consumer.Received += (_, _) =>
+            {
+                trackedValue.Value = "from_consumer";
+            };
+
+            model.BasicConsume("my_queue", false, consumer);
+
+            var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+            model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+            trackedValue.Value.Should().Be("from_consumer");
+        }
+
+        [Fact]
+        public void BasicPublish_before_BasicConsume_with_BlockingDelivery_is_synchronous()
+        {
+            var server = new RabbitServer { BlockingConsumerDelivery = true };
+            using var model = new FakeModel(server);
+
+            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+            model.QueueDeclare("my_queue");
+            model.ExchangeBind("my_queue", "my_exchange", null);
+
+            var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+            model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+
+            var trackedValue = new AsyncLocal<string>
+            {
+                Value = "initial"
+            };
+
+            var consumer = new EventingBasicConsumer(model);
+            consumer.Received += (_, _) =>
+            {
+                trackedValue.Value = "from_consumer";
+            };
+
+            model.BasicConsume("my_queue", false, consumer);
+
+            trackedValue.Value.Should().Be("from_consumer");
         }
 
         [Fact]

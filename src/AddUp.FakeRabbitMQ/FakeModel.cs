@@ -3,8 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
@@ -15,20 +13,18 @@ namespace AddUp.RabbitMQ.Fakes
     {
         private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
         private readonly ConcurrentDictionary<string, ConsumerData> consumers = new ConcurrentDictionary<string, ConsumerData>();
-        private readonly Channel<Action> deliveries = Channel.CreateUnbounded<Action>(new UnboundedChannelOptions
-        {
-            SingleReader = true,
-            SingleWriter = false,
-        });
+
+        private readonly ConsumerDeliveryQueue deliveryQueue;
         private readonly RabbitServer server;
-        private readonly Task deliveriesTask;
-        private readonly AsyncLocal<bool> isDeliveriesTask = new AsyncLocal<bool>();
         private long lastDeliveryTag;
 
         public FakeModel(RabbitServer rabbitServer)
         {
             server = rabbitServer;
-            deliveriesTask = Task.Run(HandleDeliveries);
+            deliveryQueue = ConsumerDeliveryQueue.Create(
+                this,
+                rabbitServer.BlockingConsumerDelivery,
+                onDeliveryException: args => CallbackException(this, args));
         }
 
 #pragma warning disable 67
@@ -127,7 +123,8 @@ namespace AddUp.RabbitMQ.Fakes
             if (queueInstance != null)
             {
                 void publishedAction(object sender, RabbitMessage message) =>
-                    deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
+                    deliveryQueue.Deliver(() => notifyConsumerOfMessage(message));
+
                 var consumerData = new ConsumerData(consumer, queueInstance, publishedAction);
 
                 // https://www.rabbitmq.com/amqp-0-9-1-reference.html#basic.consume.consumer-tag
@@ -138,7 +135,8 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = consumers.AddOrUpdate(consumerTag, consumerData, updateFunction);
 
                 foreach (var message in queueInstance.Messages)
-                    _ = deliveries.Writer.TryWrite(() => notifyConsumerOfMessage(message));
+                    consumerData.QueueMessagePublished(this, message);
+
                 queueInstance.MessagePublished += consumerData.QueueMessagePublished;
 
                 if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
@@ -279,7 +277,7 @@ namespace AddUp.RabbitMQ.Fakes
                     foreach (var consumerTag in consumerTags)
                         BasicCancel(consumerTag);
 
-                    _ = deliveries.Writer.TryComplete();
+                    deliveryQueue.Complete();
                     ModelShutdown?.Invoke(this, reason);
                 }
                 catch
@@ -288,10 +286,7 @@ namespace AddUp.RabbitMQ.Fakes
                 }
             }
 
-            // It's possible that we can end up calling Close on a model from within the delivery handler.
-            // If this is the case, we must not wait on it to complete as this will deadlock!
-            if (!isDeliveriesTask.Value)
-                deliveriesTask.Wait();
+            deliveryQueue.WaitForCompletion();
         }
 
         public void ConfirmSelect()
@@ -482,47 +477,5 @@ namespace AddUp.RabbitMQ.Fakes
 
         public void WaitForConfirmsOrDie() => WaitForConfirmsOrDie(Timeout.InfiniteTimeSpan);
         public void WaitForConfirmsOrDie(TimeSpan timeout) => _ = WaitForConfirms(timeout);
-
-        /// <summary>
-        /// Rabbit docs states that each connection is backed by a single background thread:
-        /// 
-        /// https://www.rabbitmq.com/dotnet-api-guide.html#concurrency-thread-usage
-        /// 
-        /// However, this is not actually true, it's backed by a Task:
-        /// 
-        /// https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/65dd5f92dda130ec35b4ad6fe7bc54dbcb1637fd/projects/RabbitMQ.Client/client/impl/ConsumerWorkService.cs#L81
-        /// 
-        /// FakeModels aren't aware of their connection, so in order to emulate this, just
-        /// run a task that handles deliveries per task. It's necessary to match RabbitMQ
-        /// semantics as running delivery callbacks synchronously can cause deadlocks in
-        /// code under test.
-        /// </summary>
-        private async Task HandleDeliveries()
-        {
-            try
-            {
-                isDeliveriesTask.Value = true;
-                while (await deliveries.Reader.WaitToReadAsync().ConfigureAwait(false))
-                {
-                    while (deliveries.Reader.TryRead(out var delivery))
-                    {
-                        try
-                        {
-                            if (!IsOpen) break;
-                            delivery();
-                        }
-                        catch (Exception ex)
-                        {
-                            var callbackArgs = CallbackExceptionEventArgs.Build(ex, "");
-                            CallbackException(this, callbackArgs);
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // Swallow exceptions so Close() doesn't have to deal with it.
-            }
-        }
     }
 }
