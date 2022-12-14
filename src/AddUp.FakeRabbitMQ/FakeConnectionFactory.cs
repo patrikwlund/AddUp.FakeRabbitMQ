@@ -25,8 +25,6 @@ namespace AddUp.RabbitMQ.Fakes
         public TimeSpan HandshakeContinuationTimeout { get; set; }
         public TimeSpan ContinuationTimeout { get; set; }
 
-        private FakeConnection UnderlyingConnection { get; set; }
-
         public IAuthMechanismFactory AuthMechanismFactory(IList<string> mechanismNames) =>
             new PlainMechanismFactory();
 
@@ -38,14 +36,7 @@ namespace AddUp.RabbitMQ.Fakes
 
         public IConnection CreateConnection(string clientProvidedName)
         {
-            if (UnderlyingConnection == null)
-                UnderlyingConnection = new FakeConnection(server, clientProvidedName);
-            else
-                UnderlyingConnection.ForceOpen();
-
-            return UnderlyingConnection;
+            return new FakeConnection(server, clientProvidedName);
         }
-
-        internal IConnection GetCurrentConnectionForUnitTests() => UnderlyingConnection;
     }
 }
