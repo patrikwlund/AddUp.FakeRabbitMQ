@@ -45,6 +45,13 @@ Thanks to all the contributors:
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
 
+### [Version 2.5.0 - 2022/12/14](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.5.0)
+
+Two contributions by [@patrikwlund](https://github.com/patrikwlund):
+
+* Better compliance: No more unique singleton-based connection. See [PR #122](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/122) for details.
+* New feature: by passing a boolean to the constructor of `AddUp.RabbitMQ.Fakes.RabbitServer`, one can opt into using blocking delivery (the default remains non-blocking). This helps simplifying unit tests in scenarios where one is not interested in simulating a real RabbitMQ behavior (avoids asynchronous waiting for messages delivery). See [PR #123](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/123) for details.
+
 ### [Version 2.4.0 - 2022/12/11](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.4.0)
 
 * [@patrikwlund](https://github.com/patrikwlund) improved the performance of [PR #118](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/118). See [PR #121](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/121) for details.
