@@ -23,6 +23,12 @@ namespace AddUp.RabbitMQ.Fakes
         public ConcurrentDictionary<string, RabbitExchange> Exchanges { get; }
         public ConcurrentDictionary<string, RabbitQueue> Queues { get; }
 
+        /// <summary>
+        /// If true, deliveries to consumers will execute in a blocking manner, meaning the publish will not
+        /// finish until the message has reached all registered consumers.
+        /// </summary>
+        public bool BlockingConsumerDelivery { get; set; }
+
         public void Reset()
         {
             Exchanges.Clear();
