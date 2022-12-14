@@ -429,7 +429,7 @@ namespace AddUp.RabbitMQ.Fakes
         [Fact]
         public void BasicPublish_after_BasicConsume_with_BlockingDelivery_is_synchronous()
         {
-            var server = new RabbitServer { BlockingConsumerDelivery = true };
+            var server = new RabbitServer(blockingDeliveryMode: true);
             using var model = new FakeModel(server);
 
             model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
@@ -458,7 +458,7 @@ namespace AddUp.RabbitMQ.Fakes
         [Fact]
         public void BasicPublish_before_BasicConsume_with_BlockingDelivery_is_synchronous()
         {
-            var server = new RabbitServer { BlockingConsumerDelivery = true };
+            var server = new RabbitServer(blockingDeliveryMode: true);
             using var model = new FakeModel(server);
 
             model.ExchangeDeclare("my_exchange", ExchangeType.Direct);

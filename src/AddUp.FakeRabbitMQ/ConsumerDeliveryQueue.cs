@@ -8,30 +8,25 @@ namespace AddUp.RabbitMQ.Fakes
 {
     internal abstract class ConsumerDeliveryQueue
     {
-        protected readonly FakeModel model;
         private readonly Action<CallbackExceptionEventArgs> onDeliveryException;
+        protected readonly FakeModel Model;
 
-        protected ConsumerDeliveryQueue(FakeModel model, Action<CallbackExceptionEventArgs> onDeliveryException)
+        protected ConsumerDeliveryQueue(FakeModel model, Action<CallbackExceptionEventArgs> deliveryExceptionHandler)
         {
-            this.model = model;
-            this.onDeliveryException = onDeliveryException;
+            Model = model;
+            onDeliveryException = deliveryExceptionHandler;
         }
+
+        // Factory method returning either a blocking or a non-blocking implementation
+        public static ConsumerDeliveryQueue Create(
+            FakeModel model,
+            Action<CallbackExceptionEventArgs> deliveryExceptionHandler,
+            bool createBlockingDeliveryQueue) =>
+                createBlockingDeliveryQueue
+                ? (ConsumerDeliveryQueue)new BlockingDeliveryQueue(model, deliveryExceptionHandler)
+                : new NonBlockingDeliveryQueue(model, deliveryExceptionHandler);
 
         public abstract void Deliver(Action deliveryAction);
-
-        protected void ExecuteDelivery(Action deliveryAction)
-        {
-            try
-            {
-                if (!model.IsOpen) return;
-                deliveryAction();
-            }
-            catch (Exception ex)
-            {
-                var callbackArgs = CallbackExceptionEventArgs.Build(ex, "");
-                onDeliveryException(callbackArgs);
-            }
-        }
 
         /// <summary>
         /// Marks the queue as complete, meaning no more new deliveries will be accepted.
@@ -43,15 +38,22 @@ namespace AddUp.RabbitMQ.Fakes
         /// </summary>
         public abstract void WaitForCompletion();
 
-        public static ConsumerDeliveryQueue Create(FakeModel model, bool blockingDelivery, Action<CallbackExceptionEventArgs> onDeliveryException)
+        protected void ExecuteDelivery(Action deliveryAction)
         {
-            return blockingDelivery
-                ? (ConsumerDeliveryQueue) new BlockingDeliveryQueue(model, onDeliveryException)
-                : new NonBlockingDeliveryQueue(model, onDeliveryException);
+            try
+            {
+                if (!Model.IsOpen) return;
+                deliveryAction();
+            }
+            catch (Exception ex)
+            {
+                var callbackArgs = CallbackExceptionEventArgs.Build(ex, "");
+                onDeliveryException(callbackArgs);
+            }
         }
     }
 
-    internal class NonBlockingDeliveryQueue : ConsumerDeliveryQueue
+    internal sealed class NonBlockingDeliveryQueue : ConsumerDeliveryQueue
     {
         private readonly Task deliveriesTask;
         private readonly AsyncLocal<bool> isDeliveriesTask = new AsyncLocal<bool>();
@@ -62,16 +64,11 @@ namespace AddUp.RabbitMQ.Fakes
         });
 
         public NonBlockingDeliveryQueue(FakeModel model, Action<CallbackExceptionEventArgs> onDeliveryException)
-            : base(model, onDeliveryException)
-        {
+            : base(model, onDeliveryException) =>
             deliveriesTask = Task.Run(HandleDeliveries);
-        }
 
-
-        public override void Deliver(Action deliveryAction)
-        {
+        public override void Deliver(Action deliveryAction) =>
             _ = deliveries.Writer.TryWrite(deliveryAction);
-        }
 
         /// <summary>
         /// Rabbit docs states that each connection is backed by a single background thread:
@@ -106,10 +103,8 @@ namespace AddUp.RabbitMQ.Fakes
             }
         }
 
-        public override void Complete()
-        {
+        public override void Complete() =>
             _ = deliveries.Writer.TryComplete();
-        }
 
         public override void WaitForCompletion()
         {
@@ -120,18 +115,14 @@ namespace AddUp.RabbitMQ.Fakes
         }
     }
 
-    internal class BlockingDeliveryQueue : ConsumerDeliveryQueue
+    internal sealed class BlockingDeliveryQueue : ConsumerDeliveryQueue
     {
         private static readonly TimeSpan DeliveryWaitTimeout = TimeSpan.FromMinutes(1);
-
         private readonly SemaphoreSlim deliveryLock = new SemaphoreSlim(1);
-
         private volatile bool notAcceptingNewDeliveries = false;
 
         public BlockingDeliveryQueue(FakeModel model, Action<CallbackExceptionEventArgs> onDeliveryException)
-            : base(model, onDeliveryException)
-        {
-        }
+            : base(model, onDeliveryException) { }
 
         public override void Deliver(Action deliveryAction)
         {
@@ -140,30 +131,26 @@ namespace AddUp.RabbitMQ.Fakes
 
             try
             {
-                deliveryLock.Wait(DeliveryWaitTimeout);
-
+                _ = deliveryLock.Wait(DeliveryWaitTimeout);
                 ExecuteDelivery(deliveryAction);
             }
             finally
             {
-                deliveryLock.Release();
+                _ = deliveryLock.Release();
             }
         }
 
-        public override void Complete()
-        {
-            notAcceptingNewDeliveries = true;
-        }
+        public override void Complete() => notAcceptingNewDeliveries = true;
 
         public override void WaitForCompletion()
         {
             try
             {
-                deliveryLock.Wait(DeliveryWaitTimeout);
+                _ = deliveryLock.Wait(DeliveryWaitTimeout);
             }
             finally
             {
-                deliveryLock.Release();
+                _ = deliveryLock.Release();
             }
         }
     }

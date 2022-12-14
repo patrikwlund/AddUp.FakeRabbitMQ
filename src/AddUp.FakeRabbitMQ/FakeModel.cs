@@ -23,8 +23,8 @@ namespace AddUp.RabbitMQ.Fakes
             server = rabbitServer;
             deliveryQueue = ConsumerDeliveryQueue.Create(
                 this,
-                rabbitServer.BlockingConsumerDelivery,
-                onDeliveryException: args => CallbackException(this, args));
+                deliveryExceptionHandler: args => CallbackException(this, args),
+                rabbitServer.BlockingDeliveryMode);
         }
 
 #pragma warning disable 67
