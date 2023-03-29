@@ -42,8 +42,10 @@ namespace AddUp.RabbitMQ.Fakes
         public ulong NextPublishSeqNo { get; set; }
         public TimeSpan ContinuationTimeout { get; set; }
         public ShutdownEventArgs CloseReason { get; private set; }
+        public string CurrentQueue { get; private set; }
         public bool IsOpen => CloseReason == null;
         public bool IsClosed => !IsOpen;
+
         internal ConcurrentDictionary<ulong, RabbitMessage> WorkingMessagesForUnitTests => workingMessages;
 
         public void Abort() => Abort(200, "Goodbye");
@@ -186,8 +188,7 @@ namespace AddUp.RabbitMQ.Fakes
             foreach (var queue in workingMessages.Select(m => m.Value.Queue))
             {
                 _ = server.Queues.TryGetValue(queue, out var queueInstance);
-                if (queueInstance != null)
-                    queueInstance.ClearMessages();
+                queueInstance?.ClearMessages();
             }
 
             _ = workingMessages.TryRemove(deliveryTag, out var message);
@@ -249,8 +250,7 @@ namespace AddUp.RabbitMQ.Fakes
                 foreach (var message in workingMessages.Select(m => m.Value))
                 {
                     _ = server.Queues.TryGetValue(message.Queue, out var queueInstance);
-                    if (queueInstance != null)
-                        queueInstance.PublishMessage(message);
+                    queueInstance?.PublishMessage(message);
                 }
             }
 
@@ -402,7 +402,9 @@ namespace AddUp.RabbitMQ.Fakes
             // https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchange-default
             QueueBind(q, "", q, null);
 
-            return new QueueDeclareOk(q, 0, 0);
+            var result = new QueueDeclareOk(q, 0u, 0u);
+            CurrentQueue = result.QueueName;
+            return result;
         }
 
         public void QueueDeclareNoWait(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments) =>
@@ -411,7 +413,14 @@ namespace AddUp.RabbitMQ.Fakes
         public QueueDeclareOk QueueDeclarePassive(string queue)
         {
             if (server.Queues.TryGetValue(queue, out var rabbitQueue))
-                return new QueueDeclareOk(queue, (uint)unchecked(rabbitQueue.Messages.Count), (uint)unchecked(rabbitQueue.ConsumerCount));
+            {
+                var result = new QueueDeclareOk(queue, 
+                    (uint)unchecked(rabbitQueue.Messages.Count), 
+                    (uint)unchecked(rabbitQueue.ConsumerCount));
+
+                CurrentQueue = result.QueueName;
+                return result;
+            }
 
             var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
                     replyText: $"NOT_FOUND - no queue '{queue}' in vhost '/'",
