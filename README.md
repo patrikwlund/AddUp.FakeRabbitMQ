@@ -45,7 +45,7 @@ Thanks to all the contributors:
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
 
-### [Version 2.5.1 - 2023/03/29](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.5.1)
+### [Version 2.6.0 - 2023/03/29](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.6.0)
 
 * Updated **RabbitMQ.Client** to version [6.5.0](https://github.com/rabbitmq/rabbitmq-dotnet-client/blob/main/CHANGELOG.md#v650-2023-03-24)
 
