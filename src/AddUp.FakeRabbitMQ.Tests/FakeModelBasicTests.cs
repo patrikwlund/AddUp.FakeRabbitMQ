@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -59,7 +60,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var consumer1 = new EventingBasicConsumer(model);
                 var receivedHasRan = false;
                 consumer1.Received += (s, e) => receivedHasRan = true;
-                consumer1.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags.First();
+                consumer1.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags[0];
 
                 model.BasicConsume("my_queue1", false, expectedConsumerTag, consumer1);
                 Assert.True(consumer1.IsRunning);
@@ -99,7 +100,7 @@ namespace AddUp.RabbitMQ.Fakes
                 var actualConsumerTag = "";
 
                 var consumer = new EventingBasicConsumer(model);
-                consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags.First();
+                consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags[0];
 
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
                 Assert.True(consumer.IsRunning);
@@ -111,7 +112,7 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         [Fact]
-        public void BasicCancel_works_for_asynchronous_consumers()
+        public async Task BasicCancel_works_for_asynchronous_consumers()
         {
             var server = new RabbitServer();
             using (var model = new FakeModel(server))
@@ -124,15 +125,15 @@ namespace AddUp.RabbitMQ.Fakes
                 model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
                 Assert.True(consumer.IsRunning);
                 model.BasicCancel(expectedConsumerTag);
-                consumer.LastCancelOkConsumerTag.Task.Wait();
+                var result = await consumer.LastCancelOkConsumerTag.Task;
                 Assert.False(consumer.IsRunning);
 
-                Assert.Equal(expectedConsumerTag, consumer.LastCancelOkConsumerTag.Task.Result);
+                Assert.Equal(expectedConsumerTag, result);
             }
         }
 
         [Fact]
-        public void BasicConsume_works_for_asynchronous_consumers()
+        public async Task BasicConsume_works_for_asynchronous_consumers()
         {
             var server = new RabbitServer();
             using (var model = new FakeModel(server))
@@ -148,9 +149,9 @@ namespace AddUp.RabbitMQ.Fakes
                 var consumer = new FakeAsyncDefaultBasicConsumer(model);
                 model.BasicConsume("my_queue", false, consumer);
                 Assert.True(consumer.IsRunning);
-                consumer.LastDelivery.Task.Wait();
 
-                Assert.Equal(encodedMessage, consumer.LastDelivery.Task.Result.body);
+                var (_, _, _, _, _, _, body) = await consumer.LastDelivery.Task;
+                Assert.Equal(encodedMessage, body);
             }
         }
 

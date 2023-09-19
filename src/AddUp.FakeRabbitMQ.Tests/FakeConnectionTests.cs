@@ -81,8 +81,8 @@ namespace AddUp.RabbitMQ.Fakes
 
             connection.Close();
 
-            Assert.True(connection.GetModelsForUnitTests().All(m => !m.IsOpen));
-            Assert.True(connection.GetModelsForUnitTests().All(m => m.IsClosed));
+            Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => !m.IsOpen));
+            Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => m.IsClosed));
         }
 
         [Fact]
@@ -136,8 +136,8 @@ namespace AddUp.RabbitMQ.Fakes
 
             connection.Abort();
 
-            Assert.True(connection.GetModelsForUnitTests().All(m => !m.IsOpen));
-            Assert.True(connection.GetModelsForUnitTests().All(m => m.IsClosed));
+            Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => !m.IsOpen));
+            Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => m.IsClosed));
         }
     }
 }

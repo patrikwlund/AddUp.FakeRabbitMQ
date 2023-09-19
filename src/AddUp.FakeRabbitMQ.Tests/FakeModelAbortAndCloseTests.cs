@@ -51,7 +51,7 @@ namespace AddUp.RabbitMQ.Fakes
             var consumer = new EventingBasicConsumer(model);
             var receivedHasRan = false;
             consumer.Received += (s, e) => receivedHasRan = true;
-            consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags.First();
+            consumer.Unregistered += (s, e) => actualConsumerTag = e.ConsumerTags[0];
 
             model.BasicConsume("my_queue", false, expectedConsumerTag, consumer);
             Assert.True(consumer.IsRunning);
