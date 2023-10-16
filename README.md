@@ -38,12 +38,17 @@ Thanks to all the contributors:
 * [@inbarbarkai](https://github.com/inbarbarkai)
 * [@Quogu](https://github.com/Quogu)
 * [@patrikwlund](https://github.com/patrikwlund)
+* [@marcusber](https://github.com/marcusber)
 
 ## History
 
 > Versions 1.x are based on [RabbitMQ .NET client Version 5.x](https://www.nuget.org/packages/RabbitMQ.Client/5.2.0)
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
+
+### [Version 2.7.0 - 2023/10/16](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.7.0)
+
+* Updated **RabbitMQ.Client** to version [6.6.0](https://github.com/rabbitmq/rabbitmq-dotnet-client/releases/tag/v6.6.0) thanks to [@marcusber](https://github.com/marcusber)'s [PR #174](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/174)
 
 ### [Version 2.6.0 - 2023/03/29](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.6.0)
 

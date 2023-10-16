@@ -73,7 +73,6 @@ namespace AddUp.RabbitMQ.Fakes
                 RequestedChannelMax = 1,
                 RequestedFrameMax = 1u,
                 RequestedHeartbeat = TimeSpan.FromSeconds(1.0),
-                UseBackgroundThreadsForIO = true,
                 UserName = "johndoe",
                 VirtualHost = "host",
                 Uri = new Uri("http://foo.bar.baz/"),
@@ -86,7 +85,6 @@ namespace AddUp.RabbitMQ.Fakes
             Assert.Equal((ushort)1, factory.RequestedChannelMax);
             Assert.Equal(1u, factory.RequestedFrameMax);
             Assert.Equal(1.0, factory.RequestedHeartbeat.TotalSeconds);
-            Assert.True(factory.UseBackgroundThreadsForIO);
             Assert.Equal("johndoe", factory.UserName);
             Assert.Equal("host", factory.VirtualHost);
             Assert.Equal("http://foo.bar.baz/", factory.Uri.ToString());

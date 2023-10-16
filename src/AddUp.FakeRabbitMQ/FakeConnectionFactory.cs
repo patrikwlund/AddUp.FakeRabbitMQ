@@ -19,6 +19,7 @@ namespace AddUp.RabbitMQ.Fakes
         public ushort RequestedChannelMax { get; set; }
         public uint RequestedFrameMax { get; set; }
         public TimeSpan RequestedHeartbeat { get; set; }
+        [Obsolete("Currently a no-op. UseBackgroundThreadsForIO will be removed in version 7")] // See https://github.com/rabbitmq/rabbitmq-dotnet-client/pull/1388
         public bool UseBackgroundThreadsForIO { get; set; }
         public string UserName { get; set; }
         public string VirtualHost { get; set; }
