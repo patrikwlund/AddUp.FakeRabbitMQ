@@ -11,9 +11,11 @@ namespace AddUp.RabbitMQ.Fakes
         public FakeConnectionFactory() : this(new RabbitServer()) { }
         public FakeConnectionFactory(RabbitServer rabbitServer) =>
             server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
-                
+
         public IDictionary<string, object> ClientProperties { get; set; }
         public string Password { get; set; }
+        public ICredentialsProvider CredentialsProvider { get; set; }
+        public ICredentialsRefresher CredentialsRefresher { get; set; }
         public ushort RequestedChannelMax { get; set; }
         public uint RequestedFrameMax { get; set; }
         public TimeSpan RequestedHeartbeat { get; set; }
