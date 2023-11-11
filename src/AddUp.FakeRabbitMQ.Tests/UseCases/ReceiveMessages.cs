@@ -6,152 +6,151 @@ using FluentAssertions;
 using RabbitMQ.Client;
 using Xunit;
 
-namespace AddUp.RabbitMQ.Fakes.UseCases
+namespace AddUp.RabbitMQ.Fakes.UseCases;
+
+[ExcludeFromCodeCoverage]
+public class ReceiveMessages
 {
-    [ExcludeFromCodeCoverage]
-    public class ReceiveMessages
+    [Fact]
+    public void ReceiveMessagesOnQueue()
     {
-        [Fact]
-        public void ReceiveMessagesOnQueue()
+        var rabbitServer = new RabbitServer();
+
+        ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
+        SendMessage(rabbitServer,"my_exchange","hello_world");
+
+        var connectionFactory = new FakeConnectionFactory(rabbitServer);
+        using (var connection = connectionFactory.CreateConnection())
+        using (var channel = connection.CreateModel())
         {
-            var rabbitServer = new RabbitServer();
+            // First message
+            var message = channel.BasicGet("my_queue", autoAck: false);
+            
+            Assert.NotNull(message);
+            var messageBody = Encoding.ASCII.GetString(message.Body.ToArray());
 
-            ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
-            SendMessage(rabbitServer,"my_exchange","hello_world");
+            Assert.Equal("hello_world", messageBody);
 
-            var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using (var connection = connectionFactory.CreateConnection())
-            using (var channel = connection.CreateModel())
-            {
-                // First message
-                var message = channel.BasicGet("my_queue", autoAck: false);
-                
-                Assert.NotNull(message);
-                var messageBody = Encoding.ASCII.GetString(message.Body.ToArray());
+            channel.BasicAck(message.DeliveryTag,multiple:false);
+        }
+    }
 
-                Assert.Equal("hello_world", messageBody);
+    [Fact]
+    public void ReceiveMessagesOnQueueWithBasicProperties()
+    {
+        var rabbitServer = new RabbitServer();
 
-                channel.BasicAck(message.DeliveryTag,multiple:false);
-            }
+        ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
+        var basicProperties = new FakeBasicProperties
+        {
+            Headers = new Dictionary<string, object>() { { "TestKey", "TestValue" } },
+            CorrelationId = Guid.NewGuid().ToString(),
+            ReplyTo = "TestQueue",
+            Timestamp = new AmqpTimestamp(123456),
+            ReplyToAddress = new PublicationAddress("exchangeType", "excahngeName", "routingKey"),
+            ClusterId = "1",
+            ContentEncoding = "encoding",
+            ContentType = "type",
+            DeliveryMode = 1,
+            Expiration = "none",
+            MessageId = "id",
+            Priority = 1,
+            Type = "type",
+            UserId = "1",
+            AppId = "1"
+        };
+
+        SendMessage(rabbitServer, "my_exchange", "hello_world", basicProperties);
+
+        var connectionFactory = new FakeConnectionFactory(rabbitServer);
+        using (var connection = connectionFactory.CreateConnection())
+        using (var channel = connection.CreateModel())
+        {
+            // First message
+            var message = channel.BasicGet("my_queue", autoAck: false);
+
+            Assert.NotNull(message);
+            var messageBody = Encoding.ASCII.GetString(message.Body.ToArray());
+
+            Assert.Equal("hello_world", messageBody);
+
+            var actualBasicProperties = message.BasicProperties;
+            actualBasicProperties.Should().BeEquivalentTo(basicProperties);
+
+            channel.BasicAck(message.DeliveryTag, multiple: false);
+        }
+    }
+
+    [Fact]
+    public void QueueingConsumer_MessagesOnQueueBeforeConsumerIsCreated_ReceiveMessagesOnQueue()
+    {
+        var rabbitServer = new RabbitServer();
+
+        ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
+        SendMessage(rabbitServer, "my_exchange", "hello_world");
+
+        var connectionFactory = new FakeConnectionFactory(rabbitServer);
+        using var connection = connectionFactory.CreateConnection();
+        using var channel = connection.CreateModel();
+
+        var consumer = new QueueingBasicConsumer(channel);
+        channel.BasicConsume("my_queue", false, consumer);
+
+        if (consumer.Queue.Dequeue(5000, out var messageOut))
+        {
+            var messageBody = Encoding.ASCII.GetString(messageOut.Body.ToArray());
+            Assert.Equal("hello_world", messageBody);
+            channel.BasicAck(messageOut.DeliveryTag, multiple: false);
         }
 
-        [Fact]
-        public void ReceiveMessagesOnQueueWithBasicProperties()
+        Assert.NotNull(messageOut);
+    }
+
+    [Fact]
+    public void QueueingConsumer_MessagesSentAfterConsumerIsCreated_ReceiveMessagesOnQueue()
+    {
+        var rabbitServer = new RabbitServer();
+
+        ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
+       
+        var connectionFactory = new FakeConnectionFactory(rabbitServer);
+        using var connection = connectionFactory.CreateConnection();
+        using var channel = connection.CreateModel();
+        var consumer = new QueueingBasicConsumer(channel);
+        channel.BasicConsume("my_queue", false, consumer);
+
+        SendMessage(rabbitServer, "my_exchange", "hello_world");
+
+        if (consumer.Queue.Dequeue(5000, out var messageOut))
         {
-            var rabbitServer = new RabbitServer();
-
-            ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
-            var basicProperties = new FakeBasicProperties
-            {
-                Headers = new Dictionary<string, object>() { { "TestKey", "TestValue" } },
-                CorrelationId = Guid.NewGuid().ToString(),
-                ReplyTo = "TestQueue",
-                Timestamp = new AmqpTimestamp(123456),
-                ReplyToAddress = new PublicationAddress("exchangeType", "excahngeName", "routingKey"),
-                ClusterId = "1",
-                ContentEncoding = "encoding",
-                ContentType = "type",
-                DeliveryMode = 1,
-                Expiration = "none",
-                MessageId = "id",
-                Priority = 1,
-                Type = "type",
-                UserId = "1",
-                AppId = "1"
-            };
-
-            SendMessage(rabbitServer, "my_exchange", "hello_world", basicProperties);
-
-            var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using (var connection = connectionFactory.CreateConnection())
-            using (var channel = connection.CreateModel())
-            {
-                // First message
-                var message = channel.BasicGet("my_queue", autoAck: false);
-
-                Assert.NotNull(message);
-                var messageBody = Encoding.ASCII.GetString(message.Body.ToArray());
-
-                Assert.Equal("hello_world", messageBody);
-
-                var actualBasicProperties = message.BasicProperties;
-                actualBasicProperties.Should().BeEquivalentTo(basicProperties);
-
-                channel.BasicAck(message.DeliveryTag, multiple: false);
-            }
+            var messageBody = Encoding.ASCII.GetString(messageOut.Body.ToArray());
+            Assert.Equal("hello_world", messageBody);
+            channel.BasicAck(messageOut.DeliveryTag, multiple: false);
         }
 
-        [Fact]
-        public void QueueingConsumer_MessagesOnQueueBeforeConsumerIsCreated_ReceiveMessagesOnQueue()
-        {
-            var rabbitServer = new RabbitServer();
+        Assert.NotNull(messageOut);
+    }
 
-            ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
-            SendMessage(rabbitServer, "my_exchange", "hello_world");
+    private static void SendMessage(RabbitServer rabbitServer, string exchange, string message, IBasicProperties basicProperties = null)
+    {
+        var connectionFactory = new FakeConnectionFactory(rabbitServer);
 
-            var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using var connection = connectionFactory.CreateConnection();
-            using var channel = connection.CreateModel();
+        using var connection = connectionFactory.CreateConnection();
+        using var channel = connection.CreateModel();
 
-            var consumer = new QueueingBasicConsumer(channel);
-            channel.BasicConsume("my_queue", false, consumer);
+        var messageBody = Encoding.ASCII.GetBytes(message);
+        channel.BasicPublish(exchange: exchange, routingKey: null, mandatory: false, basicProperties: basicProperties, body: messageBody);
+    }
 
-            if (consumer.Queue.Dequeue(5000, out var messageOut))
-            {
-                var messageBody = Encoding.ASCII.GetString(messageOut.Body.ToArray());
-                Assert.Equal("hello_world", messageBody);
-                channel.BasicAck(messageOut.DeliveryTag, multiple: false);
-            }
+    private static void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)
+    {
+        var connectionFactory = new FakeConnectionFactory(rabbitServer);
+        using var connection = connectionFactory.CreateConnection();
+        using var channel = connection.CreateModel();
 
-            Assert.NotNull(messageOut);
-        }
+        channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+        channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Direct);
 
-        [Fact]
-        public void QueueingConsumer_MessagesSentAfterConsumerIsCreated_ReceiveMessagesOnQueue()
-        {
-            var rabbitServer = new RabbitServer();
-
-            ConfigureQueueBinding(rabbitServer, "my_exchange", "my_queue");
-           
-            var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using var connection = connectionFactory.CreateConnection();
-            using var channel = connection.CreateModel();
-            var consumer = new QueueingBasicConsumer(channel);
-            channel.BasicConsume("my_queue", false, consumer);
-
-            SendMessage(rabbitServer, "my_exchange", "hello_world");
-
-            if (consumer.Queue.Dequeue(5000, out var messageOut))
-            {
-                var messageBody = Encoding.ASCII.GetString(messageOut.Body.ToArray());
-                Assert.Equal("hello_world", messageBody);
-                channel.BasicAck(messageOut.DeliveryTag, multiple: false);
-            }
-
-            Assert.NotNull(messageOut);
-        }
-
-        private static void SendMessage(RabbitServer rabbitServer, string exchange, string message, IBasicProperties basicProperties = null)
-        {
-            var connectionFactory = new FakeConnectionFactory(rabbitServer);
-
-            using var connection = connectionFactory.CreateConnection();
-            using var channel = connection.CreateModel();
-
-            var messageBody = Encoding.ASCII.GetBytes(message);
-            channel.BasicPublish(exchange: exchange, routingKey: null, mandatory: false, basicProperties: basicProperties, body: messageBody);
-        }
-
-        private static void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)
-        {
-            var connectionFactory = new FakeConnectionFactory(rabbitServer);
-            using var connection = connectionFactory.CreateConnection();
-            using var channel = connection.CreateModel();
-
-            channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
-            channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Direct);
-
-            channel.QueueBind(queueName, exchangeName, null);
-        }
+        channel.QueueBind(queueName, exchangeName, null);
     }
 }

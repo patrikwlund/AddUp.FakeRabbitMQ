@@ -1,39 +1,38 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
-namespace AddUp.RabbitMQ.Fakes
+namespace AddUp.RabbitMQ.Fakes;
+
+[ExcludeFromCodeCoverage]
+public class FakeModelTxTests
 {
-    [ExcludeFromCodeCoverage]
-    public class FakeModelTxTests
+    [Fact]
+    public void TxSelect_does_nothing_because_it_is_not_implemented_yet()
     {
-        [Fact]
-        public void TxSelect_does_nothing_because_it_is_not_implemented_yet()
-        {
-            var server = new RabbitServer();
-            using (var model = new FakeModel(server))
-                model.TxSelect();
+        var server = new RabbitServer();
+        using (var model = new FakeModel(server))
+            model.TxSelect();
 
-            Assert.True(true);
-        }
+        Assert.True(true);
+    }
 
-        [Fact]
-        public void TxCommit_does_nothing_because_it_is_not_implemented_yet()
-        {
-            var server = new RabbitServer();
-            using (var model = new FakeModel(server))
-                model.TxCommit();
+    [Fact]
+    public void TxCommit_does_nothing_because_it_is_not_implemented_yet()
+    {
+        var server = new RabbitServer();
+        using (var model = new FakeModel(server))
+            model.TxCommit();
 
-            Assert.True(true);
-        }
+        Assert.True(true);
+    }
 
-        [Fact]
-        public void TxRollback_does_nothing_because_it_is_not_implemented_yet()
-        {
-            var server = new RabbitServer();
-            using (var model = new FakeModel(server))
-                model.TxRollback();
+    [Fact]
+    public void TxRollback_does_nothing_because_it_is_not_implemented_yet()
+    {
+        var server = new RabbitServer();
+        using (var model = new FakeModel(server))
+            model.TxRollback();
 
-            Assert.True(true);
-        }
+        Assert.True(true);
     }
 }

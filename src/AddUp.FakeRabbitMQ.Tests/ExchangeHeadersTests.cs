@@ -5,68 +5,67 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
 
-namespace AddUp.RabbitMQ.Fakes
+namespace AddUp.RabbitMQ.Fakes;
+
+[ExcludeFromCodeCoverage]
+public class ExchangeHeadersTests
 {
-    [ExcludeFromCodeCoverage]
-    public class ExchangeHeadersTests
+    [Theory]
+    [InlineData("routing-key", true)]
+    [InlineData("routing-key-2", true)]
+    [InlineData("", true)]
+    public void Publication_on_headers_is_always_consumed_because_it_is_not_implemented_yet(string routingKey, bool shouldBeOK)
     {
-        [Theory]
-        [InlineData("routing-key", true)]
-        [InlineData("routing-key-2", true)]
-        [InlineData("", true)]
-        public void Publication_on_headers_is_always_consumed_because_it_is_not_implemented_yet(string routingKey, bool shouldBeOK)
+        const string exchangeName = "my_exchange";
+        const string queueName = "my_queue";
+
+        var rabbitServer = new RabbitServer();
+        var connectionFactory = new FakeConnectionFactory(rabbitServer);
+
+        var ok = false;
+
+        // Consumer
+        using (var consumerConnection = connectionFactory.CreateConnection())
+        using (var consumerChannel = consumerConnection.CreateModel())
         {
-            const string exchangeName = "my_exchange";
-            const string queueName = "my_queue";
+            consumerChannel.QueueDeclare(queueName, false, false, false, null);
+            consumerChannel.ExchangeDeclare(exchangeName, ExchangeType.Headers);
+            consumerChannel.QueueBind(queueName, exchangeName, "whatever", null);
 
-            var rabbitServer = new RabbitServer();
-            var connectionFactory = new FakeConnectionFactory(rabbitServer);
-
-            var ok = false;
-
-            // Consumer
-            using (var consumerConnection = connectionFactory.CreateConnection())
-            using (var consumerChannel = consumerConnection.CreateModel())
+            var consumer = new EventingBasicConsumer(consumerChannel);
+            using (var messageProcessed = new ManualResetEventSlim(!shouldBeOK))
             {
-                consumerChannel.QueueDeclare(queueName, false, false, false, null);
-                consumerChannel.ExchangeDeclare(exchangeName, ExchangeType.Headers);
-                consumerChannel.QueueBind(queueName, exchangeName, "whatever", null);
-
-                var consumer = new EventingBasicConsumer(consumerChannel);
-                using (var messageProcessed = new ManualResetEventSlim(!shouldBeOK))
+                consumer.Received += (s, e) =>
                 {
-                    consumer.Received += (s, e) =>
-                    {
-                        var message = Encoding.ASCII.GetString(e.Body.ToArray());
-                        var exchange = e.Exchange;
+                    var message = Encoding.ASCII.GetString(e.Body.ToArray());
+                    var exchange = e.Exchange;
 
-                        Assert.Equal("hello world!", message);
-                        Assert.Equal(exchangeName, exchange);
+                    Assert.Equal("hello world!", message);
+                    Assert.Equal(exchangeName, exchange);
 
-                        ok = true;
-                        messageProcessed.Set();
-                    };
+                    ok = true;
+                    messageProcessed.Set();
+                };
 
-                    consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
+                consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
 
-                    // Publisher
-                    using (var publisherConnection = connectionFactory.CreateConnection())
-                    using (var publisherChannel = publisherConnection.CreateModel())
-                    {
-                        const string message = "hello world!";
-                        var messageBody = Encoding.ASCII.GetBytes(message);
-                        publisherChannel.BasicPublish(exchangeName, routingKey, false, null, messageBody);
-                    }
-
-                    messageProcessed.Wait();
+                // Publisher
+                using (var publisherConnection = connectionFactory.CreateConnection())
+                using (var publisherChannel = publisherConnection.CreateModel())
+                {
+                    const string message = "hello world!";
+                    var messageBody = Encoding.ASCII.GetBytes(message);
+                    publisherChannel.BasicPublish(exchangeName, routingKey, false, null, messageBody);
                 }
+
+                messageProcessed.Wait();
             }
-
-            Assert.Equal(ok, shouldBeOK);
-
-            var exchange = rabbitServer.Exchanges[exchangeName];
-            var expectedDroppedMessages = shouldBeOK ? 0 : 1;
-            Assert.Equal(expectedDroppedMessages, exchange.DroppedMessages.Count);
         }
+
+        Assert.Equal(ok, shouldBeOK);
+
+        var exchange = rabbitServer.Exchanges[exchangeName];
+        var expectedDroppedMessages = shouldBeOK ? 0 : 1;
+        Assert.Equal(expectedDroppedMessages, exchange.DroppedMessages.Count);
     }
 }
