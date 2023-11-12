@@ -4,6 +4,8 @@ namespace AddUp.RabbitMQ.Fakes
 {
     public sealed class RabbitMessage
     {
+        public RabbitMessage(ulong deliveryTag) => DeliveryTag = deliveryTag;
+
         public string Exchange { get; set; }
         public string RoutingKey { get; set; }
         public string Queue { get; set; }
@@ -11,7 +13,9 @@ namespace AddUp.RabbitMQ.Fakes
         public IBasicProperties BasicProperties { get; set; }
         public byte[] Body { get; set; }
 
-        public RabbitMessage Copy() => new RabbitMessage
+        internal ulong DeliveryTag { get; }
+
+        public RabbitMessage Copy() => new RabbitMessage(DeliveryTag)
         {
             Exchange = Exchange,
             RoutingKey = RoutingKey,
