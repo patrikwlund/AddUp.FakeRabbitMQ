@@ -46,6 +46,12 @@ Thanks to all the contributors:
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
 
+### [Version 2.8.0 - 2023/xx/xx](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.8.0)
+
+* Fixed [Issue #180](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/issues/180): Now non-AutoAck scenarios work better (not sure though if they are completely equivalent to what a real RabbitMQ instance would do).
+* Note that tyhis version might be _technically_ breaking as some `public` members are now either `internal` or implemented rather differently.
+  Anyway those are implementation details and should not be used from client code. I intend to internalize more implementation details in the future so as to not leak abstractions.
+
 ### [Version 2.7.0 - 2023/10/16](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.7.0)
 
 * Updated **RabbitMQ.Client** to version [6.6.0](https://github.com/rabbitmq/rabbitmq-dotnet-client/releases/tag/v6.6.0) thanks to [@marcusber](https://github.com/marcusber)'s [PR #174](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/pull/174)
