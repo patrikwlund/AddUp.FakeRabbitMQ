@@ -41,7 +41,7 @@ public class FakeModelBasicTests
                 var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
                 model.BasicAck(deliveryTag, false);
 
-                Assert.Empty(server.Queues["my_queue"].Messages);
+                Assert.False(server.Queues["my_queue"].HasMessages);
             }
         }
     }
@@ -252,7 +252,7 @@ public class FakeModelBasicTests
 
             _ = model.BasicGet("my_queue", autoAck);
 
-            Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
+            Assert.Equal(expectedMessageCount, server.Queues["my_queue"].MessageCount);
             Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
         }
     }
@@ -283,42 +283,40 @@ public class FakeModelBasicTests
                 var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
                 model.BasicNack(deliveryTag, false, requeue);
 
-                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
+                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].MessageCount);
                 Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
             }
         }
     }
 
     [Theory]
-    [InlineData(true, 1)] // If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit
     [InlineData(false, 0)] // If requeue param to BasicNack is false, the message that is nacked should be removed from Rabbit
+    [InlineData(true, 1)] // If requeue param to BasicNack is true, the message that is nacked should remain in Rabbit
     public void BasicReject_does_not_reenqueue_a_brand_new_message(bool requeue, int expectedMessageCount)
     {
         var server = new RabbitServer();
-        using (var model = new FakeModel(server))
-        {
-            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-            model.QueueDeclare("my_queue");
-            model.ExchangeBind("my_queue", "my_exchange", null);
+        using var model = new FakeModel(server);
 
-            var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
-            model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+        model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+        model.QueueDeclare("my_queue");
+        model.ExchangeBind("my_queue", "my_exchange", null);
 
-            var consumer = new EventingBasicConsumer(model);
-            using (var messageProcessed = new ManualResetEventSlim())
-            {
-                consumer.Received += (_, _) => messageProcessed.Set();
-                model.BasicConsume("my_queue", false, consumer);
-                Assert.True(consumer.IsRunning);
+        var encodedMessage = Encoding.ASCII.GetBytes("hello world!");
+        model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
-                messageProcessed.Wait();
-                var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
-                model.BasicReject(deliveryTag, requeue);
+        var consumer = new EventingBasicConsumer(model);
+        using var messageProcessed = new ManualResetEventSlim();
 
-                Assert.Equal(expectedMessageCount, server.Queues["my_queue"].Messages.Count);
-                Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
-            }
-        }
+        consumer.Received += (_, _) => messageProcessed.Set();
+        model.BasicConsume("my_queue", false, consumer);
+        Assert.True(consumer.IsRunning);
+
+        messageProcessed.Wait();
+        var deliveryTag = model.WorkingMessagesForUnitTests.First().Key;
+        model.BasicReject(deliveryTag, requeue);
+
+        Assert.Equal(expectedMessageCount, server.Queues["my_queue"].MessageCount);
+        Assert.Equal(expectedMessageCount, model.WorkingMessagesForUnitTests.Count);
     }
 
     [Fact]
@@ -336,8 +334,11 @@ public class FakeModelBasicTests
 
             model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
 
-            Assert.Single(server.Queues["my_queue"].Messages);
-            Assert.Equal(encodedMessage, server.Queues["my_queue"].Messages.First().Body);
+            Assert.Equal(1, server.Queues["my_queue"].MessageCount);
+            if (!server.Queues["my_queue"].TryPeekForUnitTests(out var peeked))
+                Assert.Fail("No message in queue");
+            else
+                Assert.Equal(encodedMessage, peeked.Body);
         }
     }
 
@@ -354,8 +355,11 @@ public class FakeModelBasicTests
 
             model.BasicPublish("", "my_queue", model.CreateBasicProperties(), encodedMessage);
 
-            Assert.Single(server.Queues["my_queue"].Messages);
-            Assert.Equal(encodedMessage, server.Queues["my_queue"].Messages.First().Body);
+            Assert.Equal(1, server.Queues["my_queue"].MessageCount);
+            if (!server.Queues["my_queue"].TryPeekForUnitTests(out var peeked))
+                Assert.Fail("No message in queue");
+            else
+                Assert.Equal(encodedMessage, peeked.Body);
         }
     }
 
@@ -505,10 +509,11 @@ public class FakeModelBasicTests
             batch.Add("my_exchange", null, true, model.CreateBasicProperties(), encodedMessages[1]);
             batch.Publish();
 
-            Assert.Equal(2, server.Queues["my_queue"].Messages.Count);
+            Assert.Equal(2, server.Queues["my_queue"].MessageCount);
 
             var index = 0;
-            foreach (var item in server.Queues["my_queue"].Messages)
+            var items = server.Queues["my_queue"].GetAllMessagesForUnitTests();
+            foreach (var item in items)
             {
                 Assert.Equal(encodedMessages[index].ToArray(), item.Body);
                 index++;

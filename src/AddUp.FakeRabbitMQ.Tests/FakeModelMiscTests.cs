@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -56,43 +57,89 @@ public class FakeModelMiscTests
     public void MessageCount_returns_the_number_of_non_consumed_messages_in_the_queue()
     {
         var server = new RabbitServer();
-        using (var model = new FakeModel(server))
+        using var model = new FakeModel(server);
+
+        const string queueName = "myQueue";
+        model.QueueDeclare(queueName);
+        model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+        model.ExchangeBind(queueName, "my_exchange", null);
+
+        for (var i = 0; i < 10; i++)
         {
-            const string queueName = "myQueue";
-            model.QueueDeclare(queueName);
-            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-            model.ExchangeBind(queueName, "my_exchange", null);
+            var message = $"hello world: {i}";
+            var encodedMessage = Encoding.ASCII.GetBytes(message);
+            model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+        }
 
-            for (var i = 0; i < 10; i++)
+        // Consume 4 messages
+        const string consumerTag = "consumer-tag";
+        var consumer = new EventingBasicConsumer(model);
+        var consumptionCount = 0;
+        using var messagesProcessed = new ManualResetEventSlim();
+
+        consumer.Received += (s, e) =>
+        {
+            consumptionCount++;
+            if (consumptionCount > 4) return;
+
+            model.BasicAck(e.DeliveryTag, false);
+            if (consumptionCount == 4)
+                messagesProcessed.Set();
+        };
+
+        model.BasicConsume(queueName, false, consumerTag, consumer);
+
+        messagesProcessed.Wait();
+        Assert.Equal(6u, model.MessageCount(queueName));
+    }
+
+    [Fact]
+    public async Task MessageCount_returns_the_number_of_non_consumed_messages_in_the_queue_autoAck_mode()
+    {
+        var server = new RabbitServer();
+        using var model = new FakeModel(server);
+
+        const string queueName = "myQueue";
+        model.QueueDeclare(queueName);
+        model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
+        model.ExchangeBind(queueName, "my_exchange", null);
+
+        void publishMessages(int startIndex, int count)
+        {
+            for (var i = startIndex; i < startIndex + count; i++)
             {
-
                 var message = $"hello world: {i}";
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
                 model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
             }
-
-            // Consume 4 messages
-            var consumer = new EventingBasicConsumer(model);
-            var consumptionCount = 0;
-            using (var messagesProcessed = new ManualResetEventSlim())
-            {
-                consumer.Received += (s, e) =>
-                {
-                    if (consumptionCount >= 4)
-                    {
-                        messagesProcessed.Set();
-                        return;
-                    }
-
-                    model.BasicAck(e.DeliveryTag, false);
-                    consumptionCount++;
-                };
-
-                model.BasicConsume(queueName, true, consumer);
-                messagesProcessed.Wait();
-                Assert.Equal(6u, model.MessageCount(queueName));
-            }
         }
+
+        publishMessages(0, 4);
+
+        // Consume 4 messages
+        const string consumerTag = "consumer-tag";
+        var consumer = new EventingBasicConsumer(model);
+        var consumptionCount = 0;
+        using var messagesProcessed = new ManualResetEventSlim();
+
+        void consume(object sender, BasicDeliverEventArgs e)
+        {
+            consumptionCount++;
+            if (consumptionCount >= 4)
+                messagesProcessed.Set();
+        }
+
+        consumer.Received += consume;
+
+        model.BasicConsume(queueName, true, consumerTag, consumer);
+        messagesProcessed.Wait();
+        model.BasicCancel(consumerTag);
+
+        publishMessages(4, 6); // Publish another 6 messages
+        await Task.Delay(1000); // They will never be consumed
+
+        Assert.Equal(4, consumptionCount);
+        Assert.Equal(6u, model.MessageCount(queueName));
     }
 
     [Fact]

@@ -48,9 +48,9 @@ public sealed class BasicAckSemanticTests : IDisposable
 
         // setup a basic consumer that stores delivery tags to the deliveryTags list
         var consumer = new EventingBasicConsumer(model);
-        consumer.Received += (_, args) =>
+        consumer.Received += (_, e) =>
         {
-            deliveryTags.Add(args.DeliveryTag);
+            deliveryTags.Add(e.DeliveryTag);
             if (deliveryTags.Count == 2)
                 allMessagesDelivered.Set();
         };
@@ -68,10 +68,10 @@ public sealed class BasicAckSemanticTests : IDisposable
         model.BasicAck(deliveryTags[1], false);
 
         // asserts that only one message is still queued
-        Assert.True(rabbitServer.Queues[queueName].Messages.Count == 1, "Only one message is still queued");
+        Assert.True(rabbitServer.Queues[queueName].MessageCount == 1, "Only one message is still queued");
 
         // asserts that the remaining message in queue is the first one, since we acked the second
-        rabbitServer.Queues[queueName].Messages.TryPeek(out var pendingMessage);
+        rabbitServer.Queues[queueName].TryPeekForUnitTests(out var pendingMessage);
         Assert.True(Encoding.UTF8.GetString(pendingMessage.Body) == "first", "The remaining message in queue is the first one");
     }
 
@@ -83,9 +83,9 @@ public sealed class BasicAckSemanticTests : IDisposable
 
         // setup a basic consumer that stores delivery tags to the deliveryTags list
         var consumer = new EventingBasicConsumer(model);
-        consumer.Received += (_, args) =>
+        consumer.Received += (_, e) =>
         {
-            deliveryTags.Add(args.DeliveryTag);
+            deliveryTags.Add(e.DeliveryTag);
             if (deliveryTags.Count == 2)
                 allMessagesDelivered.Set();
         };
@@ -103,6 +103,34 @@ public sealed class BasicAckSemanticTests : IDisposable
         model.BasicAck(deliveryTags[1], true);
 
         // asserts queue is empty
-        Assert.Empty(rabbitServer.Queues[queueName].Messages);
+        Assert.False(rabbitServer.Queues[queueName].HasMessages);
+    }
+
+    [Fact]
+    public void AutoAck_is_honored_by_BasicConsume()
+    {
+        using var allMessagesDelivered = new ManualResetEventSlim();
+        var deliveryTags = new List<ulong>();
+
+        // setup a basic consumer that stores delivery tags to the deliveryTags list
+        var consumer = new EventingBasicConsumer(model);
+        consumer.Received += (_, e) =>
+        {
+            deliveryTags.Add(e.DeliveryTag);
+            if (deliveryTags.Count == 2)
+                allMessagesDelivered.Set();
+        };
+
+        model.BasicConsume(queueName, true, consumer);
+
+        // publish two messages
+        model.BasicPublish(exchange, routingKey, true, null, Encoding.UTF8.GetBytes("first"));
+        model.BasicPublish(exchange, routingKey, true, null, Encoding.UTF8.GetBytes("second"));
+
+        // wait for both messages to be delivered
+        allMessagesDelivered.Wait(timeout * 1000000);
+
+        // asserts queue is empty
+        Assert.False(rabbitServer.Queues[queueName].HasMessages);
     }
 }

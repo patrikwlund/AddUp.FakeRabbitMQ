@@ -42,7 +42,7 @@ public class SendMessages
             channel.BasicPublish(exchange: "my_exchange", routingKey: null, mandatory: false, basicProperties: null, body: messageBody);
         }
 
-        Assert.Single(rabbitServer.Queues["some_queue"].Messages);
+        Assert.Equal(1, rabbitServer.Queues["some_queue"].MessageCount);
     }
 
     [Fact]
@@ -62,8 +62,8 @@ public class SendMessages
             channel.BasicPublish(exchange: "my_exchange", routingKey: null, mandatory: false, basicProperties: null, body: messageBody);
         }
 
-        Assert.Single(rabbitServer.Queues["some_queue"].Messages);
-        Assert.Single(rabbitServer.Queues["some_other_queue"].Messages);
+        Assert.Equal(1, rabbitServer.Queues["some_queue"].MessageCount);
+        Assert.Equal(1, rabbitServer.Queues["some_other_queue"].MessageCount);
     }
 
     [Fact]
@@ -97,8 +97,8 @@ public class SendMessages
 
         Assert.Equal(2, rabbitServer.Exchanges["my_exchange"].Messages.Count);
         Assert.Single(rabbitServer.Exchanges["my_alternate_exchange"].Messages);
-        Assert.Single(rabbitServer.Queues["fallback_queue"].Messages);
-        Assert.Single(rabbitServer.Queues["main_queue"].Messages);
+        Assert.Equal(1, rabbitServer.Queues["fallback_queue"].MessageCount);
+        Assert.Equal(1, rabbitServer.Queues["main_queue"].MessageCount);
     }
 
     private static void ConfigureQueueBinding(RabbitServer rabbitServer, string exchangeName, string queueName)

@@ -53,14 +53,61 @@ namespace AddUp.RabbitMQ.Fakes
 
         public void BasicAck(ulong deliveryTag, bool multiple)
         {
-            _ = workingMessages.TryRemove(deliveryTag, out var message);
-            if (message != null)
+            void ack(ulong dtag)
             {
+                _ = workingMessages.TryRemove(dtag, out var message);
+                if (message == null) return;
+
                 _ = server.Queues.TryGetValue(message.Queue, out var queue);
-                if (queue != null)
-                    _ = queue.Messages.TryDequeue(out _);
+                if (queue == null) return;
+
+                queue.Ack(dtag);
             }
+
+            if (multiple)
+            {
+                var dtag = deliveryTag;
+                while (dtag > 0)
+                {
+                    ack(dtag);
+                    dtag--;
+                }
+            }
+            else ack(deliveryTag);
         }
+
+        public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
+        {
+            void nack(ulong dtag)
+            {
+                RabbitMessage message;
+                if (requeue)
+                    _ = workingMessages.TryGetValue(dtag, out message);
+                else
+                    _ = workingMessages.TryRemove(dtag, out message);
+
+                if (message == null) return;
+
+                _ = server.Queues.TryGetValue(message.Queue, out var queue);
+                if (queue == null) return;
+
+                if (!requeue) queue.Ack(deliveryTag);
+            }
+
+            if (multiple)
+            {
+                var dtag = deliveryTag;
+                while (dtag > 0)
+                {
+                    nack(dtag);
+                    dtag--;
+                }
+            }
+            else nack(deliveryTag);
+        }
+
+        // BasicReject is simply BasicNack with no possibility for multiple rejections
+        public void BasicReject(ulong deliveryTag, bool requeue) => BasicNack(deliveryTag, false, requeue);
 
         public void BasicCancel(string consumerTag)
         {
@@ -87,9 +134,8 @@ namespace AddUp.RabbitMQ.Fakes
         {
             void notifyConsumerOfMessage(RabbitMessage message)
             {
-                _ = Interlocked.Increment(ref lastDeliveryTag);
+                var deliveryTag = message.DeliveryTag;
 
-                var deliveryTag = Convert.ToUInt64(lastDeliveryTag);
                 const bool redelivered = false;
                 var exchange = message.Exchange;
                 var routingKey = message.RoutingKey;
@@ -109,6 +155,9 @@ namespace AddUp.RabbitMQ.Fakes
                         .GetResult();
                 else consumer
                         .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
+
+                if (autoAck)
+                    BasicAck(deliveryTag, false);
             }
 
             // Deliberately check for empty string here, latest RabbitMQ client accepts ""
@@ -136,7 +185,7 @@ namespace AddUp.RabbitMQ.Fakes
                         new ShutdownEventArgs(ShutdownInitiator.Peer, 530, $"NOT_ALLOWED - attempt to reuse consumer tag '{s}'"));
                 _ = consumers.AddOrUpdate(consumerTag, consumerData, updateFunction);
 
-                foreach (var message in queueInstance.Messages)
+                foreach (var message in queueInstance.GetMessages())
                     consumerData.QueueMessagePublished(this, message);
 
                 queueInstance.MessagePublished += consumerData.QueueMessagePublished;
@@ -155,18 +204,15 @@ namespace AddUp.RabbitMQ.Fakes
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance == null) return null;
 
-            _ = autoAck ?
-                queueInstance.Messages.TryDequeue(out var message) :
-                queueInstance.Messages.TryPeek(out message);
-
+            queueInstance.TryGet(out var message, autoAck);
             if (message == null) return null;
 
-            _ = Interlocked.Increment(ref lastDeliveryTag);
-            var deliveryTag = Convert.ToUInt64(lastDeliveryTag);
+            var deliveryTag = message.DeliveryTag;
+
             const bool redelivered = false;
             var exchange = message.Exchange;
             var routingKey = message.RoutingKey;
-            var messageCount = Convert.ToUInt32(queueInstance.Messages.Count);
+            var messageCount = Convert.ToUInt32(queueInstance.MessageCount);
             var basicProperties = message.BasicProperties ?? CreateBasicProperties();
             var body = message.Body;
 
@@ -181,29 +227,13 @@ namespace AddUp.RabbitMQ.Fakes
             return new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body);
         }
 
-        public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
-        {
-            if (requeue) return;
-
-            foreach (var queue in workingMessages.Select(m => m.Value.Queue))
-            {
-                _ = server.Queues.TryGetValue(queue, out var queueInstance);
-                queueInstance?.ClearMessages();
-            }
-
-            _ = workingMessages.TryRemove(deliveryTag, out var message);
-            if (message == null) return;
-
-            foreach (var workingMessage in workingMessages.Select(m => m.Value))
-            {
-                _ = server.Queues.TryGetValue(workingMessage.Queue, out var queueInstance);
-                queueInstance?.PublishMessage(workingMessage);
-            }
-        }
-
         public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, ReadOnlyMemory<byte> body)
         {
-            var parameters = new RabbitMessage
+            // Let's create the delivery tag as soon as publishing so that we can find it in the queues later on
+            _ = Interlocked.Increment(ref lastDeliveryTag);
+            var deliveryTag = Convert.ToUInt64(lastDeliveryTag);
+
+            var message = new RabbitMessage(deliveryTag)
             {
                 Exchange = exchange,
                 RoutingKey = routingKey,
@@ -222,13 +252,13 @@ namespace AddUp.RabbitMQ.Fakes
                     IsDurable = false
                 };
 
-                newExchange.PublishMessage(parameters);
+                newExchange.PublishMessage(message);
                 return newExchange;
             }
 
             RabbitExchange updateExchange(string s, RabbitExchange existingExchange)
             {
-                existingExchange.PublishMessage(parameters);
+                existingExchange.PublishMessage(message);
                 return existingExchange;
             }
 
@@ -258,9 +288,6 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
         public void BasicRecoverAsync(bool requeue) => BasicRecover(requeue);
-
-        public void BasicReject(ulong deliveryTag, bool requeue) =>
-            BasicNack(deliveryTag, false, requeue);
 
         public void Close() => Close(200, "Goodbye");
         public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
@@ -414,8 +441,8 @@ namespace AddUp.RabbitMQ.Fakes
         {
             if (server.Queues.TryGetValue(queue, out var rabbitQueue))
             {
-                var result = new QueueDeclareOk(queue, 
-                    (uint)unchecked(rabbitQueue.Messages.Count), 
+                var result = new QueueDeclareOk(queue,
+                    (uint)unchecked(rabbitQueue.MessageCount),
                     (uint)unchecked(rabbitQueue.ConsumerCount));
 
                 CurrentQueue = result.QueueName;
@@ -445,14 +472,7 @@ namespace AddUp.RabbitMQ.Fakes
             if (instance == null)
                 return 0u;
 
-            var count = 0u;
-            while (!instance.Messages.IsEmpty)
-            {
-                _ = instance.Messages.TryDequeue(out _);
-                count++;
-            }
-
-            return count;
+            return instance.ClearMessages();
         }
 
         public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) =>

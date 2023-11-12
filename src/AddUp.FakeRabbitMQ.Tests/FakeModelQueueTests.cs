@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
 using Xunit;
@@ -10,6 +12,8 @@ namespace AddUp.RabbitMQ.Fakes;
 [ExcludeFromCodeCoverage]
 public class FakeModelQueueTests
 {
+    private long lastDeliveryTag; // USed to simulate generation of the delivery tag by FakeModel
+
     [Fact]
     public void QueueBind_binds_an_exchange_to_a_queue()
     {
@@ -202,20 +206,20 @@ public class FakeModelQueueTests
         using (var model = new FakeModel(node))
         {
             model.QueueDeclare("my_other_queue");
-            node.Queues["my_other_queue"].Messages.Enqueue(new RabbitMessage());
-            node.Queues["my_other_queue"].Messages.Enqueue(new RabbitMessage());
+            node.Queues["my_other_queue"].Enqueue(MakeRabbitMessage());
+            node.Queues["my_other_queue"].Enqueue(MakeRabbitMessage());
 
             model.QueueDeclare("my_queue");
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
 
             var count = model.QueuePurge("my_queue");
             Assert.Equal(4u, count);
 
-            Assert.True(node.Queues["my_queue"].Messages.IsEmpty);
-            Assert.False(node.Queues["my_other_queue"].Messages.IsEmpty);
+            Assert.False(node.Queues["my_queue"].HasMessages);
+            Assert.True(node.Queues["my_other_queue"].HasMessages);
         }
     }
 
@@ -226,15 +230,22 @@ public class FakeModelQueueTests
         using (var model = new FakeModel(node))
         {
             model.QueueDeclare("my_queue");
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
-            node.Queues["my_queue"].Messages.Enqueue(new RabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
+            node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
 
             var count = model.QueuePurge("my_other_queue");
             Assert.Equal(0u, count);
 
-            Assert.False(node.Queues["my_queue"].Messages.IsEmpty);
+            Assert.True(node.Queues["my_queue"].HasMessages);
         }
+    }
+
+    private RabbitMessage MakeRabbitMessage()
+    {
+        _ = Interlocked.Increment(ref lastDeliveryTag);
+        var deliveryTag = Convert.ToUInt64(lastDeliveryTag);
+        return new(deliveryTag);
     }
 }
