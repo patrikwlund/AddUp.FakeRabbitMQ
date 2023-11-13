@@ -46,11 +46,14 @@ Thanks to all the contributors:
 >
 > Versions 2.x are based on [RabbitMQ .NET client Version 6.x](https://www.nuget.org/packages/RabbitMQ.Client/6.2.4)
 
-### [Version 2.8.0 - 2023/xx/xx](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.8.0)
+### [Version 2.8.0 - 2023/11/13](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.8.0)
 
-* Fixed [Issue #180](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/issues/180): Now non-AutoAck scenarios work better (not sure though if they are completely equivalent to what a real RabbitMQ instance would do).
-* Note that tyhis version might be _technically_ breaking as some `public` members are now either `internal` or implemented rather differently.
+* Fixed [Issue #180](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/issues/180): Now non-AutoAck scenarios work better (not sure though if they are completely equivalent to what a real RabbitMQ instance would do). Thanks to [@manuelspezzani](https://github.com/manuelspezzani) for providing repro unit tests.
+
+> Note that this version might be _technically_ breaking as some `public` members are now either `internal` or implemented rather differently.
   Anyway those are implementation details and should not be used from client code. I intend to internalize more implementation details in the future so as to not leak abstractions.
+
+> Also note that this is far from being bulletproof: The unit tests associated with issue [#180](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/issues/180) pass, but there are still many scenarios that do not work the same as with a real RabbitMQ server (for example, do not try to requeue a `nacked` message, it won't work).
 
 ### [Version 2.7.0 - 2023/10/16](https://github.com/addupsolutions/AddUp.FakeRabbitMQ/releases/tag/v2.7.0)
 
