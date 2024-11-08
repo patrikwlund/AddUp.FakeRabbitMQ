@@ -13,7 +13,7 @@ internal sealed class MockBus : IBus
     public bool IsConnected => bus.IsConnected;
 
     public IBus Connect(bool forceReconnection) => bus.Connect(forceReconnection);
-    public IModel CreateChannel() => bus.CreateChannel();
+    public IChannel CreateChannel() => bus.CreateChannel();
     public void Disconnect() => bus.Disconnect();
     public void Dispose() => bus.Dispose();
 }    

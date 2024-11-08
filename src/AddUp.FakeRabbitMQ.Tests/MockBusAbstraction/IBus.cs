@@ -14,7 +14,7 @@ internal interface IBus : IDisposable
 
     IBus Connect(bool forceReconnection);
     void Disconnect();
-    IModel CreateChannel();
+    IChannel CreateChannel();
 }
 
 [ExcludeFromCodeCoverage]

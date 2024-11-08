@@ -17,80 +17,80 @@ public class FakeModelMiscTests
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
-            var result = model.CreateBasicProperties();
+            var result = new BasicProperties();
             Assert.NotNull(result);
         }
     }
 
     [Fact]
-    public void MessageCount_is_zero_when_queue_is_just_created()
+    public async Task MessageCount_is_zero_when_queue_is_just_created()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string queueName = "myQueue";
-            model.QueueDeclare(queueName);
-            Assert.Equal(0u, model.MessageCount(queueName));
+            await model.QueueDeclareAsync(queueName);
+            Assert.Equal(0u, await model.MessageCountAsync(queueName));
         }
     }
 
     [Fact]
-    public void MessageCount_returns_the_number_of_messages_in_the_queue()
+    public async Task MessageCount_returns_the_number_of_messages_in_the_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string queueName = "myQueue";
-            model.QueueDeclare(queueName);
-            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-            model.ExchangeBind(queueName, "my_exchange", null);
+            await model.QueueDeclareAsync(queueName);
+            await model.ExchangeDeclareAsync("my_exchange", ExchangeType.Direct);
+            await model.ExchangeBindAsync(queueName, "my_exchange", null);
 
             var message = "hello world!";
             var encodedMessage = Encoding.ASCII.GetBytes(message);
-            model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+            await model.BasicPublishAsync("my_exchange", null, encodedMessage);
 
-            Assert.Equal(1u, model.MessageCount(queueName));
+            Assert.Equal(1u, await model.MessageCountAsync(queueName));
         }
     }
 
     [Fact]
-    public void MessageCount_returns_the_number_of_non_consumed_messages_in_the_queue()
+    public async Task MessageCount_returns_the_number_of_non_consumed_messages_in_the_queue()
     {
         var server = new RabbitServer();
         using var model = new FakeModel(server);
 
         const string queueName = "myQueue";
-        model.QueueDeclare(queueName);
-        model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-        model.ExchangeBind(queueName, "my_exchange", null);
+        await model.QueueDeclareAsync(queueName);
+        await model.ExchangeDeclareAsync("my_exchange", ExchangeType.Direct);
+        await model.ExchangeBindAsync(queueName, "my_exchange", null);
 
         for (var i = 0; i < 10; i++)
         {
             var message = $"hello world: {i}";
             var encodedMessage = Encoding.ASCII.GetBytes(message);
-            model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+            await model.BasicPublishAsync("my_exchange", null, encodedMessage);
         }
 
         // Consume 4 messages
         const string consumerTag = "consumer-tag";
-        var consumer = new EventingBasicConsumer(model);
+        var consumer = new AsyncEventingBasicConsumer(model);
         var consumptionCount = 0;
         using var messagesProcessed = new ManualResetEventSlim();
 
-        consumer.Received += (s, e) =>
+        consumer.ReceivedAsync += async (s, e) =>
         {
             consumptionCount++;
             if (consumptionCount > 4) return;
 
-            model.BasicAck(e.DeliveryTag, false);
+            await model.BasicAckAsync(e.DeliveryTag, false);
             if (consumptionCount == 4)
                 messagesProcessed.Set();
         };
 
-        model.BasicConsume(queueName, false, consumerTag, consumer);
+        await model.BasicConsumeAsync(queueName, false, consumerTag, consumer);
 
         messagesProcessed.Wait();
-        Assert.Equal(6u, model.MessageCount(queueName));
+        Assert.Equal(6u, await model.MessageCountAsync(queueName));
     }
 
     [Fact]
@@ -100,76 +100,78 @@ public class FakeModelMiscTests
         using var model = new FakeModel(server);
 
         const string queueName = "myQueue";
-        model.QueueDeclare(queueName);
-        model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-        model.ExchangeBind(queueName, "my_exchange", null);
+        await model.QueueDeclareAsync(queueName);
+        await model.ExchangeDeclareAsync("my_exchange", ExchangeType.Direct);
+        await model.ExchangeBindAsync(queueName, "my_exchange", null);
 
-        void publishMessages(int startIndex, int count)
+        async Task publishMessages(int startIndex, int count)
         {
             for (var i = startIndex; i < startIndex + count; i++)
             {
                 var message = $"hello world: {i}";
                 var encodedMessage = Encoding.ASCII.GetBytes(message);
-                model.BasicPublish("my_exchange", null, model.CreateBasicProperties(), encodedMessage);
+                await model.BasicPublishAsync("my_exchange", null, encodedMessage);
             }
         }
 
-        publishMessages(0, 4);
+        await publishMessages(0, 4);
 
         // Consume 4 messages
         const string consumerTag = "consumer-tag";
-        var consumer = new EventingBasicConsumer(model);
+        var consumer = new AsyncEventingBasicConsumer(model);
         var consumptionCount = 0;
         using var messagesProcessed = new ManualResetEventSlim();
 
-        void consume(object sender, BasicDeliverEventArgs e)
+        Task consume(object sender, BasicDeliverEventArgs e)
         {
             consumptionCount++;
             if (consumptionCount >= 4)
                 messagesProcessed.Set();
+
+            return Task.CompletedTask;
         }
 
-        consumer.Received += consume;
+        consumer.ReceivedAsync += consume;
 
-        model.BasicConsume(queueName, true, consumerTag, consumer);
+        await model.BasicConsumeAsync(queueName, true, consumerTag, consumer);
         messagesProcessed.Wait();
-        model.BasicCancel(consumerTag);
+        await model.BasicCancelAsync(consumerTag);
 
-        publishMessages(4, 6); // Publish another 6 messages
+        await publishMessages(4, 6); // Publish another 6 messages
         await Task.Delay(1000); // They will never be consumed
 
         Assert.Equal(4, consumptionCount);
-        Assert.Equal(6u, model.MessageCount(queueName));
+        Assert.Equal(6u, await model.MessageCountAsync(queueName));
     }
 
     [Fact]
-    public void ConsumerCount_is_zero_when_queue_is_just_created()
+    public async Task ConsumerCount_is_zero_when_queue_is_just_created()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string queueName = "myQueue";
-            model.QueueDeclare(queueName);
-            Assert.Equal(0u, model.ConsumerCount(queueName));
+            await model.QueueDeclareAsync(queueName);
+            Assert.Equal(0u, await model.ConsumerCountAsync(queueName));
         }
     }
 
     [Fact]
-    public void ConsumerCount_returns_the_number_of_attached_consumers()
+    public async Task ConsumerCount_returns_the_number_of_attached_consumers()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string queueName = "myQueue";
-            model.QueueDeclare(queueName);
-            model.ExchangeDeclare("my_exchange", ExchangeType.Direct);
-            model.ExchangeBind(queueName, "my_exchange", null);
+            await model.QueueDeclareAsync(queueName);
+            await model.ExchangeDeclareAsync("my_exchange", ExchangeType.Direct);
+            await model.ExchangeBindAsync(queueName, "my_exchange", null);
 
             // Attach 2 consumers
-            model.BasicConsume(queueName, true, new DefaultBasicConsumer(model));
-            model.BasicConsume(queueName, true, new DefaultBasicConsumer(model));
+            await model.BasicConsumeAsync(queueName, true, new AsyncDefaultBasicConsumer(model));
+            await model.BasicConsumeAsync(queueName, true, new AsyncDefaultBasicConsumer(model));
 
-            Assert.Equal(2u, model.ConsumerCount(queueName));
+            Assert.Equal(2u, await model.ConsumerCountAsync(queueName));
         }
     }
 }

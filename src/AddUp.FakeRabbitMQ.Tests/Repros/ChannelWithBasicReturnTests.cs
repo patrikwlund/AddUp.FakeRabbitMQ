@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using RabbitMQ.Client;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Xunit;
 
@@ -9,19 +10,19 @@ public class ChannelWithBasicReturnTests
 {
     // This ensures issue #5 is fixed
     [Fact]
-    public void A_Channel_with_its_BasicReturn_event_bound_should_not_throw()
+    public async Task A_Channel_with_its_BasicReturn_event_bound_should_not_throw()
     {
         var rabbitServer = new RabbitServer();
         var connectionFactory = new FakeConnectionFactory(rabbitServer);
 
-        using var publisherConnection = connectionFactory.CreateConnection();
-        using var publisherChannel = publisherConnection.CreateModel();
+        using var publisherConnection = await connectionFactory.CreateConnectionAsync();
+        using var publisherChannel = await publisherConnection.CreateChannelAsync();
 
-        publisherChannel.BasicReturn += (s, e) => _ = 42;
+        publisherChannel.BasicReturnAsync += (s, e) => Task.CompletedTask;
 
         const string message = "hello world!";
         var messageBody = Encoding.ASCII.GetBytes(message);
-        publisherChannel.BasicPublish("test_exchange", "foo.bar.baz", false, null, messageBody);
+        await publisherChannel.BasicPublishAsync("test_exchange", "foo.bar.baz", false, messageBody);
 
         Assert.True(true); // If we didn't throw, we reached this point.
     }

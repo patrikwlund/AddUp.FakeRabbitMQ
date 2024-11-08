@@ -10,7 +10,7 @@ namespace AddUp.RabbitMQ.Fakes
         public string RoutingKey { get; set; }
         public string Queue { get; set; }
         public bool Mandatory { get; set; }
-        public IBasicProperties BasicProperties { get; set; }
+        public IReadOnlyBasicProperties BasicProperties { get; set; }
         public byte[] Body { get; set; }
 
         internal ulong DeliveryTag { get; }

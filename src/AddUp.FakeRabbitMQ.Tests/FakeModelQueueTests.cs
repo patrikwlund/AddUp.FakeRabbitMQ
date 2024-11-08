@@ -15,7 +15,7 @@ public class FakeModelQueueTests
     private long lastDeliveryTag; // USed to simulate generation of the delivery tag by FakeModel
 
     [Fact]
-    public void QueueBind_binds_an_exchange_to_a_queue()
+    public async Task QueueBind_binds_an_exchange_to_a_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -25,16 +25,16 @@ public class FakeModelQueueTests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName, "direct");
-            model.QueueDeclare(queueName);
-            model.QueueBind(queueName, exchangeName, routingKey, arguments);
+            await model.ExchangeDeclareAsync(exchangeName, "direct");
+            await model.QueueDeclareAsync(queueName);
+            await model.QueueBindAsync(queueName, exchangeName, routingKey, arguments);
 
             AssertEx.AssertBinding(server, exchangeName, routingKey, queueName);
         }
     }
 
     [Fact]
-    public void QueueBindNoWait_binds_an_exchange_to_a_queue()
+    public async Task QueueBindNoWait_binds_an_exchange_to_a_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -44,16 +44,16 @@ public class FakeModelQueueTests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName, "direct");
-            model.QueueDeclare(queueName);
-            model.QueueBindNoWait(queueName, exchangeName, routingKey, arguments);
+            await model.ExchangeDeclareAsync(exchangeName, "direct");
+            await model.QueueDeclareAsync(queueName);
+            await model.QueueBindAsync(queueName, exchangeName, routingKey, arguments, noWait: true);
 
             AssertEx.AssertBinding(server, exchangeName, routingKey, queueName);
         }
     }
 
     [Fact]
-    public void QueueUnbind_removes_binding()
+    public async Task QueueUnbind_removes_binding()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -63,10 +63,10 @@ public class FakeModelQueueTests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName, "direct");
-            model.QueueDeclare(queueName);
-            model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
-            model.QueueUnbind(queueName, exchangeName, routingKey, arguments);
+            await model.ExchangeDeclareAsync(exchangeName, "direct");
+            await model.QueueDeclareAsync(queueName);
+            await model.ExchangeBindAsync(exchangeName, queueName, routingKey, arguments);
+            await model.QueueUnbindAsync(queueName, exchangeName, routingKey, arguments);
 
             Assert.True(server.Exchanges[exchangeName].Bindings.IsEmpty);
             Assert.Single(server.Queues[queueName].Bindings);
@@ -74,43 +74,43 @@ public class FakeModelQueueTests
     }
 
     [Fact]
-    public void QueueDeclare_without_arguments_creates_a_queue()
+    public async Task QueueDeclare_without_arguments_creates_a_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
-            model.QueueDeclare();
+            await model.QueueDeclareAsync();
             Assert.Single(server.Queues);
         }
     }
 
     [Fact]
-    public void QueueDeclarePassive_does_not_throw_if_queue_exists()
+    public async Task QueueDeclarePassive_does_not_throw_if_queue_exists()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string queueName = "myQueue";
-            model.QueueDeclare(queueName);
-            model.QueueDeclarePassive(queueName);
+            await model.QueueDeclareAsync(queueName);
+            await model.QueueDeclarePassiveAsync(queueName);
         }
 
         Assert.True(true); // The test is successful if it does not throw
     }
 
     [Fact]
-    public void QueueDeclarePassive_throws_if_queue_does_not_exist()
+    public async Task QueueDeclarePassive_throws_if_queue_does_not_exist()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string queueName = "myQueue";
-            Assert.Throws<OperationInterruptedException>(() => model.QueueDeclarePassive(queueName));
+            await Assert.ThrowsAsync<OperationInterruptedException>(() => model.QueueDeclarePassiveAsync(queueName));
         }
     }
 
     [Fact]
-    public void QueueDeclare_creates_a_queue()
+    public async Task QueueDeclare_creates_a_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -121,7 +121,7 @@ public class FakeModelQueueTests
             const bool isAutoDelete = false;
             var arguments = new Dictionary<string, object>();
 
-            model.QueueDeclare(queue: queueName, durable: isDurable, exclusive: isExclusive, autoDelete: isAutoDelete, arguments: arguments);
+            await model.QueueDeclareAsync(queue: queueName, durable: isDurable, exclusive: isExclusive, autoDelete: isAutoDelete, arguments: arguments);
             Assert.Single(server.Queues);
 
             var queue = server.Queues.First();
@@ -130,7 +130,7 @@ public class FakeModelQueueTests
     }
 
     [Fact]
-    public void QueueDeclareoWait_creates_a_queue()
+    public async Task QueueDeclareoWait_creates_a_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -141,7 +141,7 @@ public class FakeModelQueueTests
             const bool isAutoDelete = false;
             var arguments = new Dictionary<string, object>();
 
-            model.QueueDeclareNoWait(queue: queueName, durable: isDurable, exclusive: isExclusive, autoDelete: isAutoDelete, arguments: arguments);
+            await model.QueueDeclareAsync(queue: queueName, durable: isDurable, exclusive: isExclusive, autoDelete: isAutoDelete, arguments: arguments, noWait: true);
             Assert.Single(server.Queues);
 
             var queue = server.Queues.First();
@@ -150,72 +150,72 @@ public class FakeModelQueueTests
     }
 
     [Fact]
-    public void QueueDelete_with_onlyèname_argument_deletes_the_queue()
+    public async Task QueueDelete_with_onlyèname_argument_deletes_the_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string queueName = "someName";
-            model.QueueDeclare(queueName, true, true, true, null);
-            model.QueueDelete(queueName);
+            await model.QueueDeclareAsync(queueName, true, true, true, null);
+            await model.QueueDeleteAsync(queueName);
             Assert.True(server.Queues.IsEmpty);
         }
     }
 
     [Fact]
-    public void QueueDelete_with_arguments_deletes_the_queue()
+    public async Task QueueDelete_with_arguments_deletes_the_queue()
     {
         var node = new RabbitServer();
         using (var model = new FakeModel(node))
         {
             const string queueName = "someName";
-            model.QueueDeclare(queueName, true, true, true, null);
-            model.QueueDelete(queueName, true, true);
+            await model.QueueDeclareAsync(queueName, true, true, true, null);
+            await model.QueueDeleteAsync(queueName, true, true);
             Assert.True(node.Queues.IsEmpty);
         }
     }
 
     [Fact]
-    public void QueueDeleteNoWait_with_arguments_deletes_the_queue()
+    public async Task QueueDeleteNoWait_with_arguments_deletes_the_queue()
     {
         var node = new RabbitServer();
         using (var model = new FakeModel(node))
         {
             const string queueName = "someName";
-            model.QueueDeclare(queueName, true, true, true, null);
-            model.QueueDeleteNoWait(queueName, true, true);
+            await model.QueueDeclareAsync(queueName, true, true, true, null);
+            await model.QueueDeleteAsync(queueName, true, true, noWait: true);
             Assert.True(node.Queues.IsEmpty);
         }
     }
 
     [Fact]
-    public void QueueDelete_does_nothing_if_queue_does_not_exist()
+    public async Task QueueDelete_does_nothing_if_queue_does_not_exist()
     {
         var node = new RabbitServer();
         using (var model = new FakeModel(node))
         {
-            model.QueueDelete("someQueue");
+            await model.QueueDeleteAsync("someQueue");
             Assert.True(node.Queues.IsEmpty);
         }
     }
 
     [Fact]
-    public void QueuePurge_removes_all_messages_from_specified_queue()
+    public async Task QueuePurge_removes_all_messages_from_specified_queue()
     {
         var node = new RabbitServer();
         using (var model = new FakeModel(node))
         {
-            model.QueueDeclare("my_other_queue");
+            await model.QueueDeclareAsync("my_other_queue");
             node.Queues["my_other_queue"].Enqueue(MakeRabbitMessage());
             node.Queues["my_other_queue"].Enqueue(MakeRabbitMessage());
 
-            model.QueueDeclare("my_queue");
+            await model.QueueDeclareAsync("my_queue");
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
 
-            var count = model.QueuePurge("my_queue");
+            var count = await model.QueuePurgeAsync("my_queue");
             Assert.Equal(4u, count);
 
             Assert.False(node.Queues["my_queue"].HasMessages);
@@ -224,18 +224,18 @@ public class FakeModelQueueTests
     }
 
     [Fact]
-    public void QueuePurge_returns_0_if_queue_does_not_exist()
+    public async Task QueuePurge_returns_0_if_queue_does_not_exist()
     {
         var node = new RabbitServer();
         using (var model = new FakeModel(node))
         {
-            model.QueueDeclare("my_queue");
+            await model.QueueDeclareAsync("my_queue");
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
             node.Queues["my_queue"].Enqueue(MakeRabbitMessage());
 
-            var count = model.QueuePurge("my_other_queue");
+            var count = await model.QueuePurgeAsync("my_other_queue");
             Assert.Equal(0u, count);
 
             Assert.True(node.Queues["my_queue"].HasMessages);

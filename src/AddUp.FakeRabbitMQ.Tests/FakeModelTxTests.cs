@@ -7,31 +7,31 @@ namespace AddUp.RabbitMQ.Fakes;
 public class FakeModelTxTests
 {
     [Fact]
-    public void TxSelect_does_nothing_because_it_is_not_implemented_yet()
+    public async Task TxSelect_does_nothing_because_it_is_not_implemented_yet()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
-            model.TxSelect();
+            await model.TxSelectAsync();
 
         Assert.True(true);
     }
 
     [Fact]
-    public void TxCommit_does_nothing_because_it_is_not_implemented_yet()
+    public async Task TxCommit_does_nothing_because_it_is_not_implemented_yet()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
-            model.TxCommit();
+            await model.TxCommitAsync();
 
         Assert.True(true);
     }
 
     [Fact]
-    public void TxRollback_does_nothing_because_it_is_not_implemented_yet()
+    public async Task TxRollback_does_nothing_because_it_is_not_implemented_yet()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
-            model.TxRollback();
+            await model.TxRollbackAsync();
 
         Assert.True(true);
     }

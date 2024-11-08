@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using RabbitMQ.Client;
+using System.Diagnostics.CodeAnalysis;
 using Xunit;
 
 namespace AddUp.RabbitMQ.Fakes.Repros;
@@ -8,14 +9,14 @@ public class CloseConnectionTests
 {
     // This ensures issue #27 is fixed
     [Fact]
-    public void Closing_a_connection_after_disconnection_then_reconnection_should_not_throw()
+    public async Task Closing_a_connection_after_disconnection_then_reconnection_should_not_throw()
     {
         var factory = new FakeConnectionFactory();
-        var connection = factory.CreateConnection();
-        connection.Close();
+        var connection = await factory.CreateConnectionAsync();
+        await connection.AbortAsync();
 
-        connection = factory.CreateConnection();
-        connection.Close();
+        connection = await factory.CreateConnectionAsync();
+        await connection.AbortAsync();
 
         Assert.True(true); // If we didn't throw, we reached this point.
     }

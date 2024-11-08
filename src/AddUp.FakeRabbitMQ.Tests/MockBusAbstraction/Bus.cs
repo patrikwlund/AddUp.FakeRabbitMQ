@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using RabbitMQ.Client;
 
 namespace AddUp.RabbitMQ.Fakes.MockBusAbstraction;
@@ -39,7 +38,7 @@ internal sealed class Bus : IBus
             return this;
 
         Disconnect();
-        Connection = ConnectionFactory.CreateConnection("ncore");
+        Connection = ConnectionFactory.CreateConnectionAsync("ncore").GetAwaiter().GetResult();
 
         return this; // Allows chaining of instanciation and connection
     }
@@ -49,17 +48,17 @@ internal sealed class Bus : IBus
         if (Connection == null)
             return;
 
-        Connection.Close();
+        Connection.CloseAsync();
         Connection.Dispose();
 
         Connection = null;
     }
 
-    public IModel CreateChannel()
+    public IChannel CreateChannel()
     {
         if (disposed) throw new ObjectDisposedException(nameof(Bus));
         if (Connection == null) throw new InvalidOperationException("You must first connect to the bus");
-        return Connection.CreateModel();
+        return Connection.CreateChannelAsync().GetAwaiter().GetResult();
     }
 
     public void Dispose()

@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 
 namespace AddUp.RabbitMQ.Fakes
 {
-    internal sealed class FakeConnection : IAutorecoveringConnection
+    internal sealed class FakeConnection : IConnection
     {
         private readonly RabbitServer server;
 
@@ -17,20 +18,20 @@ namespace AddUp.RabbitMQ.Fakes
         {
             server = rabbitServer ?? throw new ArgumentNullException(nameof(rabbitServer));
             ClientProvidedName = name ?? string.Empty;
-            Models = new List<IModel>();
+            Models = new List<IChannel>();
         }
 
 #pragma warning disable 67
-        public event EventHandler<CallbackExceptionEventArgs> CallbackException;
-        public event EventHandler<ConnectionBlockedEventArgs> ConnectionBlocked;
-        public event EventHandler<ShutdownEventArgs> ConnectionShutdown;
-        public event EventHandler<EventArgs> ConnectionUnblocked;
+        public event AsyncEventHandler<CallbackExceptionEventArgs> CallbackExceptionAsync;
+        public event AsyncEventHandler<ConnectionBlockedEventArgs> ConnectionBlockedAsync;
+        public event AsyncEventHandler<ShutdownEventArgs> ConnectionShutdownAsync;
+        public event AsyncEventHandler<AsyncEventArgs> ConnectionUnblockedAsync;
         // The events below come from IAutorecoveringConnection; everything else is from IConnection
-        public event EventHandler<EventArgs> RecoverySucceeded;
-        public event EventHandler<ConnectionRecoveryErrorEventArgs> ConnectionRecoveryError;
-        public event EventHandler<ConsumerTagChangedAfterRecoveryEventArgs> ConsumerTagChangeAfterRecovery;
-        public event EventHandler<QueueNameChangedAfterRecoveryEventArgs> QueueNameChangeAfterRecovery;
-        public event EventHandler<RecoveringConsumerEventArgs> RecoveringConsumer;
+        public event AsyncEventHandler<AsyncEventArgs> RecoverySucceededAsync;
+        public event AsyncEventHandler<ConnectionRecoveryErrorEventArgs> ConnectionRecoveryErrorAsync;
+        public event AsyncEventHandler<ConsumerTagChangedAfterRecoveryEventArgs> ConsumerTagChangeAfterRecoveryAsync;
+        public event AsyncEventHandler<QueueNameChangedAfterRecoveryEventArgs> QueueNameChangedAfterRecoveryAsync;
+        public event AsyncEventHandler<RecoveringConsumerEventArgs> RecoveringConsumerAsync;
 #pragma warning restore 67
 
         public string ClientProvidedName { get; }
@@ -45,60 +46,45 @@ namespace AddUp.RabbitMQ.Fakes
         public ShutdownEventArgs CloseReason { get; private set; }
         public bool IsOpen => CloseReason == null;
         public IDictionary<string, object> ServerProperties { get; } = new Dictionary<string, object>();
-        public IList<ShutdownReportEntry> ShutdownReport { get; } = new List<ShutdownReportEntry>();
+        public IEnumerable<ShutdownReportEntry> ShutdownReport { get; } = new List<ShutdownReportEntry>();
         public IDictionary<string, object> ClientProperties { get; } = new Dictionary<string, object>();
 
-        private List<IModel> Models { get; }
+        private List<IChannel> Models { get; }
 
-        internal List<IModel> GetModelsForUnitTests() => Models;
+        internal List<IChannel> GetModelsForUnitTests() => Models;
 
         public void Dispose()
         {
-            if (IsOpen) Abort(); // Abort rather than Close because we do not want Dispose to throw
+            if (IsOpen) this.AbortAsync().GetAwaiter().GetResult(); // Abort rather than Close because we do not want Dispose to throw
         }
 
-        public IModel CreateModel()
+        public async ValueTask DisposeAsync()
+        {
+            if (IsOpen) await this.AbortAsync(); // Abort rather than Close because we do not want Dispose to throw
+        }
+
+        public Task<IChannel> CreateChannelAsync(CreateChannelOptions options = default, CancellationToken cancellationToken = default)
         {
             var model = new FakeModel(server);
-            model.ModelShutdown += OnModelShutdown;
+            model.ChannelShutdownAsync += OnChannelShutdown;
             Models.Add(model);
 
-            return model;
+            return Task.FromResult((IChannel)model);
         }
-        
-        public void HandleConnectionBlocked(string reason)
+
+        public Task UpdateSecretAsync(string newSecret, string reason, CancellationToken cancellationToken = default)
         {
             // Fake implementation. Nothing to do here.
+            return Task.CompletedTask;
         }
 
-        public void HandleConnectionUnblocked()
-        {
-            // Fake implementation. Nothing to do here.
-        }
-
-        public void UpdateSecret(string newSecret, string reason)
-        {
-            // Fake implementation. Nothing to do here.
-        }
-
-        // Close and Abort (implementation inspired by RabbitMQ.Client)
-
-        public void Abort() => Abort(Timeout.InfiniteTimeSpan);
-        public void Abort(TimeSpan timeout) => Abort(200, "Connection close forced", timeout);
-        public void Abort(ushort reasonCode, string reasonText) => Abort(reasonCode, reasonText, Timeout.InfiniteTimeSpan);
-        public void Abort(ushort reasonCode, string reasonText, TimeSpan timeout) =>
-            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: true);
-
-        public void Close() => Close(200, "Goodbye", Timeout.InfiniteTimeSpan);
-        public void Close(TimeSpan timeout) => Close(200, "Goodbye", timeout);
-        public void Close(ushort reasonCode, string reasonText) => Close(reasonCode, reasonText, Timeout.InfiniteTimeSpan);
-        public void Close(ushort reasonCode, string reasonText, TimeSpan timeout) =>
-            Close(new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText), abort: false);
-
-        private void Close(ShutdownEventArgs reason, bool abort)
+        public async Task CloseAsync(ushort reasonCode, string reasonText, TimeSpan timeout, bool abort,
+            CancellationToken cancellationToken = default)
         {
             try
             {
+                var reason = new ShutdownEventArgs(ShutdownInitiator.Application, reasonCode, reasonText);
+
                 if (!IsOpen)
                     throw new AlreadyClosedException(reason);
 
@@ -107,12 +93,15 @@ namespace AddUp.RabbitMQ.Fakes
                 modelsCopy.ForEach(m =>
                 {
                     if (abort)
-                        m.Abort();
+                        m.AbortAsync();
                     else
-                        m.Close();
+                        m.CloseAsync();
                 });
 
-                ConnectionShutdown?.Invoke(this, reason);
+                if (ConnectionShutdownAsync is not null)
+                {
+                    await ConnectionShutdownAsync.Invoke(this, reason);
+                }
             }
             catch
             {
@@ -120,11 +109,13 @@ namespace AddUp.RabbitMQ.Fakes
             }
         }
 
-        private void OnModelShutdown(object sender, ShutdownEventArgs e)
+        private Task OnChannelShutdown(object sender, ShutdownEventArgs e)
         {
-            var model = (IModel)sender;
-            model.ModelShutdown -= OnModelShutdown;
+            var model = (IChannel)sender;
+            model.ChannelShutdownAsync -= OnChannelShutdown;
             _ = Models.Remove(model);
+
+            return Task.CompletedTask;
         }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -25,7 +24,7 @@ public class ExchangeTopicTests
     [InlineData("#")]
     [InlineData("*.#")]
     [InlineData("#.*")]
-    public void Publication_on_topic_is_consumed_with_wildcards(string bindingKey)
+    public async Task Publication_on_topic_is_consumed_with_wildcards(string bindingKey)
     {
         const string exchangeName = "my_exchange";
         const string queueName = "my_queue";
@@ -36,17 +35,17 @@ public class ExchangeTopicTests
         var ok = false;
 
         // Consumer
-        using (var consumerConnection = connectionFactory.CreateConnection())
-        using (var consumerChannel = consumerConnection.CreateModel())
+        await using (var consumerConnection = await connectionFactory.CreateConnectionAsync())
+        await using (var consumerChannel = await consumerConnection.CreateChannelAsync())
         {
-            consumerChannel.QueueDeclare(queueName, false, false, false, null);
-            consumerChannel.ExchangeDeclare(exchangeName, ExchangeType.Topic);
-            consumerChannel.QueueBind(queueName, exchangeName, bindingKey, null);
+            await consumerChannel.QueueDeclareAsync(queueName, false, false, false, null);
+            await consumerChannel.ExchangeDeclareAsync(exchangeName, ExchangeType.Topic);
+            await consumerChannel.QueueBindAsync(queueName, exchangeName, bindingKey, null);
 
-            var consumer = new EventingBasicConsumer(consumerChannel);
+            var consumer = new AsyncEventingBasicConsumer(consumerChannel);
             using (var messageProcessed = new ManualResetEventSlim())
             {
-                consumer.Received += (s, e) =>
+                consumer.ReceivedAsync += (s, e) =>
                 {
                     var message = Encoding.ASCII.GetString(e.Body.ToArray());
                     var routingKey = e.RoutingKey;
@@ -58,17 +57,19 @@ public class ExchangeTopicTests
 
                     ok = true;
                     messageProcessed.Set();
+
+                    return Task.CompletedTask;
                 };
 
-                consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
+                await consumerChannel.BasicConsumeAsync(queueName, autoAck: true, consumer);
 
                 // Publisher
-                using (var publisherConnection = connectionFactory.CreateConnection())
-                using (var publisherChannel = publisherConnection.CreateModel())
+                await using (var publisherConnection = await connectionFactory.CreateConnectionAsync())
+                await using (var publisherChannel = await publisherConnection.CreateChannelAsync())
                 {
                     const string message = "hello world!";
                     var messageBody = Encoding.ASCII.GetBytes(message);
-                    publisherChannel.BasicPublish(exchangeName, "foo.bar.baz", false, null, messageBody);
+                    await publisherChannel.BasicPublishAsync(exchangeName, "foo.bar.baz", false, messageBody);
                 }
 
                 messageProcessed.Wait();

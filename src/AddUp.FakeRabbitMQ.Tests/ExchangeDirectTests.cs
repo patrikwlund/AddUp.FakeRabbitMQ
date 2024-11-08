@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Xunit;
@@ -14,7 +13,7 @@ public class ExchangeDirectTests
     [InlineData("routing-key", true)]
     [InlineData("routing-key-2", false)]
     [InlineData("", false)]
-    public void Publication_on_direct_is_consumed_based_on_key(string bindingKey, bool shouldBeOK)
+    public async Task Publication_on_direct_is_consumed_based_on_key(string bindingKey, bool shouldBeOK)
     {
         const string exchangeName = "my_exchange";
         const string queueName = "my_queue";
@@ -25,17 +24,17 @@ public class ExchangeDirectTests
         var ok = false;
 
         // Consumer
-        using (var consumerConnection = connectionFactory.CreateConnection())
-        using (var consumerChannel = consumerConnection.CreateModel())
+        await using (var consumerConnection = await connectionFactory.CreateConnectionAsync ())
+        await using (var consumerChannel = await consumerConnection.CreateChannelAsync())
         {
-            consumerChannel.QueueDeclare(queueName, false, false, false, null);
-            consumerChannel.ExchangeDeclare(exchangeName, ExchangeType.Direct);
-            consumerChannel.QueueBind(queueName, exchangeName, bindingKey, null);
+            await consumerChannel.QueueDeclareAsync(queueName, false, false, false, null);
+            await consumerChannel.ExchangeDeclareAsync(exchangeName, ExchangeType.Direct);
+            await consumerChannel.QueueBindAsync(queueName, exchangeName, bindingKey, null);
 
-            var consumer = new EventingBasicConsumer(consumerChannel);
+            var consumer = new AsyncEventingBasicConsumer(consumerChannel);
             using (var messageProcessed = new ManualResetEventSlim(!shouldBeOK))
             {
-                consumer.Received += (s, e) =>
+                consumer.ReceivedAsync += (s, e) =>
                 {
                     var message = Encoding.ASCII.GetString(e.Body.ToArray());
                     var routingKey = e.RoutingKey;
@@ -47,17 +46,19 @@ public class ExchangeDirectTests
 
                     ok = true;
                     messageProcessed.Set();
+
+                    return Task.CompletedTask;
                 };
 
-                consumerChannel.BasicConsume(queueName, autoAck: true, consumer);
+                await consumerChannel.BasicConsumeAsync(queueName, autoAck: true, consumer);
 
                 // Publisher
-                using (var publisherConnection = connectionFactory.CreateConnection())
-                using (var publisherChannel = publisherConnection.CreateModel())
+                await using (var publisherConnection = await connectionFactory.CreateConnectionAsync())
+                await using (var publisherChannel = await publisherConnection.CreateChannelAsync())
                 {
                     const string message = "hello world!";
                     var messageBody = Encoding.ASCII.GetBytes(message);
-                    publisherChannel.BasicPublish(exchangeName, "routing-key", false, null, messageBody);
+                    await publisherChannel.BasicPublishAsync(exchangeName, "routing-key", false, messageBody);
                 }
 
                 messageProcessed.Wait();

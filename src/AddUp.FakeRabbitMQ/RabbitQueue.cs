@@ -1,31 +1,21 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Concurrent;
 
 namespace AddUp.RabbitMQ.Fakes
 {
     public sealed class RabbitQueue
     {
-        private readonly object me = new object();
-        private readonly ConcurrentDictionary<ulong, RabbitMessage> messages = new ConcurrentDictionary<ulong, RabbitMessage>();
-        private readonly ConcurrentQueue<ulong> deliveryTags = new ConcurrentQueue<ulong>();
-        private readonly HashSet<EventHandler<RabbitMessage>> messagePublishedEventHandlers;
+        private readonly object me = new();
+        private readonly ConcurrentDictionary<ulong, RabbitMessage> messages = new();
+        private readonly ConcurrentQueue<ulong> deliveryTags = new();
+        private readonly HashSet<Func<RabbitMessage, CancellationToken, Task>> messagePublishedEventHandlers = [];
 
-        public RabbitQueue()
-        {
-            messagePublishedEventHandlers = new HashSet<EventHandler<RabbitMessage>>();
-            Bindings = new ConcurrentDictionary<string, RabbitExchangeQueueBinding>();
-            Arguments = new Dictionary<string, object>();
-        }
-
-        public event EventHandler<RabbitMessage> MessagePublished
+        public event Func<RabbitMessage, CancellationToken, Task> MessagePublished
         {
             add => messagePublishedEventHandlers.Add(value);
             remove => messagePublishedEventHandlers.Remove(value);
         }
 
-        public ConcurrentDictionary<string, RabbitExchangeQueueBinding> Bindings { get; }
+        public ConcurrentDictionary<string, RabbitExchangeQueueBinding> Bindings { get; } = [];
         public IDictionary<string, object> Arguments { get; set; }
         public string Name { get; set; }
         public bool IsDurable { get; set; }
@@ -75,13 +65,13 @@ namespace AddUp.RabbitMQ.Fakes
             }
         }
 
-        public void PublishMessage(RabbitMessage message)
+        public async Task PublishMessage(RabbitMessage message, CancellationToken cancellationToken = default)
         {
             var queueMessage = message.Copy();
             queueMessage.Queue = Name;
             Enqueue(queueMessage);
             foreach (var handler in messagePublishedEventHandlers)
-                handler(this, queueMessage);
+                await handler(queueMessage, cancellationToken);
         }
 
         public uint ClearMessages()

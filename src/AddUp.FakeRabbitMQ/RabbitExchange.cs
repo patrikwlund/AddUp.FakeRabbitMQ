@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace AddUp.RabbitMQ.Fakes
 {
@@ -30,7 +28,7 @@ namespace AddUp.RabbitMQ.Fakes
         public bool IsDurable { get; set; }
         public bool AutoDelete { get; set; }
 
-        public void PublishMessage(RabbitMessage message)
+        public async Task PublishMessage(RabbitMessage message, CancellationToken cancellationToken = default)
         {
             Messages.Enqueue(message);
 
@@ -41,7 +39,10 @@ namespace AddUp.RabbitMQ.Fakes
             if (matchingBindings.Any())
             {
                 foreach (var binding in matchingBindings)
-                    binding.Queue.PublishMessage(message);
+                {
+                    await binding.Queue.PublishMessage(message, cancellationToken);
+                }
+
                 return;
             }
 
@@ -64,7 +65,7 @@ namespace AddUp.RabbitMQ.Fakes
                 return;
             }
 
-            alternateExchange.PublishMessage(message);
+            await alternateExchange.PublishMessage(message, cancellationToken);
         }
     }
 }

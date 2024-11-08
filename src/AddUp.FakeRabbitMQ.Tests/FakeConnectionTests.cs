@@ -1,7 +1,6 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
+using RabbitMQ.Client;
 using Xunit;
 
 namespace AddUp.RabbitMQ.Fakes;
@@ -10,52 +9,52 @@ namespace AddUp.RabbitMQ.Fakes;
 public class FakeConnectionTests
 {
     [Fact]
-    public void CreateModel_creates_a_new_model()
+    public async Task CreateChannel_creates_a_new_channel()
     {
         var connection = new FakeConnection(new RabbitServer());
-        var model = connection.CreateModel();
+        var channel = await connection.CreateChannelAsync();
 
         Assert.Single(connection.GetModelsForUnitTests());
-        connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { model });
+        connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { channel });
     }
 
     [Fact]
-    public void CreateModel_called_multiple_times_creates_models()
+    public async Task CreateChannel_called_multiple_times_creates_models()
     {
         var connection = new FakeConnection(new RabbitServer());
 
-        var model1 = connection.CreateModel();
-        var model2 = connection.CreateModel();
+        var channel1 = await connection.CreateChannelAsync();
+        var channel2 = await connection.CreateChannelAsync();
 
         Assert.Equal(2, connection.GetModelsForUnitTests().Count);
-        connection.GetModelsForUnitTests().Should().BeEquivalentTo(new[] { model1, model2 });
+        connection.GetModelsForUnitTests().Should().BeEquivalentTo([channel1, channel2]);
     }
 
     [Fact]
-    public void Close_without_arguments_closes_the_connection()
+    public async Task Close_without_arguments_closes_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.Close();
+        await connection.CloseAsync();
 
         Assert.False(connection.IsOpen);
         Assert.NotNull(connection.CloseReason);
     }
 
     [Fact]
-    public void Close_with_timeout_argument_closes_the_connection()
+    public async Task Close_with_timeout_argument_closes_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.Close(timeout: TimeSpan.FromSeconds(2.0));
+        await connection.CloseAsync(timeout: TimeSpan.FromSeconds(2.0));
 
         Assert.False(connection.IsOpen);
         Assert.NotNull(connection.CloseReason);
     }
 
     [Fact]
-    public void Close_with_reason_argument_closes_the_connection()
+    public async Task Close_with_reason_argument_closes_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.Close(reasonCode: 3, reasonText: "foo");
+        await connection.CloseAsync(reasonCode: 3, reasonText: "foo");
 
         Assert.False(connection.IsOpen);
         Assert.Equal(3, connection.CloseReason.ReplyCode);
@@ -63,10 +62,10 @@ public class FakeConnectionTests
     }
 
     [Fact]
-    public void Close_with_all_arguments_closes_the_connection()
+    public async Task Close_with_all_arguments_closes_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.Close(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
+        await connection.CloseAsync(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
 
         Assert.False(connection.IsOpen);
         Assert.Equal(3, connection.CloseReason.ReplyCode);
@@ -74,43 +73,43 @@ public class FakeConnectionTests
     }
 
     [Fact]
-    public void Close_closes_all_models()
+    public async Task Close_closes_all_models()
     {
         var connection = new FakeConnection(new RabbitServer());
-        _ = connection.CreateModel();
+        _ = await connection.CreateChannelAsync();
 
-        connection.Close();
+        await connection.CloseAsync();
 
         Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => !m.IsOpen));
         Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => m.IsClosed));
     }
 
     [Fact]
-    public void Abort_without_arguments_aborts_the_connection()
+    public async Task Abort_without_arguments_aborts_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.Abort();
+        await connection.AbortAsync();
 
         Assert.False(connection.IsOpen);
         Assert.NotNull(connection.CloseReason);
     }
 
     [Fact]
-    public void Abort_with_timeout_argument_aborts_the_connection()
+    public async Task Abort_with_timeout_argument_aborts_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.Abort(timeout: TimeSpan.FromSeconds(2.0));
+        await connection.AbortAsync(timeout: TimeSpan.FromSeconds(2.0));
 
         Assert.False(connection.IsOpen);
         Assert.NotNull(connection.CloseReason);
     }
 
     [Fact]
-    public void Abort_with_reason_argument_aborts_the_connection()
+    public async Task Abort_with_reason_argument_aborts_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
 
-        connection.Abort(reasonCode: 3, reasonText: "foo");
+        await connection.AbortAsync(reasonCode: 3, reasonText: "foo");
 
         Assert.False(connection.IsOpen);
         Assert.Equal(3, connection.CloseReason.ReplyCode);
@@ -118,10 +117,10 @@ public class FakeConnectionTests
     }
 
     [Fact]
-    public void Abort_with_all_arguments_aborts_the_connection()
+    public async Task Abort_with_all_arguments_aborts_the_connection()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.Abort(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
+        await connection.AbortAsync(reasonCode: 3, reasonText: "foo", timeout: TimeSpan.FromSeconds(4.0));
 
         Assert.False(connection.IsOpen);
         Assert.Equal(3, connection.CloseReason.ReplyCode);
@@ -129,12 +128,12 @@ public class FakeConnectionTests
     }
 
     [Fact]
-    public void Abort_aborts_all_models()
+    public async Task Abort_aborts_all_channels()
     {
         var connection = new FakeConnection(new RabbitServer());
-        connection.CreateModel();
+        await connection.CreateChannelAsync();
 
-        connection.Abort();
+        await connection.AbortAsync();
 
         Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => !m.IsOpen));
         Assert.True(connection.GetModelsForUnitTests().TrueForAll(m => m.IsClosed));

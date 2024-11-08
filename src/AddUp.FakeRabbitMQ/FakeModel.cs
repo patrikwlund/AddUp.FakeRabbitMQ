@@ -1,18 +1,14 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 
 namespace AddUp.RabbitMQ.Fakes
 {
-    internal sealed class FakeModel : IModel
+    internal sealed class FakeModel : IChannel
     {
-        private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new ConcurrentDictionary<ulong, RabbitMessage>();
-        private readonly ConcurrentDictionary<string, ConsumerData> consumers = new ConcurrentDictionary<string, ConsumerData>();
+        private readonly ConcurrentDictionary<ulong, RabbitMessage> workingMessages = new();
+        private readonly ConcurrentDictionary<string, ConsumerData> consumers = new();
 
         private readonly ConsumerDeliveryQueue deliveryQueue;
         private readonly RabbitServer server;
@@ -28,17 +24,17 @@ namespace AddUp.RabbitMQ.Fakes
         }
 
 #pragma warning disable 67
-        public event EventHandler<BasicAckEventArgs> BasicAcks;
-        public event EventHandler<BasicNackEventArgs> BasicNacks;
-        public event EventHandler<EventArgs> BasicRecoverOk;
-        public event EventHandler<BasicReturnEventArgs> BasicReturn;
-        public event EventHandler<CallbackExceptionEventArgs> CallbackException;
-        public event EventHandler<FlowControlEventArgs> FlowControl;
-        public event EventHandler<ShutdownEventArgs> ModelShutdown;
+        public event AsyncEventHandler<BasicAckEventArgs> BasicAcksAsync;
+        public event AsyncEventHandler<BasicNackEventArgs> BasicNacksAsync;
+        public event AsyncEventHandler<BasicReturnEventArgs> BasicReturnAsync;
+        public event AsyncEventHandler<CallbackExceptionEventArgs> CallbackException;
+        public event AsyncEventHandler<FlowControlEventArgs> FlowControlAsync;
+        public event AsyncEventHandler<ShutdownEventArgs> ChannelShutdownAsync;
+        public event AsyncEventHandler<CallbackExceptionEventArgs> CallbackExceptionAsync;
 #pragma warning restore 67
 
         public int ChannelNumber { get; }
-        public IBasicConsumer DefaultConsumer { get; set; }
+        public IAsyncBasicConsumer DefaultConsumer { get; set; }
         public ulong NextPublishSeqNo { get; set; }
         public TimeSpan ContinuationTimeout { get; set; }
         public ShutdownEventArgs CloseReason { get; private set; }
@@ -48,10 +44,10 @@ namespace AddUp.RabbitMQ.Fakes
 
         internal ConcurrentDictionary<ulong, RabbitMessage> WorkingMessagesForUnitTests => workingMessages;
 
-        public void Abort() => Abort(200, "Goodbye");
-        public void Abort(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: true);
+        public ValueTask<ulong> GetNextPublishSequenceNumberAsync(CancellationToken cancellationToken = default)
+            => new ValueTask<ulong>(NextPublishSeqNo);
 
-        public void BasicAck(ulong deliveryTag, bool multiple)
+        public ValueTask BasicAckAsync(ulong deliveryTag, bool multiple, CancellationToken cancellationToken = default)
         {
             void ack(ulong dtag)
             {
@@ -74,9 +70,11 @@ namespace AddUp.RabbitMQ.Fakes
                 }
             }
             else ack(deliveryTag);
+
+            return default;
         }
 
-        public void BasicNack(ulong deliveryTag, bool multiple, bool requeue)
+        public ValueTask BasicNackAsync(ulong deliveryTag, bool multiple, bool requeue, CancellationToken cancellationToken = default)
         {
             void nack(ulong dtag)
             {
@@ -104,60 +102,43 @@ namespace AddUp.RabbitMQ.Fakes
                 }
             }
             else nack(deliveryTag);
+
+            return default;
         }
 
         // BasicReject is simply BasicNack with no possibility for multiple rejections
-        public void BasicReject(ulong deliveryTag, bool requeue) => BasicNack(deliveryTag, false, requeue);
+        public ValueTask BasicRejectAsync(ulong deliveryTag, bool requeue, CancellationToken cancellationToken = default) => BasicNackAsync(deliveryTag, false, requeue, cancellationToken);
 
-        public void BasicCancel(string consumerTag)
+        public async Task BasicCancelAsync(string consumerTag, bool noWait = false, CancellationToken cancellationToken = default)
         {
             _ = consumers.TryRemove(consumerTag, out var consumerData);
             if (consumerData == null) return;
 
             consumerData.Queue.MessagePublished -= consumerData.QueueMessagePublished;
 
-            // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
-            // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
-            // For why .GetAwaiter().GetResult()
-            if (consumerData.Consumer is IAsyncBasicConsumer asyncBasicConsumer)
-                asyncBasicConsumer
-                    .HandleBasicCancelOk(consumerTag)
-                    .GetAwaiter()
-                    .GetResult();
-            else consumerData.Consumer
-                    .HandleBasicCancelOk(consumerTag);
+            await consumerData.Consumer.HandleBasicCancelOkAsync(consumerTag, cancellationToken);
         }
 
-        public void BasicCancelNoWait(string consumerTag) => BasicCancel(consumerTag);
-
-        public string BasicConsume(string queue, bool autoAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IBasicConsumer consumer)
+        public async Task<string> BasicConsumeAsync(string queue, bool autoAck, string consumerTag, bool noLocal, bool exclusive, IDictionary<string, object> arguments, IAsyncBasicConsumer consumer, CancellationToken cancellationToken = default)
         {
-            void notifyConsumerOfMessage(RabbitMessage message)
+            async Task notifyConsumerOfMessage(RabbitMessage message, CancellationToken cancellationToken = default)
             {
                 var deliveryTag = message.DeliveryTag;
 
                 const bool redelivered = false;
                 var exchange = message.Exchange;
                 var routingKey = message.RoutingKey;
-                var basicProperties = message.BasicProperties ?? CreateBasicProperties();
+                var basicProperties = message.BasicProperties ?? new BasicProperties();
                 var body = message.Body;
 
                 RabbitMessage updateFunction(ulong key, RabbitMessage existingMessage) => existingMessage;
                 _ = workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
 
-                // In async mode, IBasicConsumer may 'hide' an IAsyncBasicConsumer...
-                // See https://github.com/StephenCleary/AsyncEx/blob/e637035c775f99b50c458d4a90e330563ecfd07b/src/Nito.AsyncEx.Tasks/Synchronous/TaskExtensions.cs#L50
-                // For why .GetAwaiter().GetResult()
-                if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
-                    asyncBasicConsumer
-                        .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body)
-                        .GetAwaiter()
-                        .GetResult();
-                else consumer
-                        .HandleBasicDeliver(consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body);
+                await consumer.HandleBasicDeliverAsync(
+                    consumerTag, deliveryTag, redelivered, exchange, routingKey, basicProperties, body, cancellationToken);
 
                 if (autoAck)
-                    BasicAck(deliveryTag, false);
+                    await BasicAckAsync(deliveryTag, false, cancellationToken);
             }
 
             // Deliberately check for empty string here, latest RabbitMQ client accepts ""
@@ -173,10 +154,8 @@ namespace AddUp.RabbitMQ.Fakes
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
             if (queueInstance != null)
             {
-                void publishedAction(object sender, RabbitMessage message) =>
-                    deliveryQueue.Deliver(() => notifyConsumerOfMessage(message));
-
-                var consumerData = new ConsumerData(consumer, queueInstance, publishedAction);
+                var consumerData = new ConsumerData(consumer, queueInstance, (message, ct) =>
+                    deliveryQueue.Deliver(ct => notifyConsumerOfMessage(message, ct), ct));
 
                 // https://www.rabbitmq.com/amqp-0-9-1-reference.html#basic.consume.consumer-tag
                 // The client MUST NOT specify a tag that refers to an existing consumer. Error code: not-allowed
@@ -186,26 +165,23 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = consumers.AddOrUpdate(consumerTag, consumerData, updateFunction);
 
                 foreach (var message in queueInstance.GetMessages())
-                    consumerData.QueueMessagePublished(this, message);
+                    await consumerData.QueueMessagePublished(message, cancellationToken);
 
                 queueInstance.MessagePublished += consumerData.QueueMessagePublished;
 
-                if (consumer is IAsyncBasicConsumer asyncBasicConsumer)
-                    asyncBasicConsumer.HandleBasicConsumeOk(consumerTag).GetAwaiter().GetResult();
-                else
-                    consumer.HandleBasicConsumeOk(consumerTag);
+                await consumer.HandleBasicConsumeOkAsync(consumerTag);
             }
 
             return consumerTag;
         }
 
-        public BasicGetResult BasicGet(string queue, bool autoAck)
+        public Task<BasicGetResult> BasicGetAsync(string queue, bool autoAck, CancellationToken cancellationToken = default)
         {
             _ = server.Queues.TryGetValue(queue, out var queueInstance);
-            if (queueInstance == null) return null;
+            if (queueInstance == null) return Task.FromResult<BasicGetResult>(null);
 
             queueInstance.TryGet(out var message, autoAck);
-            if (message == null) return null;
+            if (message == null) return Task.FromResult<BasicGetResult>(null);
 
             var deliveryTag = message.DeliveryTag;
 
@@ -213,7 +189,7 @@ namespace AddUp.RabbitMQ.Fakes
             var exchange = message.Exchange;
             var routingKey = message.RoutingKey;
             var messageCount = Convert.ToUInt32(queueInstance.MessageCount);
-            var basicProperties = message.BasicProperties ?? CreateBasicProperties();
+            var basicProperties = message.BasicProperties ?? new BasicProperties();
             var body = message.Body;
 
             if (autoAck)
@@ -224,10 +200,10 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = workingMessages.AddOrUpdate(deliveryTag, message, updateFunction);
             }
 
-            return new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body);
+            return Task.FromResult(new BasicGetResult(deliveryTag, redelivered, exchange, routingKey, messageCount, basicProperties, body));
         }
 
-        public void BasicPublish(string exchange, string routingKey, bool mandatory, IBasicProperties basicProperties, ReadOnlyMemory<byte> body)
+        public async ValueTask BasicPublishAsync<TProperties>(string exchange, string routingKey, bool mandatory, TProperties basicProperties, ReadOnlyMemory<byte> body, CancellationToken cancellationToken = default) where TProperties : IReadOnlyBasicProperties, IAmqpHeader
         {
             // Let's create the delivery tag as soon as publishing so that we can find it in the queues later on
             _ = Interlocked.Increment(ref lastDeliveryTag);
@@ -242,70 +218,48 @@ namespace AddUp.RabbitMQ.Fakes
                 Body = body.ToArray()
             };
 
-            RabbitExchange addExchange(string s)
+            var exchangeInstance = server.Exchanges.GetOrAdd(exchange, exchange => new(ExchangeType.Direct, server)
             {
-                var newExchange = new RabbitExchange(ExchangeType.Direct, server)
-                {
-                    Name = exchange,
-                    Arguments = null,
-                    AutoDelete = false,
-                    IsDurable = false
-                };
+                Name = exchange,
+                Arguments = null,
+                AutoDelete = false,
+                IsDurable = false
+            });
 
-                newExchange.PublishMessage(message);
-                return newExchange;
-            }
-
-            RabbitExchange updateExchange(string s, RabbitExchange existingExchange)
-            {
-                existingExchange.PublishMessage(message);
-                return existingExchange;
-            }
-
-            _ = server.Exchanges.AddOrUpdate(exchange, addExchange, updateExchange);
+            await exchangeInstance.PublishMessage(message, CancellationToken.None);
 
             if (NextPublishSeqNo != 0ul)
                 NextPublishSeqNo++;
         }
 
-        public void BasicQos(uint prefetchSize, ushort prefetchCount, bool global)
+        public ValueTask BasicPublishAsync<TProperties>(CachedString exchange, CachedString routingKey, bool mandatory, TProperties basicProperties, ReadOnlyMemory<byte> body, CancellationToken cancellationToken = default) where TProperties : IReadOnlyBasicProperties, IAmqpHeader
+        {
+            return BasicPublishAsync(exchange.Value, routingKey.Value, mandatory, basicProperties, body, cancellationToken);
+        }
+
+        public Task BasicQosAsync(uint prefetchSize, ushort prefetchCount, bool global, CancellationToken cancellationToken = default)
         {
             // Fake implementation. Nothing to do here.
+            return Task.CompletedTask;
         }
 
-        public void BasicRecover(bool requeue)
+        public async Task CloseAsync(ShutdownEventArgs reason, bool abort, CancellationToken cancellationToken = default)
         {
-            if (requeue)
+            if (CloseReason is null)
             {
-                foreach (var message in workingMessages.Select(m => m.Value))
-                {
-                    _ = server.Queues.TryGetValue(message.Queue, out var queueInstance);
-                    queueInstance?.PublishMessage(message);
-                }
-            }
-
-            workingMessages.Clear();
-        }
-
-        public void BasicRecoverAsync(bool requeue) => BasicRecover(requeue);
-
-        public void Close() => Close(200, "Goodbye");
-        public void Close(ushort replyCode, string replyText) => Close(replyCode, replyText, abort: false);
-        private void Close(ushort replyCode, string replyText, bool abort)
-        {
-            if (CloseReason == null)
-            {
-                var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText);
                 try
                 {
                     CloseReason = reason;
 
                     var consumerTags = consumers.Keys.ToList();
                     foreach (var consumerTag in consumerTags)
-                        BasicCancel(consumerTag);
+                        await BasicCancelAsync(consumerTag, noWait: false, cancellationToken);
 
                     deliveryQueue.Complete();
-                    ModelShutdown?.Invoke(this, reason);
+                    if (ChannelShutdownAsync != null)
+                    {
+                        await ChannelShutdownAsync.Invoke(this, reason);
+                    }
                 }
                 catch
                 {
@@ -316,24 +270,32 @@ namespace AddUp.RabbitMQ.Fakes
             deliveryQueue.WaitForCompletion();
         }
 
-        public void ConfirmSelect()
+        public Task CloseAsync(ushort replyCode, string replyText, bool abort, CancellationToken cancellationToken = default)
         {
-            if (NextPublishSeqNo == 0ul)
-                NextPublishSeqNo = 1ul;
+            var reason = new ShutdownEventArgs(ShutdownInitiator.Application, replyCode, replyText, cancellationToken);
+            return CloseAsync(reason, abort, cancellationToken);
         }
 
-        public uint ConsumerCount(string queue) => QueueDeclarePassive(queue).ConsumerCount;
-
-        public IBasicProperties CreateBasicProperties() => new FakeBasicProperties();
-
-        public IBasicPublishBatch CreateBasicPublishBatch() => new FakeBasicPublishBatch(this);
+        public async Task<uint> ConsumerCountAsync(string queue, CancellationToken cancellationToken = default)
+        {
+            var ok = await QueueDeclarePassiveAsync(queue, cancellationToken);
+            return ok.ConsumerCount;
+        }
 
         public void Dispose()
         {
-            if (IsOpen) Abort();
+            if (IsOpen)
+            {
+                this.AbortAsync().GetAwaiter().GetResult();
+            }
         }
 
-        public void ExchangeBind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
+        public async ValueTask DisposeAsync()
+        {
+            await this.AbortAsync();
+        }
+
+        public Task ExchangeBindAsync(string destination, string source, string routingKey, IDictionary<string, object> arguments = default, bool noWait = false, CancellationToken cancellationToken = default)
         {
             _ = server.Exchanges.TryGetValue(source, out var exchange);
             _ = server.Queues.TryGetValue(destination, out var queue);
@@ -343,12 +305,11 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = exchange.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
             if (queue != null)
                 _ = queue.Bindings.AddOrUpdate(binding.Key, binding, (k, v) => binding);
+
+            return Task.CompletedTask;
         }
 
-        public void ExchangeBindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) =>
-            ExchangeBind(destination, source, routingKey, arguments);
-
-        public void ExchangeDeclare(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments)
+        public Task ExchangeDeclareAsync(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments = default, bool passive = false, bool noWait = false, CancellationToken cancellationToken = default)
         {
             var exchangeInstance = new RabbitExchange(type, server)
             {
@@ -358,16 +319,14 @@ namespace AddUp.RabbitMQ.Fakes
                 Arguments = arguments
             };
 
-            RabbitExchange updateFunction(string name, RabbitExchange existing) => existing;
-            _ = server.Exchanges.AddOrUpdate(exchange, exchangeInstance, updateFunction);
+            _ = server.Exchanges.TryAdd(exchange, exchangeInstance);
+
+            return Task.CompletedTask;
         }
 
-        public void ExchangeDeclareNoWait(string exchange, string type, bool durable, bool autoDelete, IDictionary<string, object> arguments) =>
-            ExchangeDeclare(exchange, type, durable, false, arguments);
-
-        public void ExchangeDeclarePassive(string exchange)
+        public Task ExchangeDeclarePassiveAsync(string exchange, CancellationToken cancellationToken = default)
         {
-            if (server.Exchanges.ContainsKey(exchange)) return;
+            if (server.Exchanges.ContainsKey(exchange)) return Task.CompletedTask;
 
             var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
                 replyText: $"NOT_FOUND - no exchange '{exchange}' in vhost '/'",
@@ -378,13 +337,13 @@ namespace AddUp.RabbitMQ.Fakes
             throw new OperationInterruptedException(shutdownArgs);
         }
 
-        public void ExchangeDelete(string exchange, bool ifUnused) =>
+        public Task ExchangeDeleteAsync(string exchange, bool ifUnused = false, bool noWait = false, CancellationToken cancellationToken = default)
+        {
             server.Exchanges.TryRemove(exchange, out _);
+            return Task.CompletedTask;
+        }
 
-        public void ExchangeDeleteNoWait(string exchange, bool ifUnused) =>
-            ExchangeDelete(exchange, false);
-
-        public void ExchangeUnbind(string destination, string source, string routingKey, IDictionary<string, object> arguments)
+        public Task ExchangeUnbindAsync(string destination, string source, string routingKey, IDictionary<string, object> arguments = default, bool noWait = false, CancellationToken cancellationToken = default)
         {
             _ = server.Exchanges.TryGetValue(source, out var exchange);
             _ = server.Queues.TryGetValue(destination, out var queue);
@@ -394,20 +353,20 @@ namespace AddUp.RabbitMQ.Fakes
                 _ = exchange.Bindings.TryRemove(binding.Key, out _);
             if (queue != null)
                 _ = queue.Bindings.TryRemove(binding.Key, out _);
+
+            return Task.CompletedTask;
         }
 
-        public void ExchangeUnbindNoWait(string destination, string source, string routingKey, IDictionary<string, object> arguments) =>
-            ExchangeUnbind(destination, source, routingKey, arguments);
+        public async Task<uint> MessageCountAsync(string queue, CancellationToken cancellationToken = default)
+        {
+            var ok = await QueueDeclarePassiveAsync(queue, cancellationToken);
+            return ok.MessageCount;
+        }
 
-        public uint MessageCount(string queue) => QueueDeclarePassive(queue).MessageCount;
+        public Task QueueBindAsync(string queue, string exchange, string routingKey, IDictionary<string, object> arguments = default, bool noWait = false, CancellationToken cancellationToken = default) =>
+            ExchangeBindAsync(queue, exchange, routingKey, arguments, noWait, cancellationToken);
 
-        public void QueueBind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) =>
-            ExchangeBind(queue, exchange, routingKey, arguments);
-
-        public void QueueBindNoWait(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) =>
-            QueueBind(queue, exchange, routingKey, arguments);
-
-        public QueueDeclareOk QueueDeclare(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments)
+        public async Task<QueueDeclareOk> QueueDeclareAsync(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments = default, bool passive = false, bool noWait = false, CancellationToken cancellationToken = default)
         {
             // This handles 'default' queues creations with constructs such as:
             // var queueName = Channel.QueueDeclare(); // temporary anonymous queue
@@ -427,17 +386,14 @@ namespace AddUp.RabbitMQ.Fakes
 
             // RabbitMQ automatically binds queues to the default exchange.
             // https://www.rabbitmq.com/tutorials/amqp-concepts.html#exchange-default
-            QueueBind(q, "", q, null);
+            await QueueBindAsync(q, "", q, null, false, cancellationToken);
 
             var result = new QueueDeclareOk(q, 0u, 0u);
             CurrentQueue = result.QueueName;
             return result;
         }
 
-        public void QueueDeclareNoWait(string queue, bool durable, bool exclusive, bool autoDelete, IDictionary<string, object> arguments) =>
-            QueueDeclare(queue, durable, exclusive, autoDelete, arguments);
-
-        public QueueDeclareOk QueueDeclarePassive(string queue)
+        public Task<QueueDeclareOk> QueueDeclarePassiveAsync(string queue, CancellationToken cancellationToken = default)
         {
             if (server.Queues.TryGetValue(queue, out var rabbitQueue))
             {
@@ -446,7 +402,7 @@ namespace AddUp.RabbitMQ.Fakes
                     (uint)unchecked(rabbitQueue.ConsumerCount));
 
                 CurrentQueue = result.QueueName;
-                return result;
+                return Task.FromResult(result);
             }
 
             var shutdownArgs = new ShutdownEventArgs(initiator: ShutdownInitiator.Peer,
@@ -458,53 +414,43 @@ namespace AddUp.RabbitMQ.Fakes
             throw new OperationInterruptedException(shutdownArgs);
         }
 
-        public uint QueueDelete(string queue, bool ifUnused, bool ifEmpty)
+        public Task<uint> QueueDeleteAsync(string queue, bool ifUnused, bool ifEmpty, bool noWait = false, CancellationToken cancellationToken = default)
         {
             _ = server.Queues.TryRemove(queue, out var instance);
-            return instance != null ? 1u : 0u;
+            var messageCount = (uint?)instance?.MessageCount ?? 0u;
+            return Task.FromResult(messageCount);
         }
 
-        public void QueueDeleteNoWait(string queue, bool ifUnused, bool ifEmpty) => QueueDelete(queue, false, false);
-
-        public uint QueuePurge(string queue)
+        public Task<uint> QueuePurgeAsync(string queue, CancellationToken cancellationToken = default)
         {
             _ = server.Queues.TryGetValue(queue, out var instance);
             if (instance == null)
-                return 0u;
+                return Task.FromResult(0u);
 
-            return instance.ClearMessages();
+            var messageCount = instance.ClearMessages();
+
+            return Task.FromResult(messageCount);
         }
 
-        public void QueueUnbind(string queue, string exchange, string routingKey, IDictionary<string, object> arguments) =>
-            ExchangeUnbind(queue, exchange, routingKey, arguments);
+        public Task QueueUnbindAsync(string queue, string exchange, string routingKey, IDictionary<string, object> arguments = default, CancellationToken cancellationToken = default) =>
+            ExchangeUnbindAsync(queue, exchange, routingKey, arguments, false, cancellationToken);
 
-        public void TxCommit()
+        public Task TxCommitAsync(CancellationToken cancellationToken = default)
         {
             // Fake implementation. Nothing to do here.
+            return Task.CompletedTask;
         }
 
-        public void TxRollback()
+        public Task TxRollbackAsync(CancellationToken cancellationToken = default)
         {
             // Fake implementation. Nothing to do here.
+            return Task.CompletedTask;
         }
 
-        public void TxSelect()
+        public Task TxSelectAsync(CancellationToken cancellationToken = default)
         {
             // Fake implementation. Nothing to do here.
+            return Task.CompletedTask;
         }
-
-        public bool WaitForConfirms() => WaitForConfirms(Timeout.InfiniteTimeSpan);
-        public bool WaitForConfirms(TimeSpan timeout) => WaitForConfirms(timeout, out _);
-        public bool WaitForConfirms(TimeSpan timeout, out bool timedOut)
-        {
-            if (NextPublishSeqNo == 0ul)
-                throw new InvalidOperationException("Confirms not selected");
-
-            timedOut = false;
-            return true;
-        }
-
-        public void WaitForConfirmsOrDie() => WaitForConfirmsOrDie(Timeout.InfiniteTimeSpan);
-        public void WaitForConfirmsOrDie(TimeSpan timeout) => _ = WaitForConfirms(timeout);
     }
 }

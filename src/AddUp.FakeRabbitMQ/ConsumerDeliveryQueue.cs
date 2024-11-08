@@ -1,7 +1,4 @@
 ﻿using System.Threading.Channels;
-using System;
-using System.Threading.Tasks;
-using System.Threading;
 using RabbitMQ.Client.Events;
 
 namespace AddUp.RabbitMQ.Fakes
@@ -23,10 +20,10 @@ namespace AddUp.RabbitMQ.Fakes
             Action<CallbackExceptionEventArgs> deliveryExceptionHandler,
             bool createBlockingDeliveryQueue) =>
                 createBlockingDeliveryQueue
-                ? (ConsumerDeliveryQueue)new BlockingDeliveryQueue(model, deliveryExceptionHandler)
+                ? new BlockingDeliveryQueue(model, deliveryExceptionHandler)
                 : new NonBlockingDeliveryQueue(model, deliveryExceptionHandler);
 
-        public abstract void Deliver(Action deliveryAction);
+        public abstract Task Deliver(Func<CancellationToken, Task> deliveryAction, CancellationToken cancellationToken);
 
         /// <summary>
         /// Marks the queue as complete, meaning no more new deliveries will be accepted.
@@ -38,12 +35,12 @@ namespace AddUp.RabbitMQ.Fakes
         /// </summary>
         public abstract void WaitForCompletion();
 
-        protected void ExecuteDelivery(Action deliveryAction)
+        protected async Task ExecuteDelivery(Func<CancellationToken, Task> deliveryAction, CancellationToken cancellationToken)
         {
             try
             {
                 if (!Model.IsOpen) return;
-                deliveryAction();
+                await deliveryAction(cancellationToken);
             }
             catch (Exception ex)
             {
@@ -57,7 +54,7 @@ namespace AddUp.RabbitMQ.Fakes
     {
         private readonly Task deliveriesTask;
         private readonly AsyncLocal<bool> isDeliveriesTask = new AsyncLocal<bool>();
-        private readonly Channel<Action> deliveries = Channel.CreateUnbounded<Action>(new UnboundedChannelOptions
+        private readonly Channel<Func<CancellationToken, Task>> deliveries = Channel.CreateUnbounded<Func<CancellationToken, Task>>(new UnboundedChannelOptions
         {
             SingleReader = true,
             SingleWriter = false,
@@ -65,10 +62,12 @@ namespace AddUp.RabbitMQ.Fakes
 
         public NonBlockingDeliveryQueue(FakeModel model, Action<CallbackExceptionEventArgs> onDeliveryException)
             : base(model, onDeliveryException) =>
-            deliveriesTask = Task.Run(HandleDeliveries);
+            deliveriesTask = Task.Factory.StartNew(HandleDeliveries, TaskCreationOptions.LongRunning);
 
-        public override void Deliver(Action deliveryAction) =>
-            _ = deliveries.Writer.TryWrite(deliveryAction);
+        public override async Task Deliver(Func<CancellationToken, Task> deliveryAction, CancellationToken cancellationToken)
+        {
+            await deliveries.Writer.WriteAsync(deliveryAction, cancellationToken);
+        }
 
         /// <summary>
         /// Rabbit docs states that each connection is backed by a single background thread:
@@ -93,13 +92,15 @@ namespace AddUp.RabbitMQ.Fakes
                 {
                     while (deliveries.Reader.TryRead(out var delivery))
                     {
-                        ExecuteDelivery(delivery);
+                        await ExecuteDelivery(delivery, CancellationToken.None);
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // Swallow exceptions so FakeModel.Close() doesn't have to deal with it.
+
+                await Console.Error.WriteLineAsync("An error occurred while handling deliveries: " + ex);
             }
         }
 
@@ -124,15 +125,20 @@ namespace AddUp.RabbitMQ.Fakes
         public BlockingDeliveryQueue(FakeModel model, Action<CallbackExceptionEventArgs> onDeliveryException)
             : base(model, onDeliveryException) { }
 
-        public override void Deliver(Action deliveryAction)
+        public override async Task Deliver(Func<CancellationToken, Task> deliveryAction, CancellationToken cancellationToken)
         {
             if (notAcceptingNewDeliveries)
                 return;
 
             try
             {
-                _ = deliveryLock.Wait(DeliveryWaitTimeout);
-                ExecuteDelivery(deliveryAction);
+                var allowed = await deliveryLock.WaitAsync(DeliveryWaitTimeout);
+                if (!allowed)
+                {
+                    throw new TimeoutException("Timeout waiting for delivery lock");
+                }
+
+                await ExecuteDelivery(deliveryAction, cancellationToken);
             }
             finally
             {

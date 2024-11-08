@@ -15,41 +15,41 @@ public class FakeConnectionFactoryTests
         Assert.Throws<ArgumentNullException>(() => new FakeConnectionFactory(null));
 
     [Fact]
-    public void CreateConnection_with_no_host_names_returns_FakeConnection()
+    public async Task CreateConnection_with_no_host_names_returns_FakeConnection()
     {
         var factory = new FakeConnectionFactory();
-        var result = factory.CreateConnection();
+        var result = await factory.CreateConnectionAsync();
 
         Assert.NotNull(result);
         Assert.IsType<FakeConnection>(result);
     }
 
     [Fact]
-    public void CreateConnection_with_host_names_returns_FakeConnection()
+    public async Task CreateConnection_with_host_names_returns_FakeConnection()
     {
         var factory = new FakeConnectionFactory();
-        var result = factory.CreateConnection(new[] { "localhost" }.ToList());
+        var result = await factory.CreateConnectionAsync(new[] { "localhost" }.ToList());
 
         Assert.NotNull(result);
         Assert.IsType<FakeConnection>(result);
     }
 
     [Fact]
-    public void CreateConnection_with_endpoints_returns_FakeConnection()
+    public async Task CreateConnection_with_endpoints_returns_FakeConnection()
     {
         var factory = new FakeConnectionFactory();
-        var result = factory.CreateConnection(new[] { new AmqpTcpEndpoint("localhost") }.ToList());
+        var result = await factory.CreateConnectionAsync(new[] { new AmqpTcpEndpoint("localhost") }.ToList());
 
         Assert.NotNull(result);
         Assert.IsType<FakeConnection>(result);
     }
 
     [Fact]
-    public void CreateConnection_uses_ClientProvidedName_Property()
+    public async Task CreateConnection_uses_ClientProvidedName_Property()
     {
         const string connectionName = "MyConnection";
         var factory = new FakeConnectionFactory { ClientProvidedName = connectionName };
-        var connection = factory.CreateConnection();
+        var connection = await factory.CreateConnectionAsync();
 
         Assert.Equal(connectionName, connection.ClientProvidedName);
     }

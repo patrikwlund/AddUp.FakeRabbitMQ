@@ -11,7 +11,7 @@ namespace AddUp.RabbitMQ.Fakes;
 public class FakeModelExchangeTests
 {
     [Fact]
-    public void ExchangeDeclare_with_all_arguments_creates_exchange()
+    public async Task ExchangeDeclare_with_all_arguments_creates_exchange()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -22,7 +22,7 @@ public class FakeModelExchangeTests
             const bool isAutoDelete = false;
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
+            await model.ExchangeDeclareAsync(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
             Assert.Equal(2, server.Exchanges.Count);
             Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
@@ -32,7 +32,7 @@ public class FakeModelExchangeTests
     }
 
     [Fact]
-    public void ExchangeDeclare_with_name_type_and_durable_creates_exchange()
+    public async Task ExchangeDeclare_with_name_type_and_durable_creates_exchange()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -41,7 +41,7 @@ public class FakeModelExchangeTests
             const string exchangeType = "someType";
             const bool isDurable = true;
 
-            model.ExchangeDeclare(exchange: exchangeName, type: exchangeType, durable: isDurable);
+            await model.ExchangeDeclareAsync(exchange: exchangeName, type: exchangeType, durable: isDurable);
             Assert.Equal(2, server.Exchanges.Count);
             Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
@@ -51,7 +51,7 @@ public class FakeModelExchangeTests
     }
 
     [Fact]
-    public void ExchangeDeclare_with_name_and_type_creates_exchange()
+    public async Task ExchangeDeclare_with_name_and_type_creates_exchange()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -59,7 +59,7 @@ public class FakeModelExchangeTests
             const string exchangeName = "someExchange";
             const string exchangeType = "someType";
 
-            model.ExchangeDeclare(exchange: exchangeName, type: exchangeType);
+            await model.ExchangeDeclareAsync(exchange: exchangeName, type: exchangeType);
             Assert.Equal(2, server.Exchanges.Count);
             Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
@@ -69,32 +69,33 @@ public class FakeModelExchangeTests
     }
 
     [Fact]
-    public void ExchangeDeclarePassive_does_not_throw_if_exchange_exists()
+    public async Task ExchangeDeclarePassive_does_not_throw_if_exchange_exists()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string exchangeName = "someExchange";
-            model.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Direct);
-            model.ExchangeDeclarePassive(exchange: exchangeName);
+            await model.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Direct);
+            await model.ExchangeDeclarePassiveAsync(exchange: exchangeName);
         }
 
         Assert.True(true); // The test is successful if it does not throw
     }
 
     [Fact]
-    public void ExchangeDeclarePassive_throws_if_exchange_does_not_exist()
+    public async Task ExchangeDeclarePassive_throws_if_exchange_does_not_exist()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string exchangeName = "someExchange";
-            Assert.Throws<OperationInterruptedException>(() => model.ExchangeDeclarePassive(exchange: exchangeName));
+            await Assert.ThrowsAsync<OperationInterruptedException>(
+                () => model.ExchangeDeclarePassiveAsync(exchange: exchangeName));
         }
     }
 
     [Fact]
-    public void ExchangeDeclareNoWait_creates_exchange()
+    public async Task ExchangeDeclareNoWait_creates_exchange()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -105,7 +106,7 @@ public class FakeModelExchangeTests
             const bool isAutoDelete = false;
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclareNoWait(exchange: exchangeName, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
+            await model.ExchangeDeclareAsync(exchange: exchangeName, noWait: true, type: exchangeType, durable: isDurable, autoDelete: isAutoDelete, arguments: arguments);
             Assert.Equal(2, server.Exchanges.Count);
             Assert.Single(server.Exchanges.Where(x => x.Key == exchangeName));
 
@@ -115,14 +116,14 @@ public class FakeModelExchangeTests
     }
 
     [Fact]
-    public void ExchangeDelete_with_only_name_argument_removes_the_exchange_if_it_exists()
+    public async Task ExchangeDelete_with_only_name_argument_removes_the_exchange_if_it_exists()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string exchangeName = "someExchange";
-            model.ExchangeDeclare(exchangeName, "someType");
-            model.ExchangeDelete(exchange: exchangeName);
+            await model.ExchangeDeclareAsync(exchangeName, "someType");
+            await model.ExchangeDeleteAsync(exchange: exchangeName);
             Assert.Single(server.Exchanges);
         }
     }
@@ -130,14 +131,14 @@ public class FakeModelExchangeTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ExchangeDelete_removes_the_exchange_if_it_exists(bool ifUnused)
+    public async Task ExchangeDelete_removes_the_exchange_if_it_exists(bool ifUnused)
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string exchangeName = "someExchange";
-            model.ExchangeDeclare(exchangeName, "someType");
-            model.ExchangeDelete(exchange: exchangeName, ifUnused: ifUnused);
+            await model.ExchangeDeclareAsync(exchangeName, "someType");
+            await model.ExchangeDeleteAsync(exchange: exchangeName, ifUnused: ifUnused);
             Assert.Single(server.Exchanges);
         }
     }
@@ -145,34 +146,34 @@ public class FakeModelExchangeTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void ExchangeDeleteNoWait_removes_the_exchange_if_it_exists(bool ifUnused)
+    public async Task ExchangeDeleteNoWait_removes_the_exchange_if_it_exists(bool ifUnused)
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string exchangeName = "someExchange";
-            model.ExchangeDeclare(exchangeName, "someType");
-            model.ExchangeDeleteNoWait(exchange: exchangeName, ifUnused: ifUnused);
+            await model.ExchangeDeclareAsync(exchangeName, "someType");
+            await model.ExchangeDeleteAsync(exchange: exchangeName, noWait: true, ifUnused: ifUnused);
             Assert.Single(server.Exchanges);
         }
     }
 
     [Fact]
-    public void ExchangeDelete_does_nothing_if_exchange_does_not_exist()
+    public async Task ExchangeDelete_does_nothing_if_exchange_does_not_exist()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
         {
             const string exchangeName = "someExchange";
-            model.ExchangeDeclare(exchangeName, "someType");
-            model.ExchangeDelete(exchange: "someOtherExchange");
+            await model.ExchangeDeclareAsync(exchangeName, "someType");
+            await model.ExchangeDeleteAsync(exchange: "someOtherExchange");
             Assert.Equal(2, server.Exchanges.Count);
             Assert.Single(server.Exchanges.Where(s => s.Key == exchangeName));
         }
     }
 
     [Fact]
-    public void ExchangeBind_binds_an_exchange_to_a_queue()
+    public async Task ExchangeBind_binds_an_exchange_to_a_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -182,15 +183,15 @@ public class FakeModelExchangeTests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName, "direct");
-            model.QueueDeclare(queueName);
-            model.ExchangeBind(queueName, exchangeName, routingKey, arguments);
+            await model.ExchangeDeclareAsync(exchangeName, "direct");
+            await model.QueueDeclareAsync(queueName);
+            await model.ExchangeBindAsync(queueName, exchangeName, routingKey, arguments);
             AssertEx.AssertBinding(server, exchangeName, routingKey, queueName);
         }
     }
 
     [Fact]
-    public void ExchangeBindNoWait_binds_an_exchange_to_a_queue()
+    public async Task ExchangeBindNoWait_binds_an_exchange_to_a_queue()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -200,15 +201,15 @@ public class FakeModelExchangeTests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName, "direct");
-            model.QueueDeclare(queueName);
-            model.ExchangeBindNoWait(queueName, exchangeName, routingKey, arguments);
+            await model.ExchangeDeclareAsync(exchangeName, "direct");
+            await model.QueueDeclareAsync(queueName);
+            await model.ExchangeBindAsync(queueName, exchangeName, routingKey, arguments, noWait: true);
             AssertEx.AssertBinding(server, exchangeName, routingKey, queueName);
         }
     }
 
     [Fact]
-    public void ExchangeUnbind_removes_binding()
+    public async Task ExchangeUnbind_removes_binding()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -218,10 +219,10 @@ public class FakeModelExchangeTests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName, "direct");
-            model.QueueDeclare(queueName);
-            model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
-            model.ExchangeUnbind(queueName, exchangeName, routingKey, arguments);
+            await model.ExchangeDeclareAsync(exchangeName, "direct");
+            await model.QueueDeclareAsync(queueName);
+            await model.ExchangeBindAsync(exchangeName, queueName, routingKey, arguments);
+            await model.ExchangeUnbindAsync(queueName, exchangeName, routingKey, arguments);
 
             Assert.True(server.Exchanges[exchangeName].Bindings.IsEmpty);
             Assert.Single(server.Queues[queueName].Bindings);
@@ -229,7 +230,7 @@ public class FakeModelExchangeTests
     }
 
     [Fact]
-    public void ExchangeUnbindNoWait_removes_binding()
+    public async Task ExchangeUnbindNoWait_removes_binding()
     {
         var server = new RabbitServer();
         using (var model = new FakeModel(server))
@@ -239,10 +240,10 @@ public class FakeModelExchangeTests
             const string routingKey = "someRoutingKey";
             var arguments = new Dictionary<string, object>();
 
-            model.ExchangeDeclare(exchangeName, "direct");
-            model.QueueDeclare(queueName);
-            model.ExchangeBind(exchangeName, queueName, routingKey, arguments);
-            model.ExchangeUnbindNoWait(queueName, exchangeName, routingKey, arguments);
+            await model.ExchangeDeclareAsync(exchangeName, "direct");
+            await model.QueueDeclareAsync(queueName);
+            await model.ExchangeBindAsync(exchangeName, queueName, routingKey, arguments);
+            await model.ExchangeUnbindAsync(queueName, exchangeName, routingKey, arguments, noWait: true);
 
             Assert.True(server.Exchanges[exchangeName].Bindings.IsEmpty);
             Assert.Single(server.Queues[queueName].Bindings);

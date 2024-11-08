@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Threading;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -11,7 +7,7 @@ namespace AddUp.RabbitMQ.Fakes;
 
 // Adapted from v5 Client lib
 [ExcludeFromCodeCoverage]
-internal sealed class QueueingBasicConsumer : DefaultBasicConsumer
+internal sealed class QueueingBasicConsumer : AsyncDefaultBasicConsumer
 {
     public sealed class SharedQueue<T> : IEnumerable<T>
     {
@@ -138,27 +134,21 @@ internal sealed class QueueingBasicConsumer : DefaultBasicConsumer
     }
 
     public QueueingBasicConsumer() : this(null) { }
-    public QueueingBasicConsumer(IModel model) : this(model, new SharedQueue<BasicDeliverEventArgs>()) { }
-    public QueueingBasicConsumer(IModel model, SharedQueue<BasicDeliverEventArgs> queue) : base(model) { Queue = queue; }
+    public QueueingBasicConsumer(IChannel channel) : this(channel, new SharedQueue<BasicDeliverEventArgs>()) { }
+    public QueueingBasicConsumer(IChannel channel, SharedQueue<BasicDeliverEventArgs> queue) : base(channel) { Queue = queue; }
 
     public SharedQueue<BasicDeliverEventArgs> Queue { get; }
 
-    public override void HandleBasicDeliver(
-        string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IBasicProperties properties, ReadOnlyMemory<byte> body) =>
-        Queue.Enqueue(new BasicDeliverEventArgs
-        {
-            ConsumerTag = consumerTag,
-            DeliveryTag = deliveryTag,
-            Redelivered = redelivered,
-            Exchange = exchange,
-            RoutingKey = routingKey,
-            BasicProperties = properties,
-            Body = body
-        });
-
-    public override void OnCancel(params string[] consumerTags)
+    public override Task HandleBasicDeliverAsync(string consumerTag, ulong deliveryTag, bool redelivered, string exchange, string routingKey, IReadOnlyBasicProperties properties, ReadOnlyMemory<byte> body, CancellationToken cancellationToken = default)
     {
-        base.OnCancel(consumerTags);
+        Queue.Enqueue(new BasicDeliverEventArgs(consumerTag, deliveryTag, redelivered, exchange, routingKey, properties, body.ToArray()));
+
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnCancelAsync(string[] consumerTags, CancellationToken cancellationToken = default)
+    {
+        await base.OnCancelAsync(consumerTags, cancellationToken);
         Queue.Close();
     }
 }
